@@ -1,0 +1,162 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# ai-config-sync — vendor the Generic Baseline Config Bundle into a Host App (ADR 0001).
+#
+# Copies the bundle's files into a target Host App directory, leaving the Host App owning plain
+# files at their expected paths — no submodule, no gem, no symlinks (ADR 0001). Re-running is how a
+# host updates: baseline files are overwritten and the host reconciles via `git diff`, EXCEPT
+# PROJECT.md — the one Customization surface — which is preserved once it exists (unless --force).
+#
+# Dependency-free: Ruby standard library only (no gems, no bundler), mirroring scripts/parity_check.rb
+# so it runs on a bare Ruby in CI.
+#
+# Usage:
+#   ruby bin/ai-config-sync [options] TARGET
+#     TARGET        Host App directory to vendor the bundle into (must already exist).
+#     --from DIR    Source bundle directory (default: this repo's root).
+#     --dry-run     Print the planned actions; write nothing.
+#     --force       Overwrite an existing PROJECT.md too (deliberate baseline reset).
+#     -h, --help    Show this help.
+#
+# Exit status: 0 on success; 1 on a usage/precondition error.
+
+require "optparse"
+require "fileutils"
+
+class AiConfigSync
+  # Top-level entries that make up the Generic Baseline. Copied ONLY IF PRESENT, so the same script
+  # keeps working as later baseline issues add .claude/, .githooks/, skills/, rules/,
+  # docs/standards/, and more bin/ scripts. Add a new top-level surface here only when one appears.
+  ALLOW = [
+    "AGENTS.md", "CLAUDE.md", "GEMINI.md", "PROJECT.md", "CONTEXT.md",
+    ".github", ".claude", ".githooks", "bin", "skills", "rules", "docs", "scripts"
+  ].freeze
+
+  # PROJECT.md is the Host App's Customization surface — preserved once it exists (unless --force).
+  CUSTOMIZATION_SURFACE = "PROJECT.md"
+
+  # This installer's own path, relative to the bundle root. It vendors the bundle; a Host App is a
+  # consumer, not a re-distributor, so the script itself is never copied (issue #5 Q4).
+  SELF_REL = File.join("bin", "ai-config-sync")
+
+  # Tool-local, non-shared settings (e.g. .claude/settings.local.json) — never vendored.
+  LOCAL_RE = /\.local(\.[^.\/]*)?\z/
+
+  def initialize(source:, target:, dry_run: false, force: false, out: $stdout, err: $stderr)
+    @source = File.expand_path(source)
+    @target = File.expand_path(target)
+    @dry_run = dry_run
+    @force = force
+    @out = out
+    @err = err
+    @copied = []
+    @preserved = []
+  end
+
+  def run
+    return 1 unless validate
+
+    ALLOW.each { |entry| sync_entry(entry) }
+    report
+    0
+  end
+
+  private
+
+  def validate
+    unless File.directory?(@source)
+      @err.puts "ai-config-sync: source is not a directory: #{@source}"
+      return false
+    end
+    unless File.directory?(@target)
+      @err.puts "ai-config-sync: target is not a directory: #{@target}"
+      return false
+    end
+    if @source == @target
+      @err.puts "ai-config-sync: refusing to sync a directory onto itself: #{@source}"
+      return false
+    end
+    true
+  end
+
+  def sync_entry(entry)
+    src = File.join(@source, entry)
+    return unless File.exist?(src) # skip-missing: the bundle grows across later baseline issues
+
+    if entry == CUSTOMIZATION_SURFACE && File.exist?(File.join(@target, entry)) && !@force
+      @preserved << entry
+      return
+    end
+
+    if File.directory?(src)
+      copy_dir(entry)
+    else
+      copy_file(entry)
+    end
+  end
+
+  # Walk a directory so the per-file exclusions (this script, *.local) apply even when nested.
+  def copy_dir(rel)
+    Dir.glob("**/*", File::FNM_DOTMATCH, base: File.join(@source, rel)).sort.each do |sub|
+      child_rel = File.join(rel, sub)
+      src = File.join(@source, child_rel)
+      next if File.directory?(src) # dirs are created implicitly when a file below them is copied
+      next if excluded?(child_rel)
+
+      copy_file(child_rel)
+    end
+  end
+
+  def excluded?(rel)
+    return true if rel == SELF_REL
+    return true if File.basename(rel).match?(LOCAL_RE)
+
+    false
+  end
+
+  def copy_file(rel)
+    @copied << rel
+    return if @dry_run
+
+    dest = File.join(@target, rel)
+    FileUtils.mkdir_p(File.dirname(dest))
+    FileUtils.cp(File.join(@source, rel), dest) # cp writes a real file (never a symlink) — ADR 0001
+  end
+
+  def report
+    tag = @dry_run ? "[dry-run] " : ""
+    @out.puts "#{tag}ai-config-sync -> #{@target}"
+    @out.puts "#{tag}  copied:    #{@copied.length} file#{'s' unless @copied.length == 1}"
+    return if @preserved.empty?
+
+    @out.puts "#{tag}  preserved: #{@preserved.join(', ')} " \
+              "(existing Customization surface; pass --force to overwrite)"
+  end
+end
+
+if $PROGRAM_NAME == __FILE__
+  options = { source: File.expand_path("..", __dir__), dry_run: false, force: false }
+  parser = OptionParser.new do |opts|
+    opts.banner = "Usage: ruby bin/ai-config-sync [options] TARGET"
+    opts.on("--from DIR", "Source bundle directory (default: this repo's root)") { |v| options[:source] = v }
+    opts.on("--dry-run", "Print the planned actions; write nothing") { options[:dry_run] = true }
+    opts.on("--force", "Overwrite an existing PROJECT.md too") { options[:force] = true }
+    opts.on("-h", "--help", "Show this help") do
+      puts opts
+      exit 0
+    end
+  end
+  parser.parse!(ARGV)
+
+  target = ARGV.shift
+  if target.nil? || target.empty?
+    warn "ai-config-sync: missing TARGET directory"
+    warn parser.banner
+    exit 1
+  end
+
+  exit AiConfigSync.new(
+    source: options[:source], target: target, dry_run: options[:dry_run], force: options[:force]
+  ).run
+end
