@@ -33,8 +33,12 @@ class AiConfigSync
     ".github", ".claude", ".githooks", "bin", "skills", "rules", "docs", "scripts"
   ].freeze
 
-  # PROJECT.md is the Host App's Customization surface — preserved once it exists (unless --force).
-  CUSTOMIZATION_SURFACE = "PROJECT.md"
+  # Preserved surfaces — a Host App owns these, so once they exist in the target they are kept on
+  # re-sync (unless --force). PROJECT.md is the Customization surface; bin/setup is preserved so
+  # vendoring never clobbers a host's own (often Rails) setup script — the host adds
+  # `bin/install-git-hooks` to it (issue #6 / ADR 0009). Matched at full relative-path granularity so
+  # the nested bin/setup is caught, not just top-level files.
+  PRESERVED = ["PROJECT.md", File.join("bin", "setup")].freeze
 
   # This installer's own path, relative to the bundle root. It vendors the bundle; a Host App is a
   # consumer, not a re-distributor, so the script itself is never copied (issue #5 Q4).
@@ -84,11 +88,6 @@ class AiConfigSync
     src = File.join(@source, entry)
     return unless File.exist?(src) # skip-missing: the bundle grows across later baseline issues
 
-    if entry == CUSTOMIZATION_SURFACE && File.exist?(File.join(@target, entry)) && !@force
-      @preserved << entry
-      return
-    end
-
     if File.directory?(src)
       copy_dir(entry)
     else
@@ -116,6 +115,11 @@ class AiConfigSync
   end
 
   def copy_file(rel)
+    if PRESERVED.include?(rel) && File.exist?(File.join(@target, rel)) && !@force
+      @preserved << rel
+      return
+    end
+
     @copied << rel
     return if @dry_run
 

@@ -20,6 +20,7 @@
 #                              (the region between the markers must equal AGENTS.md byte-for-byte)
 
 require "optparse"
+require_relative "protected_branches"
 
 class ParityCheck
   CANONICAL = "AGENTS.md"
@@ -48,6 +49,15 @@ class ParityCheck
     "## Lifecycle Host",
   ].freeze
 
+  # Branch-protection guardrails (ADR 0009). Checked only for a bundle that ships them — signalled by
+  # the derived sidecar's presence — so minimal fixture bundles are unaffected.
+  SIDECAR = ".githooks/protected-branches"
+  GUARDRAIL_FILES = [
+    ".githooks/pre-commit", ".githooks/pre-push", ".githooks/pre-merge-commit", ".githooks/pre-rebase",
+    "bin/guard-protected-branch", "bin/install-git-hooks", "bin/protected-branches",
+    ".claude/hooks/enforce-branch-creation.sh", ".claude/settings.json"
+  ].freeze
+
   IMPORT_TOKEN = /(?:^|\s)@AGENTS\.md(?:\s|$)/.freeze
   # Markers are only recognized when alone on their own line — so prose that *describes* a marker
   # (e.g. inside a backtick span in documentation) is never mistaken for a real one.
@@ -66,6 +76,7 @@ class ParityCheck
     check_copilot_adapter
     check_rendered_regions
     check_project_sections
+    check_guardrails
     check_links
     report
     @errors.empty? ? 0 : 1
@@ -147,6 +158,30 @@ class ParityCheck
     headings = read(PROJECT_CONFIG).lines.map(&:rstrip)
     REQUIRED_PROJECT_SECTIONS.each do |section|
       err("Project Config #{PROJECT_CONFIG} missing required section: `#{section}`") unless headings.include?(section)
+    end
+  end
+
+  # Branch-protection guardrails (ADR 0009). Runs only when the derived sidecar is present, so a
+  # minimal bundle without guardrails is unaffected. Two invariants: (1) the guardrail files exist,
+  # and (2) the committed sidecar equals the list derived from PROJECT.md — closing the staleness
+  # hole that a generated-then-committed artifact would otherwise open.
+  def check_guardrails
+    return unless exist?(SIDECAR)
+
+    GUARDRAIL_FILES.each do |f|
+      err("Guardrail file missing: #{f} not found") unless exist?(f)
+    end
+
+    unless exist?(PROJECT_CONFIG)
+      err("Guardrails present but #{PROJECT_CONFIG} is missing (cannot verify the protected-branch list)")
+      return
+    end
+
+    derived = ProtectedBranches.from_file(path(PROJECT_CONFIG))
+    committed = read(SIDECAR).lines.map(&:strip).reject(&:empty?)
+    if derived != committed
+      err("Protected-branch sidecar drift: #{SIDECAR} has #{committed.inspect} but PROJECT.md derives " \
+          "#{derived.inspect} — run bin/install-git-hooks to regenerate it")
     end
   end
 

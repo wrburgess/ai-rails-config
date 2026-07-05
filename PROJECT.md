@@ -45,9 +45,12 @@ the actual if they differ. Use human-readable names, never API ids.
 
 ## Branch & PR Policy
 
-- **Protected branches:** `main` (add `master`, `develop` per host). Never commit or push directly to
-  a protected branch; agents work on feature branches. Enforcement (git hooks + per-tool fast-fail) is
-  delivered by the guardrails baseline issue and sources this protected-branch list.
+- **Protected branches:** `main`, `master`, `develop` — this backticked list (everything up to the
+  em dash) is the **authored source** the guardrails derive from. Never commit or push directly to a
+  protected branch; agents work on feature branches. A host may trim or extend the backticked list,
+  then run `bin/install-git-hooks` to regenerate the derived sidecar `.githooks/protected-branches`.
+  Enforcement (git hooks + per-tool fast-fail) is delivered by the guardrails baseline
+  ([ADR 0009](docs/adr/0009-defense-in-depth-branch-protection-all-agents.md)) and sources this list.
 - **Branch naming:** `feature/` · `fix/` · `chore/` · `docs/` prefixes (host may extend).
 - **One PR per branch**, opened ready-for-review (not draft).
 - **Issue linking:** `Closes #N` for a leaf issue; `Part of #N` (no closing keyword, even negated) for
