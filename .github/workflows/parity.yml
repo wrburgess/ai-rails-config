@@ -1,0 +1,25 @@
+name: parity
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  parity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          # No bundler: the checker and its self-test are stdlib-only (ADR 0008).
+          bundler-cache: false
+
+      - name: Parity self-test (proves the checker fails correctly)
+        run: ruby test/parity_check_test.rb
+
+      - name: Structural parity check
+        run: ruby scripts/parity_check.rb
