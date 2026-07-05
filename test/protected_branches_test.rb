@@ -126,7 +126,7 @@ class ProtectedBranchesTest < Minitest::Test
     skip "no sidecar present" unless File.file?(sidecar)
 
     derived = ProtectedBranches.from_file(File.join(root, "PROJECT.md"))
-    committed = File.read(sidecar).lines.map(&:strip).reject(&:empty?)
+    committed = File.read(sidecar).lines.map(&:strip).reject { |l| l.empty? || l.start_with?("#") }
     assert_equal derived, committed,
                  "`.githooks/protected-branches` is stale — run bin/install-git-hooks"
   end

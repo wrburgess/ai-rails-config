@@ -118,6 +118,16 @@ class ParityCheckTest < Minitest::Test
     end
   end
 
+  def test_sidecar_comment_and_blank_lines_are_not_drift
+    with_bundle do |dir|
+      add_guardrails(dir, branches: %w[main master develop])
+      # A hand-added comment / blank line must be tolerated (read the same way the guards do).
+      File.write(File.join(dir, ParityCheck::SIDECAR), "# protected branches\n\nmain\nmaster\ndevelop\n")
+      code, out = run_check(dir)
+      assert_equal 0, code, out
+    end
+  end
+
   # --- failure paths -----------------------------------------------------------------------------
 
   def test_sidecar_drift_fails

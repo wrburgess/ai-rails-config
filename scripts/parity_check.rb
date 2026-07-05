@@ -178,7 +178,10 @@ class ParityCheck
     end
 
     derived = ProtectedBranches.from_file(path(PROJECT_CONFIG))
-    committed = read(SIDECAR).lines.map(&:strip).reject(&:empty?)
+    # Read the sidecar the same way the guards do (skip blank + `#` comment lines) so a hand-added
+    # comment never reads as drift — the machine-generated sidecar has none, but the three readers
+    # must stay consistent.
+    committed = read(SIDECAR).lines.map(&:strip).reject { |l| l.empty? || l.start_with?("#") }
     if derived != committed
       err("Protected-branch sidecar drift: #{SIDECAR} has #{committed.inspect} but PROJECT.md derives " \
           "#{derived.inspect} — run bin/install-git-hooks to regenerate it")
