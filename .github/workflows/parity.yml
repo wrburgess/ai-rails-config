@@ -24,5 +24,14 @@ jobs:
       - name: Sync self-test (proves the vendoring installer works)
         run: ruby test/ai_config_sync_test.rb
 
+      - name: Protected-branch extractor self-test
+        run: ruby test/protected_branches_test.rb
+
+      - name: Guard self-test (Layer 2 git-hook guard)
+        run: bash test/guard_protected_branch.test.sh
+
+      - name: Enforce-hook self-test (Layer 3 Claude fast-fail; needs jq)
+        run: bash .claude/hooks/enforce-branch-creation.test.sh
+
       - name: Structural parity check
         run: ruby scripts/parity_check.rb

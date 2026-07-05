@@ -239,4 +239,74 @@ class AiConfigSyncTest < Minitest::Test
       assert_match(/onto itself/i, out)
     end
   end
+
+  # ---- executable bit survives vendoring (the git hooks + guards must stay runnable) ----
+  def test_preserves_executable_bit_on_vendored_scripts
+    Dir.mktmpdir do |src|
+      Dir.mktmpdir do |dst|
+        build_source(src)
+        FileUtils.mkdir_p(File.join(src, ".githooks"))
+        hook = File.join(src, ".githooks/pre-commit")
+        File.write(hook, "#!/usr/bin/env bash\n")
+        File.chmod(0o755, hook)
+        guard = File.join(src, "bin/guard-protected-branch")
+        File.write(guard, "#!/usr/bin/env bash\n")
+        File.chmod(0o755, guard)
+
+        out, status = sync(dst, from: src)
+        assert_equal 0, status, out
+        assert File.executable?(File.join(dst, ".githooks/pre-commit")),
+               "vendored git hook must stay executable"
+        assert File.executable?(File.join(dst, "bin/guard-protected-branch")),
+               "vendored guard must stay executable"
+      end
+    end
+  end
+
+  # ---- bin/setup is a preserved surface: a host's own setup is never clobbered on re-sync ----
+  def test_preserves_existing_bin_setup
+    Dir.mktmpdir do |src|
+      Dir.mktmpdir do |dst|
+        build_source(src)
+        File.write(File.join(src, "bin/setup"), "#!/usr/bin/env ruby\n# baseline setup\n")
+        FileUtils.mkdir_p(File.join(dst, "bin"))
+        host = "#!/usr/bin/env ruby\n# HOST RAILS SETUP\n"
+        File.write(File.join(dst, "bin/setup"), host)
+
+        out, status = sync(dst, from: src)
+        assert_equal 0, status, out
+        assert_equal host, File.read(File.join(dst, "bin/setup")), "host bin/setup must be preserved"
+        assert_match(/preserved/i, out)
+      end
+    end
+  end
+
+  def test_first_vendor_copies_bin_setup
+    Dir.mktmpdir do |src|
+      Dir.mktmpdir do |dst|
+        build_source(src)
+        baseline = "#!/usr/bin/env ruby\n# baseline setup\n"
+        File.write(File.join(src, "bin/setup"), baseline)
+
+        sync(dst, from: src)
+        assert_equal baseline, File.read(File.join(dst, "bin/setup"))
+      end
+    end
+  end
+
+  def test_force_overwrites_bin_setup
+    Dir.mktmpdir do |src|
+      Dir.mktmpdir do |dst|
+        build_source(src)
+        baseline = "#!/usr/bin/env ruby\n# baseline setup\n"
+        File.write(File.join(src, "bin/setup"), baseline)
+        FileUtils.mkdir_p(File.join(dst, "bin"))
+        File.write(File.join(dst, "bin/setup"), "# HOST\n")
+
+        out, status = sync(dst, "--force", from: src)
+        assert_equal 0, status, out
+        assert_equal baseline, File.read(File.join(dst, "bin/setup"))
+      end
+    end
+  end
 end

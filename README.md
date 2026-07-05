@@ -22,8 +22,11 @@ Layer, Project Config, Customization…), see [`CONTEXT.md`](CONTEXT.md). The fu
   Architecture Decision Records behind the design.
 - **`scripts/parity_check.rb`** — a dependency-free structural check that keeps every Adapter
   resolving to the Canonical Source.
-- *(Landing in later baseline issues: `skills/`, `rules/`, `.claude/`, `.githooks/`, and more
-  `bin/` guardrails.)*
+- **Branch-protection guardrails** — `.githooks/` + `bin/guard-protected-branch`,
+  `bin/install-git-hooks`, and the Claude `.claude/hooks/enforce-branch-creation.sh` fast-fail, which
+  stop any agent (or accidental human) from committing/pushing to a protected branch. See
+  *Branch protection* below.
+- *(Landing in later baseline issues: `skills/` and `rules/`.)*
 
 ## Vendor it into a Host App
 
@@ -70,6 +73,25 @@ ruby bin/ai-config-sync /path/to/host-app
 Baseline files are overwritten; **`PROJECT.md` is preserved** (pass `--force` to overwrite it too
 for a deliberate reset). Review the changes with `git diff` in the Host App and reconcile any
 Customization.
+
+## Branch protection
+
+The bundle ships defense-in-depth branch protection so no agent — or accidental human — commits or
+pushes to a protected branch ([ADR 0009](docs/adr/0009-defense-in-depth-branch-protection-all-agents.md)).
+The protected-branch list is **not hardcoded**: it is authored in [`PROJECT.md`](PROJECT.md) →
+*Branch & PR Policy* and derived into the sidecar `.githooks/protected-branches` that the guards read.
+
+Git hooks are inactive on a fresh clone until `core.hooksPath` is set, so run once after cloning (or
+after vendoring into a Host App):
+
+```bash
+bin/setup            # runs bin/install-git-hooks (sets core.hooksPath, regenerates the sidecar)
+```
+
+A Host App with its own richer `bin/setup` keeps it — `ai-config-sync` **preserves** an existing
+`bin/setup` (like `PROJECT.md`) on re-sync — and adds `bin/install-git-hooks` to that script. Full
+setup, the AI-vs-human exemption, and the server-side (GitHub) step are documented in
+[`docs/guides/branch-protection.md`](docs/guides/branch-protection.md).
 
 ## Quality gate
 
