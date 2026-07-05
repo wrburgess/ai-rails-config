@@ -21,5 +21,8 @@ jobs:
       - name: Parity self-test (proves the checker fails correctly)
         run: ruby test/parity_check_test.rb
 
+      - name: Sync self-test (proves the vendoring installer works)
+        run: ruby test/ai_config_sync_test.rb
+
       - name: Structural parity check
         run: ruby scripts/parity_check.rb
