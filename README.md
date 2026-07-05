@@ -26,7 +26,12 @@ Layer, Project Config, Customization…), see [`CONTEXT.md`](CONTEXT.md). The fu
   `bin/install-git-hooks`, and the Claude `.claude/hooks/enforce-branch-creation.sh` fast-fail, which
   stop any agent (or accidental human) from committing/pushing to a protected branch. See
   *Branch protection* below.
-- *(Landing in later baseline issues: `skills/` and `rules/`.)*
+- **Rules Layer** — a two-tier progressive-context knowledge layer
+  ([ADR 0004](docs/adr/0004-two-tier-rules-layer-progressive-context.md)): the always-resident
+  **Tier-1 Lean Core** (`rules/*.md` — `backend`, `frontend`, `testing`, `security`, `self-review`,
+  `scripting`, each with Patterns + Anti-Patterns) plus the deferred **Tier-2 Deep Docs**
+  (`docs/rules/`, read on demand via the trigger table). Business-neutral starters; extend per host.
+- *(Landing in a later baseline issue: `skills/`.)*
 
 ## Vendor it into a Host App
 

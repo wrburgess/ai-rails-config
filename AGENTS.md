@@ -79,15 +79,35 @@ are added in later baseline issues.
 
 ## Rules Layer
 
-Host guidance is loaded in two tiers so session context stays lean:
+Host guidance is loaded in two tiers so session context stays lean
+([ADR 0004](docs/adr/0004-two-tier-rules-layer-progressive-context.md)):
 
 - **Tier 1 — Lean Core** (`rules/*.md`): small, always-resident, invariant per-domain rule files,
-  each with a **Patterns** and a required **Anti-Patterns** section.
+  each with a **Patterns** and a required **Anti-Patterns** section. The Generic Baseline ships
+  business-neutral starters, marked *extend per host*:
+  - [`rules/backend.md`](rules/backend.md) — models, controllers, jobs, services; Rails-ecosystem-first.
+  - [`rules/frontend.md`](rules/frontend.md) — Hotwire (Turbo + Stimulus), ViewComponent, assets.
+  - [`rules/testing.md`](rules/testing.md) — factories over fixtures, behavior-level assertions.
+  - [`rules/security.md`](rules/security.md) — credentials, secret hygiene, scanners.
+  - [`rules/self-review.md`](rules/self-review.md) — the before-done quality checklist.
+  - [`rules/scripting.md`](rules/scripting.md) — bundled `bin/`/`scripts/` authoring (ASCII-safe output, stdlib-only).
 - **Tier 2 — Deferred Deep Docs** (`docs/rules/<domain>-postmortems.md`): heavy, subsystem-specific
-  case studies, read on demand when a trigger fires.
+  case studies, **not** auto-loaded — read on demand when a trigger fires. See
+  [`docs/rules/README.md`](docs/rules/README.md) for the structure and the full trigger table.
 
-A trigger table links each Tier-1 file to its Tier-2 deep doc. The Lean Core and its starter
-Anti-Patterns are added in a later baseline issue.
+The **trigger table** links each Tier-1 file to the deferred deep doc it points to:
+
+| Working in… | Tier-1 rule | Deferred deep doc |
+|---|---|---|
+| `app/models/`, `app/controllers/`, `app/jobs/`, `app/services/` | `rules/backend.md` | `docs/rules/backend-postmortems.md` |
+| `app/javascript/`, `app/views/`, `app/components/`, `app/assets/` | `rules/frontend.md` | `docs/rules/frontend-postmortems.md` |
+| `spec/` | `rules/testing.md` | `docs/rules/testing-postmortems.md` |
+| `app/`, `config/`, `lib/` | `rules/security.md` | `docs/rules/security-postmortems.md` |
+| `bin/`, `scripts/` | `rules/scripting.md` | `docs/rules/scripting-postmortems.md` |
+
+Claude's `.claude/rules/` auto-load can mirror the Lean Core as a tool-specific accelerator; the
+Generic Baseline keeps a single canonical home under `rules/` (no duplicated tree) and leaves that
+projection to a host.
 
 ## Quality gate
 

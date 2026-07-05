@@ -40,6 +40,18 @@ class ParityCheck
     ".github/copilot-instructions.md",
   ].freeze
 
+  # Tier-1 Lean Core rule files (ADR 0004). Each must exist, be referenced by AGENTS.md so every tool
+  # can reach the Lean Core, and declare its Patterns + Anti-Patterns sections. Checked only for a
+  # bundle that ships a rules/ tree (the RULES_DIR gate) so a minimal fixture bundle is unaffected —
+  # the same "only for a bundle that ships them" stance as check_guardrails.
+  RULES_DIR = "rules"
+  REQUIRED_RULES = [
+    "rules/backend.md", "rules/frontend.md", "rules/testing.md",
+    "rules/security.md", "rules/self-review.md", "rules/scripting.md"
+  ].freeze
+  # Section presence is asserted (the heading line), not content — so a host freely extends the body.
+  RULE_REQUIRED_SECTIONS = ["## Patterns", "## Anti-Patterns"].freeze
+
   # Required PROJECT.md H2 sections (verbatim). This is the parity contract with PROJECT.md.
   REQUIRED_PROJECT_SECTIONS = [
     "## Quality Checks",
@@ -76,6 +88,7 @@ class ParityCheck
     check_copilot_adapter
     check_rendered_regions
     check_project_sections
+    check_rules
     check_guardrails
     check_links
     report
@@ -161,6 +174,30 @@ class ParityCheck
     end
   end
 
+  # Tier-1 Rules Layer (ADR 0004). Runs only when the bundle ships a rules/ tree, so a minimal bundle
+  # without the Rules Layer is unaffected (the same gate stance as check_guardrails). Three invariants
+  # per rule file: (1) it exists, (2) AGENTS.md references it (the Lean Core must be reachable from the
+  # Canonical Source so every tool receives it), and (3) it declares each required section — presence
+  # of the heading, not its content, so a host freely extends the body.
+  def check_rules
+    return unless Dir.exist?(path(RULES_DIR))
+
+    agents = exist?(CANONICAL) ? read(CANONICAL) : ""
+    REQUIRED_RULES.each do |rel|
+      unless exist?(rel)
+        err("Tier-1 rule missing: #{rel} not found")
+        next
+      end
+      unless agents.include?(rel)
+        err("Tier-1 rule #{rel} is not referenced by #{CANONICAL} (the Lean Core must be reachable from the Canonical Source)")
+      end
+      headings = read(rel).lines.map(&:rstrip)
+      RULE_REQUIRED_SECTIONS.each do |section|
+        err("Tier-1 rule #{rel} missing required section: `#{section}`") unless headings.include?(section)
+      end
+    end
+  end
+
   # Branch-protection guardrails (ADR 0009). Runs only when the derived sidecar is present, so a
   # minimal bundle without guardrails is unaffected. Two invariants: (1) the guardrail files exist,
   # and (2) the committed sidecar equals the list derived from PROJECT.md — closing the staleness
@@ -184,7 +221,7 @@ class ParityCheck
     committed = read(SIDECAR).lines.map(&:strip).reject { |l| l.empty? || l.start_with?("#") }
     if derived != committed
       err("Protected-branch sidecar drift: #{SIDECAR} has #{committed.inspect} but PROJECT.md derives " \
-          "#{derived.inspect} — run bin/install-git-hooks to regenerate it")
+          "#{derived.inspect} - run bin/install-git-hooks to regenerate it")
     end
   end
 
@@ -214,7 +251,7 @@ class ParityCheck
 
   def report
     if @errors.empty?
-      puts "parity_check: OK — Canonical Source, #{IMPORT_ADAPTERS.length + 1} Adapters, Project Config, and links all resolve."
+      puts "parity_check: OK - Canonical Source, #{IMPORT_ADAPTERS.length + 1} Adapters, Project Config, and links all resolve."
     else
       puts "parity_check: FAILED (#{@errors.length} problem#{'s' if @errors.length != 1})"
       @errors.each { |e| puts "  - #{e}" }
