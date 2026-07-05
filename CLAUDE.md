@@ -8,8 +8,10 @@ file holds only Claude-specific configuration notes that have no place in the to
 
 - **Invocation Shims** — Claude reaches each Skill through a thin `.claude/commands/<name>.md`
   slash-command file that points at the canonical body in `skills/<name>/SKILL.md`
-  ([ADR 0010](docs/adr/0010-repo-layout-canonical-skills-at-root.md)). These shim files are added in
-  later baseline issues.
+  ([ADR 0010](docs/adr/0010-repo-layout-canonical-skills-at-root.md)). The first is
+  [`.claude/commands/grill-with-docs.md`](.claude/commands/grill-with-docs.md) → `/grill-with-docs`
+  (canonical body: `skills/grill-with-docs/SKILL.md`); the remaining seven shims land in a later
+  baseline issue.
 - **Settings & hooks** — `.claude/settings.json` wires the branch-protection fast-fail
   ([`.claude/hooks/enforce-branch-creation.sh`](.claude/hooks/enforce-branch-creation.sh)) as a
   PreToolUse hook — Layer 3 over the portable git hooks in `.githooks/`

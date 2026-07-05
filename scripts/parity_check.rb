@@ -52,6 +52,16 @@ class ParityCheck
   # Section presence is asserted (the heading line), not content — so a host freely extends the body.
   RULE_REQUIRED_SECTIONS = ["## Patterns", "## Anti-Patterns"].freeze
 
+  # Skills (ADR 0003 / ADR 0010). Each Skill is a canonical body at skills/<name>/SKILL.md reached
+  # through a thin Invocation Shim. Checked only for a bundle that ships a skills/ tree (the
+  # SKILLS_DIR gate) so a minimal fixture bundle is unaffected — the same "only for a bundle that
+  # ships them" stance as check_rules / check_guardrails. REQUIRED_SKILLS is a floor (the baseline
+  # ships 1 of 8 today); it grows as later issues add skills. The per-present-skill invariants apply
+  # to EVERY skills/<name>/ dir, so those later skills are covered by construction — no rewrite.
+  SKILLS_DIR = "skills"
+  CLAUDE_COMMANDS_DIR = ".claude/commands"
+  REQUIRED_SKILLS = ["grill-with-docs"].freeze
+
   # Required PROJECT.md H2 sections (verbatim). This is the parity contract with PROJECT.md.
   REQUIRED_PROJECT_SECTIONS = [
     "## Quality Checks",
@@ -89,6 +99,7 @@ class ParityCheck
     check_rendered_regions
     check_project_sections
     check_rules
+    check_skills
     check_guardrails
     check_links
     report
@@ -198,6 +209,64 @@ class ParityCheck
     end
   end
 
+  # Skills Layer (ADR 0003 / ADR 0010). Runs only when the bundle ships a skills/ tree, so a minimal
+  # bundle is unaffected (the same gate stance as check_rules). Two tiers:
+  #   (1) Floor  — every REQUIRED_SKILLS entry has skills/<name>/SKILL.md (the expected skill ships).
+  #   (2) Shape  — EVERY present skills/<name>/ dir must have: a SKILL.md, that SKILL.md carrying YAML
+  #                frontmatter with a `name:` key, a paired Claude shim .claude/commands/<name>.md,
+  #                that shim referencing the canonical body (so a hollow stub can't pass), and a
+  #                reference to skills/<name>/SKILL.md in AGENTS.md (the documented invocation the
+  #                native-discovery tools reach). Applying the shape to every present dir is what makes
+  #                the check cover skills a later issue adds without editing this list.
+  def check_skills
+    return unless Dir.exist?(path(SKILLS_DIR))
+
+    agents = exist?(CANONICAL) ? read(CANONICAL) : ""
+
+    REQUIRED_SKILLS.each do |name|
+      err("Required skill missing: #{SKILLS_DIR}/#{name}/SKILL.md not found") unless exist?("#{SKILLS_DIR}/#{name}/SKILL.md")
+    end
+
+    present_skills.each do |name|
+      body_rel = "#{SKILLS_DIR}/#{name}/SKILL.md"
+      unless exist?(body_rel)
+        err("Skill #{name} missing its canonical body: #{body_rel} not found")
+        next
+      end
+      err("Skill #{name}: #{body_rel} lacks YAML frontmatter with a `name:` key") unless frontmatter_name?(read(body_rel))
+
+      shim_rel = "#{CLAUDE_COMMANDS_DIR}/#{name}.md"
+      if !exist?(shim_rel)
+        err("Skill #{name} missing its Claude Invocation Shim: #{shim_rel} not found")
+      elsif !read(shim_rel).include?(body_rel)
+        err("Claude Invocation Shim #{shim_rel} does not reference its canonical body (expected `#{body_rel}`)")
+      end
+
+      unless agents.include?(body_rel)
+        err("Skill #{name} is not referenced by #{CANONICAL} (the documented invocation must be reachable from the Canonical Source)")
+      end
+    end
+  end
+
+  # Names of every skills/<name>/ subdirectory that actually ships a body dir (ignores stray files).
+  def present_skills
+    Dir.children(path(SKILLS_DIR))
+       .select { |c| Dir.exist?(File.join(path(SKILLS_DIR), c)) }
+       .sort
+  end
+
+  # True when `content` opens with a YAML frontmatter block (--- … ---) carrying a non-empty `name:`.
+  def frontmatter_name?(content)
+    lines = content.lines
+    first = lines.index { |l| !l.strip.empty? }
+    return false if first.nil? || lines[first].strip != "---"
+
+    close = lines[(first + 1)..].index { |l| l.strip == "---" }
+    return false if close.nil?
+
+    lines[(first + 1)...(first + 1 + close)].any? { |l| l.match?(/\Aname:\s*\S/) }
+  end
+
   # Branch-protection guardrails (ADR 0009). Runs only when the derived sidecar is present, so a
   # minimal bundle without guardrails is unaffected. Two invariants: (1) the guardrail files exist,
   # and (2) the committed sidecar equals the list derived from PROJECT.md — closing the staleness
@@ -251,7 +320,9 @@ class ParityCheck
 
   def report
     if @errors.empty?
-      puts "parity_check: OK - Canonical Source, #{IMPORT_ADAPTERS.length + 1} Adapters, Project Config, and links all resolve."
+      skills = Dir.exist?(path(SKILLS_DIR)) ? present_skills.length : 0
+      puts "parity_check: OK - Canonical Source, #{IMPORT_ADAPTERS.length + 1} Adapters, Project Config, " \
+           "#{skills} Skill#{'s' if skills != 1}, and links all resolve."
     else
       puts "parity_check: FAILED (#{@errors.length} problem#{'s' if @errors.length != 1})"
       @errors.each { |e| puts "  - #{e}" }
