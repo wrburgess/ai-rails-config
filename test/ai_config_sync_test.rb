@@ -12,6 +12,7 @@ require "minitest/autorun"
 require "tmpdir"
 require "fileutils"
 require "rbconfig"
+require "digest"
 
 class AiConfigSyncTest < Minitest::Test
   SCRIPT = File.expand_path("../bin/ai-config-sync", __dir__)
@@ -59,6 +60,16 @@ class AiConfigSyncTest < Minitest::Test
       ## Review Severity Framework
       ## Lifecycle Host
     MD
+  end
+
+  # Stable digest of a directory tree (relative path + file content), for idempotency assertions.
+  def tree_digest(dir)
+    Dir.glob("**/*", File::FNM_DOTMATCH, base: dir).sort.reduce(Digest::SHA256.new) do |acc, rel|
+      path = File.join(dir, rel)
+      next acc if File.directory?(path)
+
+      acc.update(rel).update("\0").update(File.read(path)).update("\0")
+    end.hexdigest
   end
 
   # Runs the installer as a real subprocess (stderr merged into stdout). Returns [output, exit_status].
@@ -144,6 +155,23 @@ class AiConfigSyncTest < Minitest::Test
         File.write(File.join(dst, "AGENTS.md"), "# STALE\n")
         sync(dst, from: src)
         assert_equal File.read(File.join(src, "AGENTS.md")), File.read(File.join(dst, "AGENTS.md"))
+      end
+    end
+  end
+
+  # ---- idempotent: a second run leaves the same state (overwrites baseline, keeps PROJECT.md) ----
+  def test_idempotent_on_rerun
+    Dir.mktmpdir do |src|
+      Dir.mktmpdir do |dst|
+        build_source(src)
+        sync(dst, from: src)
+        custom = "# HOST CUSTOMIZED\n"
+        File.write(File.join(dst, "PROJECT.md"), custom) # host customizes after first vendor
+        after_first = tree_digest(dst)
+        out, status = sync(dst, from: src)               # re-sync
+        assert_equal 0, status, out
+        assert_equal after_first, tree_digest(dst), "re-run must be idempotent"
+        assert_equal custom, File.read(File.join(dst, "PROJECT.md")), "re-run must keep host PROJECT.md"
       end
     end
   end
