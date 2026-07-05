@@ -78,6 +78,32 @@ class ParityCheckTest < Minitest::Test
     MD
   end
 
+  # Writes the six Tier-1 Lean Core rule files (each with the required sections) into `dir` and adds
+  # their references to AGENTS.md so check_rules' "referenced by AGENTS.md" invariant holds. Mirrors
+  # how add_guardrails augments a baseline. Individual failure tests mutate one file / AGENTS.md
+  # afterward.
+  def add_rules(dir)
+    FileUtils.mkdir_p(File.join(dir, "rules"))
+    ParityCheck::REQUIRED_RULES.each do |rel|
+      File.write(File.join(dir, rel), <<~MD)
+        # Rule
+
+        ## Patterns
+
+        - Prefer the framework's built-ins.
+
+        ## Anti-Patterns
+
+        - **Never** do the bad thing - because it breaks.
+      MD
+    end
+    # Make the Lean Core reachable from the Canonical Source (backticked paths, not markdown links,
+    # so the link check is unaffected while check_rules' substring reference still matches).
+    agents = File.read(File.join(dir, "AGENTS.md"))
+    refs = ParityCheck::REQUIRED_RULES.map { |r| "`#{r}`" }.join(" ")
+    File.write(File.join(dir, "AGENTS.md"), "#{agents}\n## Rules Layer\n\n#{refs}\n")
+  end
+
   # --- happy paths -------------------------------------------------------------------------------
 
   def test_valid_bundle_passes
@@ -216,6 +242,67 @@ class ParityCheckTest < Minitest::Test
       code, out = run_check(dir)
       assert_equal 1, code
       assert_match(/Copilot Adapter missing/, out)
+    end
+  end
+
+  # --- Rules Layer (ADR 0004) --------------------------------------------------------------------
+
+  def test_valid_rules_pass
+    with_bundle do |dir|
+      add_rules(dir)
+      code, out = run_check(dir)
+      assert_equal 0, code, out
+    end
+  end
+
+  def test_rules_absent_are_not_checked
+    # No rules/ dir -> check_rules is a no-op, so a bundle without the Rules Layer still passes.
+    with_bundle do |dir|
+      refute Dir.exist?(File.join(dir, "rules"))
+      code, = run_check(dir)
+      assert_equal 0, code
+    end
+  end
+
+  def test_rule_missing_anti_patterns_section_fails
+    # The acceptance-criterion guard: a Tier-1 rule without its Anti-Patterns section reddens.
+    with_bundle do |dir|
+      add_rules(dir)
+      File.write(File.join(dir, "rules/testing.md"), "# Rule\n\n## Patterns\n\n- only patterns\n")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/Anti-Patterns/, out)
+    end
+  end
+
+  def test_rule_missing_patterns_section_fails
+    with_bundle do |dir|
+      add_rules(dir)
+      File.write(File.join(dir, "rules/testing.md"), "# Rule\n\n## Anti-Patterns\n\n- **Never** X.\n")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/missing required section: `## Patterns`/, out)
+    end
+  end
+
+  def test_missing_required_rule_file_fails
+    with_bundle do |dir|
+      add_rules(dir)
+      File.delete(File.join(dir, "rules/security.md")) # rules/ present, one required file gone
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(%r{Tier-1 rule missing: rules/security\.md}, out)
+    end
+  end
+
+  def test_rule_not_referenced_by_agents_fails
+    with_bundle do |dir|
+      add_rules(dir)
+      # Rewrite AGENTS.md to a valid, link-resolving body that references none of the rules.
+      File.write(File.join(dir, "AGENTS.md"), "# Canonical\n\nSee [config](PROJECT.md).\n")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/not referenced by AGENTS\.md/, out)
     end
   end
 
