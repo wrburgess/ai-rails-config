@@ -104,6 +104,29 @@ class ParityCheckTest < Minitest::Test
     File.write(File.join(dir, "AGENTS.md"), "#{agents}\n## Rules Layer\n\n#{refs}\n")
   end
 
+  # Writes a valid Skills Layer into `dir`: a canonical body skills/<name>/SKILL.md (with `name:`
+  # frontmatter), a paired Claude shim .claude/commands/<name>.md that references the body, and a
+  # reference to the body in AGENTS.md so check_skills' "referenced by AGENTS.md" invariant holds.
+  # Mirrors add_rules/add_guardrails. Individual failure tests mutate one file afterward.
+  def add_skills(dir, name: "grill-with-docs")
+    body_rel = "skills/#{name}/SKILL.md"
+    shim_rel = ".claude/commands/#{name}.md"
+    FileUtils.mkdir_p(File.join(dir, "skills/#{name}"))
+    FileUtils.mkdir_p(File.join(dir, ".claude/commands"))
+    File.write(File.join(dir, body_rel), <<~MD)
+      ---
+      name: #{name}
+      description: A portable skill.
+      ---
+
+      Skill body.
+    MD
+    # The shim's relative link contains body_rel as a substring, satisfying the reference invariant.
+    File.write(File.join(dir, shim_rel), "Read and follow [`#{body_rel}`](../../#{body_rel}).\n")
+    agents = File.read(File.join(dir, "AGENTS.md"))
+    File.write(File.join(dir, "AGENTS.md"), "#{agents}\n## Skills\n\n`#{body_rel}`\n")
+  end
+
   # --- happy paths -------------------------------------------------------------------------------
 
   def test_valid_bundle_passes
@@ -299,6 +322,88 @@ class ParityCheckTest < Minitest::Test
     with_bundle do |dir|
       add_rules(dir)
       # Rewrite AGENTS.md to a valid, link-resolving body that references none of the rules.
+      File.write(File.join(dir, "AGENTS.md"), "# Canonical\n\nSee [config](PROJECT.md).\n")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/not referenced by AGENTS\.md/, out)
+    end
+  end
+
+  # --- Skills Layer (ADR 0003 / ADR 0010) --------------------------------------------------------
+
+  def test_valid_skills_pass
+    with_bundle do |dir|
+      add_skills(dir)
+      code, out = run_check(dir)
+      assert_equal 0, code, out
+    end
+  end
+
+  def test_skills_absent_are_not_checked
+    # No skills/ dir -> check_skills is a no-op, so a bundle without any Skill still passes.
+    with_bundle do |dir|
+      refute Dir.exist?(File.join(dir, "skills"))
+      code, = run_check(dir)
+      assert_equal 0, code
+    end
+  end
+
+  def test_skill_missing_body_fails
+    with_bundle do |dir|
+      add_skills(dir)
+      File.delete(File.join(dir, "skills/grill-with-docs/SKILL.md")) # dir present, body gone
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(%r{missing its canonical body: skills/grill-with-docs/SKILL\.md}, out)
+    end
+  end
+
+  def test_skill_missing_claude_shim_fails
+    with_bundle do |dir|
+      add_skills(dir)
+      File.delete(File.join(dir, ".claude/commands/grill-with-docs.md"))
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/missing its Claude Invocation Shim/, out)
+    end
+  end
+
+  def test_skill_shim_not_referencing_body_fails
+    # A shim that exists but doesn't point at the canonical body is a hollow stub — must redden.
+    with_bundle do |dir|
+      add_skills(dir)
+      File.write(File.join(dir, ".claude/commands/grill-with-docs.md"), "No pointer here.\n")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/does not reference its canonical body/, out)
+    end
+  end
+
+  def test_skill_body_missing_frontmatter_name_fails
+    with_bundle do |dir|
+      add_skills(dir)
+      File.write(File.join(dir, "skills/grill-with-docs/SKILL.md"), "# No frontmatter\n\nBody.\n")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/lacks YAML frontmatter with a `name:` key/, out)
+    end
+  end
+
+  def test_required_skill_absent_fails
+    # skills/ ships a (valid) decoy skill but not the required grill-with-docs -> the floor reddens.
+    with_bundle do |dir|
+      add_skills(dir, name: "decoy")
+      refute Dir.exist?(File.join(dir, "skills/grill-with-docs"))
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(%r{Required skill missing: skills/grill-with-docs/SKILL\.md}, out)
+    end
+  end
+
+  def test_skill_not_referenced_by_agents_fails
+    with_bundle do |dir|
+      add_skills(dir)
+      # Rewrite AGENTS.md to a valid, link-resolving body that references no skill.
       File.write(File.join(dir, "AGENTS.md"), "# Canonical\n\nSee [config](PROJECT.md).\n")
       code, out = run_check(dir)
       assert_equal 1, code

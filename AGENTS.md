@@ -74,8 +74,26 @@ The Generic Baseline ships eight Skills — `grill-with-docs`, `assess`, `cplan`
 `rtr`, `final`, `ship` ([ADR 0006](docs/adr/0006-baseline-skill-set-and-github-default-lifecycle-host.md)).
 Each is authored once as a canonical body (`skills/<name>/SKILL.md`) and reached through a thin,
 tool-specific Invocation Shim; the procedure and quality gates are identical on every tool, and only
-tool-specific execution enhancements degrade gracefully. The canonical skill bodies and their shims
-are added in later baseline issues.
+tool-specific execution enhancements degrade gracefully.
+
+### Invoking a Skill
+
+A Skill's canonical body lives at `skills/<name>/SKILL.md` (Anthropic's portable Skill format: YAML
+frontmatter + markdown body + optional bundled files). How each tool invokes it
+([ADR 0003](docs/adr/0003-skills-canonical-body-thin-shims-graceful-degradation.md)):
+
+- **Claude Code** — a slash command from the thin shim at `.claude/commands/<name>.md` (e.g.
+  `/grill-with-docs`), which points at the canonical body.
+- **Codex / Copilot / Gemini** — no slash command; these tools read `AGENTS.md` natively, so **the
+  documented procedure is the shim**: to run a Skill, read and follow its canonical body at
+  `skills/<name>/SKILL.md`. (A tool may additionally define a native prompt/command file where it
+  supports one; the Generic Baseline ships none yet.)
+
+**Shipped so far:** `grill-with-docs` — a plan-grilling / brainstorming session that stress-tests a
+plan against the project's domain language and captures decisions inline as a `CONTEXT.md` glossary
+and `docs/adr/` ADRs. Canonical body: [`skills/grill-with-docs/SKILL.md`](skills/grill-with-docs/SKILL.md)
+(with sibling format specs `CONTEXT-FORMAT.md` and `ADR-FORMAT.md`). The remaining seven skill bodies
+and their shims land in a later baseline issue.
 
 ## Rules Layer
 

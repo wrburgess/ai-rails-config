@@ -31,7 +31,11 @@ Layer, Project Config, Customization…), see [`CONTEXT.md`](CONTEXT.md). The fu
   **Tier-1 Lean Core** (`rules/*.md` — `backend`, `frontend`, `testing`, `security`, `self-review`,
   `scripting`, each with Patterns + Anti-Patterns) plus the deferred **Tier-2 Deep Docs**
   (`docs/rules/`, read on demand via the trigger table). Business-neutral starters; extend per host.
-- *(Landing in a later baseline issue: `skills/`.)*
+- **Skills** — model-agnostic capabilities authored once as a canonical body (`skills/<name>/SKILL.md`)
+  and reached through a thin per-tool Invocation Shim (Claude `.claude/commands/<name>.md`; other tools
+  via native `AGENTS.md` discovery), so any configured agent runs the same procedure
+  ([ADR 0003](docs/adr/0003-skills-canonical-body-thin-shims-graceful-degradation.md)). First shipped:
+  `grill-with-docs`; the remaining seven baseline skills land in a later issue.
 
 ## Vendor it into a Host App
 
