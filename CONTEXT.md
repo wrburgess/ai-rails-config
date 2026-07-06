@@ -64,12 +64,27 @@ _Avoid_: "postmortems" (host may use another word), "reference docs"
 A first-class, required section of every rule file: an imperative "**Never** X — *because* Y" entry (with an optional host-filled reference slot) that steers agents away from choices we never want.
 _Avoid_: "gotcha", "warning"
 
+### Intake pipeline
+
+**Intake Pipeline**:
+The feedback loop that monitors the AI-engineering field and folds durable learnings back into the Config Bundle's Rules Layer, Skills, and ADRs.
+_Avoid_: "the monitor", "the tracker"
+
+**Watchlist**:
+The machine-readable list of field sources — the roster in data form — that the `scout` sweep polls for new output.
+_Avoid_: "feed list", "sources file"
+
+**Learnings Log**:
+The dated, append-only record of intake findings, each entry carrying a stance, a touches target, and a status.
+_Avoid_: "the notes", "changelog"
+
 ## Relationships
 
 - The **Config Bundle** contains one **Canonical Source**, many **Adapters**, many **Skills**, one **Rules Layer**, and one **Project Config**.
 - The **Rules Layer** = **Lean Core** (Tier 1, always resident) + **Deferred Deep Docs** (Tier 2, on demand); a trigger table links a Tier-1 file to its Tier-2 deep doc.
 - A **Host App** vendors the **Generic Baseline**, then applies **Customization** (including its **Project Config**).
 - Each **Adapter** is derived from the **Canonical Source**; every **Skill** reads the **Project Config** for host-specific values.
+- The **Intake Pipeline** reads a **Watchlist**, records findings in a **Learnings Log**, and proposes changes to the **Rules Layer**, **Skills**, or ADRs via the `scout` **Skill**.
 
 ## Example dialogue
 
