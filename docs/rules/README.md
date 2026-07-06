@@ -17,6 +17,28 @@ Each Tier-1 rule names the deferred deep doc to read when working in its area:
 | `spec/` (tests) | `rules/testing.md` | `docs/rules/testing-postmortems.md` |
 | `app/`, `config/`, `lib/` (secrets, scanners) | `rules/security.md` | `docs/rules/security-postmortems.md` |
 | `bin/`, `scripts/` (bundled scripts) | `rules/scripting.md` | `docs/rules/scripting-postmortems.md` |
+| `skills/`, `.claude/commands/` (Skill bodies + shims) | `rules/skills.md` | `docs/rules/skills-postmortems.md` |
 | before declaring work done | `rules/self-review.md` | (none — the checklist is the whole rule) |
 
 Extend this table per host as you add domains.
+
+## Convention: reference a not-yet-existing path as a backticked path, never a markdown link
+
+Notice that every deferred deep doc above (e.g. `docs/rules/scripting-postmortems.md`) is written as a
+**backticked inline-code path**, not a `[text](path)` markdown link — even though it names a real
+target pattern. That is deliberate and load-bearing:
+
+- The parity check's link validator (`check_links` in `scripts/parity_check.rb`) resolves **only
+  markdown links**, and **only** in the scanned files (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`,
+  `PROJECT.md`, `.github/copilot-instructions.md`). A markdown link to a file that doesn't exist yet
+  reddens CI with a dead-link failure; a backticked path is inert text the validator ignores.
+- This is what lets the Rules Layer ship a trigger table — and any forward-reference to a
+  planned-but-absent file — **without creating empty placeholder files** just to satisfy the checker.
+
+**The rule:** a reference to a path that may not exist yet must be a **backticked inline-code path**
+(or plain text), never a markdown link. **Promote it to a real `[text](path)` link only once the
+target file exists.** A contributor who "helpfully" converts a backticked path into a link before its
+target lands will break the parity gate.
+
+*(Provenance: PR #13 forward-references and #7 / PR #17's trigger table both relied on this unwritten
+rule; captured here per issue #19.)*

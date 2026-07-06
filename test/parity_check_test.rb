@@ -325,6 +325,18 @@ class ParityCheckTest < Minitest::Test
     end
   end
 
+  def test_missing_skills_rule_file_fails
+    # `rules/skills.md` is part of the REQUIRED_RULES floor (issue #25): dropping it reddens too. This
+    # pins the skill-authoring rule into the floor so a future edit can't silently drop it.
+    with_bundle do |dir|
+      add_rules(dir)
+      File.delete(File.join(dir, "rules/skills.md"))
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(%r{Tier-1 rule missing: rules/skills\.md}, out)
+    end
+  end
+
   def test_rule_not_referenced_by_agents_fails
     with_bundle do |dir|
       add_rules(dir)
