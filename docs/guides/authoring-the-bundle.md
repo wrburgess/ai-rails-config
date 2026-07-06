@@ -26,6 +26,23 @@ matching self-test in [`test/parity_check_test.rb`](../../test/parity_check_test
 one case per failure mode, each asserting **both** the non-zero exit **and** the specific error string, so
 the check can never become a silent false green.
 
+### Content checks: match forbidden tokens on word boundaries, not raw substrings
+
+A check that scans a file's *content* for forbidden tokens — as the skills content-neutrality check
+does (every lifecycle body must reference `PROJECT.md`, and no host-specific proper noun may appear in
+any body) — must **not** use a naive `String#include?`. A pure-alphabetic token like `rspec` is a
+substring of the innocent word `underspecified`, so raw-substring matching is a false positive waiting
+to happen. Split the matcher by token shape:
+
+- **Pure-alphabetic tokens** (`Searchkick`, `rspec`) match only on ASCII-letter word boundaries —
+  `/(?<![A-Za-z])TOKEN(?![A-Za-z])/` — so the token matches as a standalone word but not inside a
+  larger one.
+- **Tokens carrying punctuation** (`bundler-audit`, `.claude/rules/`, `admin_root_path`) match as plain
+  substrings; no benign word contains them, and a boundary rule would misfire on the trailing `/`.
+
+Test **both** branches — a positive case per branch **and** a case proving the innocent superword
+(`underspecified`) stays green, so the boundary rule itself can't silently regress.
+
 ## Porting a template of record: copy byte-identical, verify with `diff -q`
 
 When porting an artifact that is **already business- and tool-neutral** (e.g. a skill body from the
@@ -40,3 +57,13 @@ diff is provably the source), avoids silent drift from the template of record, a
 artifact was chosen — that it needed no de-coupling — actually true. If a source file *does* carry
 host/domain coupling, that de-coupling is real work: call it out in the assessment and plan, and do it as
 a visible, reviewed edit — never fold it silently into a "port."
+
+**Worked example — a non-byte-neutral port.** The six lifecycle skills (`assess` … `final`, issue #9)
+were the opposite of `grill-with-docs`: their source bodies carried heavy host/domain coupling —
+hardcoded quality-check commands, `Searchkick`/`Pundit`, model names, `admin_root_path`, `P0`/`P1`
+severities. The de-coupling was done as visible, reviewed edits (each value re-routed to `PROJECT.md`)
+and, crucially, made **enforceable** rather than merely reviewed: the content-neutrality check above
+reddens CI if any lifecycle body reintroduces a host token or stops referencing `PROJECT.md`. The
+lesson: when a port is **not** byte-neutral, pair the reviewed de-coupling with a parity check that
+keeps it de-coupled for the next author — a `diff -q` proves a verbatim port, and a content check
+proves a de-coupled one stays de-coupled.
