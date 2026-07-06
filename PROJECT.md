@@ -10,18 +10,22 @@ replace them during Customization.
 
 ## Quality Checks
 
-The commands an agent must run and get green before declaring work done in the Host App. Replace with
-the Host App's real commands during Customization.
+The commands an agent must run and get green before declaring work done. The generalized Skills read
+this table — they never hardcode a stack's commands. **Host Apps: replace these rows with your real
+commands during Customization** (e.g. a Rails Host App: lint `bundle exec rubocop -a`, tests
+`bundle exec rspec`, security `bin/brakeman --no-pager -q`, dependency audit `bin/bundler-audit check`).
+
+This config repo is itself Rails-free, so its own gate is the structural parity check plus the
+dependency-free stdlib self-tests:
 
 | Purpose | Command |
 |---------|---------|
-| Lint | `<host lint command, e.g. bundle exec rubocop -a>` |
-| Tests | `<host test command, e.g. bundle exec rspec>` |
-| Security scan | `<host scanner, e.g. bin/brakeman --no-pager -q>` |
-| Dependency audit | `<host audit, e.g. bin/bundler-audit check>` |
+| Structural parity | `ruby scripts/parity_check.rb` |
+| Self-tests | `ruby test/parity_check_test.rb` |
 
-This config repo's own quality gate is `ruby scripts/parity_check.rb` (stdlib-only; no host app to
-lint or test).
+A check whose command runs but has nothing applicable to inspect (e.g. no application code to lint) is
+reported `pass`/`not_run` with a stated reason — checks are **not applicable, not skipped**, so rigor
+is unchanged.
 
 ## Attribution & Model Declaration
 

@@ -60,7 +60,24 @@ class ParityCheck
   # to EVERY skills/<name>/ dir, so those later skills are covered by construction — no rewrite.
   SKILLS_DIR = "skills"
   CLAUDE_COMMANDS_DIR = ".claude/commands"
-  REQUIRED_SKILLS = ["grill-with-docs"].freeze
+  # The six lifecycle Skills (ADR 0006). Each MUST route host values through PROJECT.md, so each body
+  # is asserted to reference the Project Config (the content-neutrality positive check in check_skills).
+  LIFECYCLE_SKILLS = %w[assess cplan impl verify rtr final].freeze
+  # Floor: the skills the baseline is expected to ship. Grows as later issues add skills; the shape
+  # check applies to every *present* skill regardless, so additions are covered by construction.
+  REQUIRED_SKILLS = (["grill-with-docs"] + LIFECYCLE_SKILLS).freeze
+
+  # Content-neutrality (ADR 0003): a generic Skill body reads host values from PROJECT.md, so a
+  # stack/domain proper noun in a body is leftover coupling the purely-structural checks cannot see.
+  # This denylist is deliberately tight and unambiguous to avoid false positives on generic prose, and
+  # is scoped to skills/<name>/SKILL.md only (docs/ may legitimately illustrate). Pure-alphabetic
+  # tokens match on ASCII-letter word boundaries (so `rspec` matches the standalone word but not
+  # "underspecified"); tokens with punctuation match as plain substrings (no benign word contains them).
+  HOST_SPECIFIC_TOKENS = [
+    "Searchkick", "Elasticsearch", "Pundit", "Devise", "Kamal", "SimpleCov",
+    "strong_migrations", "Ransack", "Markaz", "admin_root_path", "SKIP_TITLE_REINDEX",
+    "rubocop", "rspec", "brakeman", "bundler-audit", ".claude/rules/", "docs/rules/"
+  ].freeze
 
   # Required PROJECT.md H2 sections (verbatim). This is the parity contract with PROJECT.md.
   REQUIRED_PROJECT_SECTIONS = [
@@ -218,6 +235,9 @@ class ParityCheck
   #                reference to skills/<name>/SKILL.md in AGENTS.md (the documented invocation the
   #                native-discovery tools reach). Applying the shape to every present dir is what makes
   #                the check cover skills a later issue adds without editing this list.
+  #   (3) Neutrality — no HOST_SPECIFIC_TOKENS in any present body, and every LIFECYCLE_SKILLS body
+  #                references PROJECT.md. This is the one content check (ADR 0003): the structural
+  #                invariants can't see a leftover stack/domain token or a hardcoded quality check.
   def check_skills
     return unless Dir.exist?(path(SKILLS_DIR))
 
@@ -233,7 +253,8 @@ class ParityCheck
         err("Skill #{name} missing its canonical body: #{body_rel} not found")
         next
       end
-      err("Skill #{name}: #{body_rel} lacks YAML frontmatter with a `name:` key") unless frontmatter_name?(read(body_rel))
+      body = read(body_rel)
+      err("Skill #{name}: #{body_rel} lacks YAML frontmatter with a `name:` key") unless frontmatter_name?(body)
 
       shim_rel = "#{CLAUDE_COMMANDS_DIR}/#{name}.md"
       if !exist?(shim_rel)
@@ -245,6 +266,31 @@ class ParityCheck
       unless agents.include?(body_rel)
         err("Skill #{name} is not referenced by #{CANONICAL} (the documented invocation must be reachable from the Canonical Source)")
       end
+
+      # Content-neutrality: no host-specific token in ANY Skill body (structural checks can't see it) …
+      HOST_SPECIFIC_TOKENS.each do |token|
+        next unless host_token?(body, token)
+
+        err("Skill #{name}: #{body_rel} contains host-specific token `#{token}` (a generic Skill body " \
+            "must read host values from #{PROJECT_CONFIG}, not name a stack/domain)")
+      end
+
+      # … and every lifecycle Skill must route its host values through the Project Config.
+      if LIFECYCLE_SKILLS.include?(name) && !body.include?(PROJECT_CONFIG)
+        err("Lifecycle Skill #{name}: #{body_rel} does not reference #{PROJECT_CONFIG} (it must read " \
+            "quality checks / attribution / severities / lifecycle host from Project Config, not hardcode them)")
+      end
+    end
+  end
+
+  # True when `token` appears in `body` as a host-specific mention. Pure-alphabetic tokens require
+  # ASCII-letter word boundaries (so `rspec` matches the standalone word but not "underspecified");
+  # tokens carrying punctuation (paths, `bundler-audit`, `admin_root_path`) match as plain substrings.
+  def host_token?(body, token)
+    if token.match?(/\A[A-Za-z]+\z/)
+      body.match?(/(?<![A-Za-z])#{Regexp.escape(token)}(?![A-Za-z])/)
+    else
+      body.include?(token)
     end
   end
 
