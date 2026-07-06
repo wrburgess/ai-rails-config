@@ -30,6 +30,9 @@ jobs:
       - name: Watchlist data-contract self-test (voices.yml schema)
         run: ruby test/voices_watchlist_test.rb
 
+      - name: Roster parity self-test (prose doc <-> voices.yml)
+        run: ruby test/voices_roster_parity_test.rb
+
       - name: Guard self-test (Layer 2 git-hook guard)
         run: bash test/guard_protected_branch.test.sh
 
