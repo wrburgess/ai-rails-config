@@ -2,8 +2,8 @@
 #
 # ILLUSTRATIVE REFERENCE — NOT part of the Generic Baseline guarantee. This is curated content a
 # Host App is expected to replace or extend during Customization; only the *schema* (the field
-# legend below) is business-neutral mechanism. Placement is ratified in ADR 0011
-# (docs/adr/0011-intake-pipeline-placement.md). See docs/reference/README.md for the label rationale.
+# legend below) is business-neutral mechanism. Placement is ratified in ADR 0012
+# (docs/adr/0012-intake-pipeline-placement.md). See docs/reference/README.md for the label rationale.
 #
 # Schema (per entry):
 #   name     : display name (or org/channel name)

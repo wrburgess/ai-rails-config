@@ -9,7 +9,10 @@ claim: >
   alongside the code as first-class, continuously-run tests.
 stance: extends
 touches: rules/testing.md
-status: noted
+status: actioned
+status_detail: >
+  Actioned in PR #36 — rules/testing.md gained an "evals for LLM-driven behavior" Pattern and a
+  matching Anti-Pattern (extend per host).
 ---
 
 ## Compare / contrast
@@ -26,9 +29,11 @@ rule's current scope and this practice.
 
 ## Disposition
 
-`noted` — a candidate extension, not yet actioned. If a Host App adopting this bundle builds
-LLM-powered features, `rules/testing.md` (and its deferred deep doc
-`docs/rules/testing-postmortems.md`) should gain an **evals** section: when a task-specific eval is
-required, how it runs in CI, and its relationship to the coverage floor. Left `noted` here because the
-Generic Baseline itself ships no LLM-feature code to evaluate — the trigger is a host adopting one. A
-sweep that finds a host doing so should raise this to `actioned` with a tracking issue.
+`actioned` (PR #36). [`rules/testing.md`](../../../../rules/testing.md) gained an evals **Pattern**
+(evaluate LLM-driven behavior with task-specific evals that run in CI against an explicit threshold,
+not only example-based asserts) and a matching **Anti-Pattern** (never ship LLM-driven behavior
+guarded only by deterministic asserts). The guidance is a business-neutral, *extend-per-host* starter,
+consistent with the rest of the Lean Core: a Host App shipping AI features tightens the threshold and
+tooling; heavier subsystem-specific case studies belong in the deferred deep doc
+`docs/rules/testing-postmortems.md` when it lands. This entry is the worked example of the intake
+loop closing — a field learning driving a concrete rule delta in the same change.

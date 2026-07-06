@@ -8,7 +8,7 @@ no-change — here.
 > **ILLUSTRATIVE REFERENCE — not part of the [Generic Baseline](../../../CONTEXT.md) guarantee.**
 > The *entry schema* documented below is business-neutral mechanism; the *accumulated entries* under
 > `entries/` are curated content a Host App replaces or extends during Customization. Placement is
-> ratified in [ADR 0011](../../adr/0011-intake-pipeline-placement.md); the reference-zone label
+> ratified in [ADR 0012](../../adr/0012-intake-pipeline-placement.md); the reference-zone label
 > rationale lives in [`docs/reference/README.md`](../README.md).
 
 ## Entry schema
