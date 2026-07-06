@@ -443,6 +443,18 @@ class ParityCheckTest < Minitest::Test
     end
   end
 
+  def test_skill_with_punctuation_token_fails
+    # The substring branch of the matcher: a punctuation-bearing token (a path) must also redden,
+    # not only the ASCII-letter-boundary branch that `Searchkick` exercises.
+    with_bundle do |dir|
+      add_skills(dir)
+      write_skill(dir, "verify", body: "---\nname: verify\ndescription: x\n---\n\nRead PROJECT.md and the rules under .claude/rules/testing.md.\n")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(%r{contains host-specific token `\.claude/rules/`}, out)
+    end
+  end
+
   def test_generic_word_containing_token_substring_passes
     # `underspecified` contains "rspec" as a substring but is not the standalone word -> must NOT trip
     # the denylist (guards the ASCII-letter word-boundary matcher against a false positive).
