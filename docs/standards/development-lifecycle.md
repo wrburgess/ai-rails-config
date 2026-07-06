@@ -146,9 +146,10 @@ Two gates are mandatory and never bypassed, on any tool or track:
 
 **The HC decides when to compress. The AC does not self-select a compressed workflow.**
 
-## Automated / streamlined track (`ship`) — planned
+## Automated / streamlined track (`ship`)
 
-A Host App can run the whole lifecycle hands-off with an orchestrator skill that sequences
+A Host App can run the whole lifecycle hands-off with the [`ship`](../../skills/ship/SKILL.md)
+orchestrator skill that sequences
 `assess → cplan → impl → verify → rtr → final`, replacing the per-stage "wait for HC" pauses with
 exactly the **two human gates** above, plus unconditional emergency stops (a check that can't be
 auto-resolved; a discovery that the change touches core logic the plan didn't anticipate; an
@@ -165,8 +166,8 @@ On tools without sub-agent fan-out the same phases run inline with a "compact be
 (ADR 0003) — mechanism degrades, bar does not.
 
 > The `ship` skill is the eighth baseline skill (ADR 0006). It sequences the six lifecycle skills and
-> is where the delegation policy and the two gates concretely live; it lands in a later baseline issue.
-> The six lifecycle skills already emit the handoff contracts it consumes.
+> is where the delegation policy and the two gates concretely live. The six lifecycle skills emit the
+> handoff contracts it consumes; `ship` defines the one for the `rtr` fetch-and-fix phase inline.
 
 ## Skill mapping
 
@@ -178,7 +179,7 @@ On tools without sub-agent fan-out the same phases run inline with a "compact be
 | Verify | `verify` | Self-review comment on the PR |
 | Review response | `rtr` | Replies on the PR review threads |
 | Deliver | `final` | SOW on the PR + reference on the issue (gate 2: merge) |
-| Full hands-off run | `ship` | Sequences all stages with the two human gates *(planned)* |
+| Full hands-off run | `ship` | Sequences all stages with the two human gates |
 
 Each skill's canonical body is `skills/<name>/SKILL.md`; how each tool invokes it is documented in
 [`AGENTS.md`](../../AGENTS.md) → *Skills → Invoking a Skill*.

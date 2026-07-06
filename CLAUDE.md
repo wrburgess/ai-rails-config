@@ -11,8 +11,9 @@ file holds only Claude-specific configuration notes that have no place in the to
   ([ADR 0010](docs/adr/0010-repo-layout-canonical-skills-at-root.md)). The first is
   [`.claude/commands/grill-with-docs.md`](.claude/commands/grill-with-docs.md) → `/grill-with-docs`
   (canonical body: `skills/grill-with-docs/SKILL.md`). The six lifecycle shims — `/assess`, `/cplan`,
-  `/impl`, `/verify`, `/rtr`, `/final` — ship alongside it; only `ship`'s shim lands in a later
-  baseline issue.
+  `/impl`, `/verify`, `/rtr`, `/final` — ship alongside it, and the orchestrator shim
+  [`.claude/commands/ship.md`](.claude/commands/ship.md) → `/ship` (canonical body:
+  `skills/ship/SKILL.md`) completes the set of eight.
 - **Settings & hooks** — `.claude/settings.json` wires the branch-protection fast-fail
   ([`.claude/hooks/enforce-branch-creation.sh`](.claude/hooks/enforce-branch-creation.sh)) as a
   PreToolUse hook — Layer 3 over the portable git hooks in `.githooks/`

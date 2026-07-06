@@ -90,7 +90,7 @@ frontmatter + markdown body + optional bundled files). How each tool invokes it
   `skills/<name>/SKILL.md`. (A tool may additionally define a native prompt/command file where it
   supports one; the Generic Baseline ships none yet.)
 
-**Shipped so far (7 of 8):**
+**Shipped (8 of 8):**
 
 - [`grill-with-docs`](skills/grill-with-docs/SKILL.md) — a plan-grilling / brainstorming session that
   stress-tests a plan against the project's domain language and captures decisions inline as a
@@ -102,9 +102,10 @@ frontmatter + markdown body + optional bundled files). How each tool invokes it
   [`impl`](skills/impl/SKILL.md) → [`verify`](skills/verify/SKILL.md) →
   [`rtr`](skills/rtr/SKILL.md) → [`final`](skills/final/SKILL.md). Their five-stage spec is
   [`docs/standards/development-lifecycle.md`](docs/standards/development-lifecycle.md).
-
-The eighth Skill, `ship` (the hands-off orchestrator that sequences the six lifecycle Skills), lands
-in a later baseline issue.
+- [`ship`](skills/ship/SKILL.md) — the hands-off orchestrator that sequences the six lifecycle Skills
+  end to end, delegating output-heavy work to discardable sub-agents while protecting the two human
+  gates ([ADR 0005](docs/adr/0005-ship-hybrid-delegation-offload-retrieval-protect-judgment.md)). It
+  adds no phase procedure of its own — the sequencing, delegation policy, and gates are its contract.
 
 ## Rules Layer
 
