@@ -34,8 +34,10 @@ Layer, Project Config, Customization…), see [`CONTEXT.md`](CONTEXT.md). The fu
 - **Skills** — model-agnostic capabilities authored once as a canonical body (`skills/<name>/SKILL.md`)
   and reached through a thin per-tool Invocation Shim (Claude `.claude/commands/<name>.md`; other tools
   via native `AGENTS.md` discovery), so any configured agent runs the same procedure
-  ([ADR 0003](docs/adr/0003-skills-canonical-body-thin-shims-graceful-degradation.md)). First shipped:
-  `grill-with-docs`; the remaining seven baseline skills land in a later issue.
+  ([ADR 0003](docs/adr/0003-skills-canonical-body-thin-shims-graceful-degradation.md)). Shipped (7 of
+  8): `grill-with-docs` and the six lifecycle skills `assess`, `cplan`, `impl`, `verify`, `rtr`,
+  `final` (their five-stage spec is `docs/standards/development-lifecycle.md`); the `ship` orchestrator
+  lands in a later issue.
 
 ## Vendor it into a Host App
 

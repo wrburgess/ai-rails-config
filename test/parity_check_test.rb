@@ -104,27 +104,34 @@ class ParityCheckTest < Minitest::Test
     File.write(File.join(dir, "AGENTS.md"), "#{agents}\n## Rules Layer\n\n#{refs}\n")
   end
 
-  # Writes a valid Skills Layer into `dir`: a canonical body skills/<name>/SKILL.md (with `name:`
-  # frontmatter), a paired Claude shim .claude/commands/<name>.md that references the body, and a
-  # reference to the body in AGENTS.md so check_skills' "referenced by AGENTS.md" invariant holds.
-  # Mirrors add_rules/add_guardrails. Individual failure tests mutate one file afterward.
-  def add_skills(dir, name: "grill-with-docs")
+  # Writes a valid Skills Layer into `dir`: EVERY REQUIRED_SKILLS skill (so the floor passes) as a
+  # neutral, PROJECT.md-referencing canonical body + paired Claude shim + AGENTS.md reference, so the
+  # floor, the per-skill shape, AND the content-neutrality checks all pass. `extra:` writes one more
+  # (non-required) named skill on top. Individual failure tests mutate one skill's files afterward.
+  def add_skills(dir, extra: nil)
+    (ParityCheck::REQUIRED_SKILLS + [extra]).compact.each { |name| write_skill(dir, name) }
+  end
+
+  # Writes one skill: body + shim + AGENTS.md reference. The default body carries `name:` frontmatter,
+  # references PROJECT.md (satisfying the lifecycle-Skill positive check), and names no host-specific
+  # token. `body:` overrides it (used by the neutrality failure tests).
+  def write_skill(dir, name, body: nil)
     body_rel = "skills/#{name}/SKILL.md"
     shim_rel = ".claude/commands/#{name}.md"
     FileUtils.mkdir_p(File.join(dir, "skills/#{name}"))
     FileUtils.mkdir_p(File.join(dir, ".claude/commands"))
-    File.write(File.join(dir, body_rel), <<~MD)
+    File.write(File.join(dir, body_rel), body || <<~MD)
       ---
       name: #{name}
       description: A portable skill.
       ---
 
-      Skill body.
+      Skill body. Reads host values from PROJECT.md.
     MD
     # The shim's relative link contains body_rel as a substring, satisfying the reference invariant.
     File.write(File.join(dir, shim_rel), "Read and follow [`#{body_rel}`](../../#{body_rel}).\n")
     agents = File.read(File.join(dir, "AGENTS.md"))
-    File.write(File.join(dir, "AGENTS.md"), "#{agents}\n## Skills\n\n`#{body_rel}`\n")
+    File.write(File.join(dir, "AGENTS.md"), "#{agents}\n`#{body_rel}`\n")
   end
 
   # --- happy paths -------------------------------------------------------------------------------
@@ -390,13 +397,60 @@ class ParityCheckTest < Minitest::Test
   end
 
   def test_required_skill_absent_fails
-    # skills/ ships a (valid) decoy skill but not the required grill-with-docs -> the floor reddens.
+    # A valid skills tree missing one required skill -> the floor reddens.
     with_bundle do |dir|
-      add_skills(dir, name: "decoy")
-      refute Dir.exist?(File.join(dir, "skills/grill-with-docs"))
+      add_skills(dir)
+      FileUtils.rm_rf(File.join(dir, "skills/grill-with-docs")) # required skill dir removed
       code, out = run_check(dir)
       assert_equal 1, code
       assert_match(%r{Required skill missing: skills/grill-with-docs/SKILL\.md}, out)
+    end
+  end
+
+  def test_required_lifecycle_skill_absent_fails
+    # Dropping a lifecycle skill (e.g. impl) also reddens the floor.
+    with_bundle do |dir|
+      add_skills(dir)
+      FileUtils.rm_rf(File.join(dir, "skills/impl"))
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(%r{Required skill missing: skills/impl/SKILL\.md}, out)
+    end
+  end
+
+  # --- Skills content-neutrality (ADR 0003) ------------------------------------------------------
+
+  def test_lifecycle_skill_without_project_reference_fails
+    # A lifecycle body with valid frontmatter but no PROJECT.md reference must redden (it would be
+    # hardcoding host values instead of reading them from the Project Config).
+    with_bundle do |dir|
+      add_skills(dir)
+      write_skill(dir, "assess", body: "---\nname: assess\ndescription: x\n---\n\nHardcoded body, no config reference.\n")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/does not reference PROJECT\.md/, out)
+    end
+  end
+
+  def test_skill_with_host_specific_token_fails
+    # A body that still references PROJECT.md but names a host stack -> the denylist reddens.
+    with_bundle do |dir|
+      add_skills(dir)
+      write_skill(dir, "impl", body: "---\nname: impl\ndescription: x\n---\n\nRun the checks from PROJECT.md. Reindex with Searchkick.\n")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/contains host-specific token `Searchkick`/, out)
+    end
+  end
+
+  def test_generic_word_containing_token_substring_passes
+    # `underspecified` contains "rspec" as a substring but is not the standalone word -> must NOT trip
+    # the denylist (guards the ASCII-letter word-boundary matcher against a false positive).
+    with_bundle do |dir|
+      add_skills(dir)
+      write_skill(dir, "assess", body: "---\nname: assess\ndescription: x\n---\n\nFlag anything underspecified in the issue; read PROJECT.md.\n")
+      code, out = run_check(dir)
+      assert_equal 0, code, out
     end
   end
 

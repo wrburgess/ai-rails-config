@@ -66,7 +66,8 @@ review-response step. `assess`/`cplan` post to an issue; `impl` opens a PR; `ver
 operate on that PR. Two human gates are mandatory — **plan approval** and **merge** — and are never
 bypassed. GitHub is the default lifecycle host, set in `PROJECT.md` and remappable
 ([ADR 0006](docs/adr/0006-baseline-skill-set-and-github-default-lifecycle-host.md)). The full stage
-spec (`docs/standards/development-lifecycle.md`) is added in a later baseline issue.
+spec — stages, roles, gates, and terminal artifacts — is
+[`docs/standards/development-lifecycle.md`](docs/standards/development-lifecycle.md).
 
 ## Skills
 
@@ -89,11 +90,21 @@ frontmatter + markdown body + optional bundled files). How each tool invokes it
   `skills/<name>/SKILL.md`. (A tool may additionally define a native prompt/command file where it
   supports one; the Generic Baseline ships none yet.)
 
-**Shipped so far:** `grill-with-docs` — a plan-grilling / brainstorming session that stress-tests a
-plan against the project's domain language and captures decisions inline as a `CONTEXT.md` glossary
-and `docs/adr/` ADRs. Canonical body: [`skills/grill-with-docs/SKILL.md`](skills/grill-with-docs/SKILL.md)
-(with sibling format specs `CONTEXT-FORMAT.md` and `ADR-FORMAT.md`). The remaining seven skill bodies
-and their shims land in a later baseline issue.
+**Shipped so far (7 of 8):**
+
+- [`grill-with-docs`](skills/grill-with-docs/SKILL.md) — a plan-grilling / brainstorming session that
+  stress-tests a plan against the project's domain language and captures decisions inline as a
+  `CONTEXT.md` glossary and `docs/adr/` ADRs (with sibling format specs `CONTEXT-FORMAT.md` and
+  `ADR-FORMAT.md`).
+- The six lifecycle Skills, each reading its host values from [`PROJECT.md`](PROJECT.md) and posting
+  to the host named in [`PROJECT.md`](PROJECT.md) → *Lifecycle Host*, never hardcoding a stack or
+  platform: [`assess`](skills/assess/SKILL.md) → [`cplan`](skills/cplan/SKILL.md) →
+  [`impl`](skills/impl/SKILL.md) → [`verify`](skills/verify/SKILL.md) →
+  [`rtr`](skills/rtr/SKILL.md) → [`final`](skills/final/SKILL.md). Their five-stage spec is
+  [`docs/standards/development-lifecycle.md`](docs/standards/development-lifecycle.md).
+
+The eighth Skill, `ship` (the hands-off orchestrator that sequences the six lifecycle Skills), lands
+in a later baseline issue.
 
 ## Rules Layer
 

@@ -10,7 +10,8 @@ file holds only Claude-specific configuration notes that have no place in the to
   slash-command file that points at the canonical body in `skills/<name>/SKILL.md`
   ([ADR 0010](docs/adr/0010-repo-layout-canonical-skills-at-root.md)). The first is
   [`.claude/commands/grill-with-docs.md`](.claude/commands/grill-with-docs.md) → `/grill-with-docs`
-  (canonical body: `skills/grill-with-docs/SKILL.md`); the remaining seven shims land in a later
+  (canonical body: `skills/grill-with-docs/SKILL.md`). The six lifecycle shims — `/assess`, `/cplan`,
+  `/impl`, `/verify`, `/rtr`, `/final` — ship alongside it; only `ship`'s shim lands in a later
   baseline issue.
 - **Settings & hooks** — `.claude/settings.json` wires the branch-protection fast-fail
   ([`.claude/hooks/enforce-branch-creation.sh`](.claude/hooks/enforce-branch-creation.sh)) as a
