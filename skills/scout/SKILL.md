@@ -104,9 +104,9 @@ the human-disposes gate never do.
 <quality-gate>
 
 Before opening the PR: every drafted entry carries a real `source.link` (no invented URL), a
-**`stance`**, and a **`touches`** target; no stance-less entry survived; the last-swept marker was
-advanced (for a non-empty sweep); the staleness notes are in the PR body; and the output is a
-reviewable PR, **never a direct commit** to a protected branch. On an **empty sweep** — no entry
+**`stance`**, and a **`touches`** target, and no stance-less entry survived. For a **non-empty
+sweep**, the last-swept marker was advanced, the staleness notes are in the PR body, and the output is
+a reviewable PR, **never a direct commit** to a protected branch. On an **empty sweep** — no entry
 survives the stance rule — the correct output is **no PR and an unadvanced marker** (a log-only
 result), never an empty PR. Sign the PR and any lifecycle-host comment with the footer from
 [`PROJECT.md`](../../PROJECT.md) → *Attribution & Model Declaration*, using your runtime-actual model.
