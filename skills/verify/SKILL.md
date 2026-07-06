@@ -27,7 +27,7 @@ the orchestrator supplies only pointers (the PR id, the linked issue id, and —
 
 *Graceful degradation ([ADR 0003](../../docs/adr/0003-skills-canonical-body-thin-shims-graceful-degradation.md),
 [ADR 0005](../../docs/adr/0005-ship-hybrid-delegation-offload-retrieval-protect-judgment.md)):* on a
-tool without sub-agents, run Steps 1–7 **inline**. The sub-agent (or you, inline) never posts to the
+tool without sub-agents, run Steps 1–6 **inline**. The sub-agent (or you, inline) never posts to the
 lifecycle host — the orchestrator owns that I/O and the attribution.
 
 ### drift-report (sub-agent → orchestrator)
