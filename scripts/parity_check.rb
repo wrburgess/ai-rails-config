@@ -31,14 +31,33 @@ class ParityCheck
   COPILOT_ADAPTER = ".github/copilot-instructions.md"
   PROJECT_CONFIG = "PROJECT.md"
 
-  # Files whose relative markdown links must resolve.
+  # Files whose relative markdown links must resolve. Beyond the Canonical Source, its Adapters, and
+  # the Project Config, this covers the top-level human-facing docs (README + the usage/lifecycle
+  # guides) so a dead link in the onboarding path reddens too. Each is link-checked only if present
+  # (check_links skips missing files), so a minimal fixture bundle is unaffected.
   LINK_CHECKED = [
     "AGENTS.md",
     "CLAUDE.md",
     "GEMINI.md",
     "PROJECT.md",
     ".github/copilot-instructions.md",
+    "README.md",
+    "docs/standards/development-lifecycle.md",
+    "docs/guides/usage.md",
+    "docs/guides/branch-protection.md",
   ].freeze
+
+  # Usage guides (ADR 0008 surface finalization, issue #11). Checked only for a bundle that ships a
+  # docs/guides/ tree (the GUIDES_DIR gate) so a minimal fixture bundle is unaffected — the same "only
+  # for a bundle that ships them" stance as check_rules / check_skills / check_guardrails. The floor is
+  # existence: each required guide must be shipped, so a future manifest change can't silently drop the
+  # vendor/customize/run walkthrough. Reachability is deliberately NOT anchored to README.md — README
+  # is not vendored (ai-config-sync skips it) and a Host App owns its own, so a "referenced by README"
+  # rule would fail in-host, breaking the vendored-copy parity invariant the guide itself documents.
+  # In-host the guide is discoverable under docs/guides/; in this repo README links it (guarded by
+  # check_links, since README is in LINK_CHECKED).
+  GUIDES_DIR = "docs/guides"
+  REQUIRED_GUIDES = ["docs/guides/usage.md"].freeze
 
   # Tier-1 Lean Core rule files (ADR 0004). Each must exist, be referenced by AGENTS.md so every tool
   # can reach the Lean Core, and declare its Patterns + Anti-Patterns sections. Checked only for a
@@ -121,6 +140,7 @@ class ParityCheck
     check_rules
     check_skills
     check_guardrails
+    check_guides
     check_links
     report
     @errors.empty? ? 0 : 1
@@ -340,6 +360,18 @@ class ParityCheck
     if derived != committed
       err("Protected-branch sidecar drift: #{SIDECAR} has #{committed.inspect} but PROJECT.md derives " \
           "#{derived.inspect} - run bin/install-git-hooks to regenerate it")
+    end
+  end
+
+  # Usage guides (issue #11). Runs only when the bundle ships a docs/guides/ tree, so a minimal bundle
+  # is unaffected (the same gate stance as check_rules / check_skills). One host-safe invariant per
+  # required guide: it exists (is shipped). Its internal links are resolved by check_links (each guide
+  # is in LINK_CHECKED). Reachability is intentionally not asserted against README (see REQUIRED_GUIDES).
+  def check_guides
+    return unless Dir.exist?(path(GUIDES_DIR))
+
+    REQUIRED_GUIDES.each do |rel|
+      err("Required guide missing: #{rel} not found") unless exist?(rel)
     end
   end
 
