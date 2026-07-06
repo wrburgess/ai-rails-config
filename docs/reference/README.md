@@ -8,9 +8,13 @@ Unlike the Config Bundle's business-neutral baseline (Skills, Rules Layer, Adapt
 content **may name specific external field sources** — it is *reference about the practice of
 AI-assisted engineering*, not host-business-domain content, and not authored instructions any agent
 must follow. The distinction, and why the intake pipeline's mechanism is baseline while its curated
-content lives here, is recorded in [ADR 0011](../adr/0011-intake-pipeline-placement.md).
+content lives here, is recorded in [ADR 0012](../adr/0012-intake-pipeline-placement.md).
 
 ## Contents
 
-- _(none yet)_ — the curated roster of AI-engineering voices (issue #27) and the machine-readable
-  Watchlist file (issue #30) file here once they land.
+- [`voices.yml`](voices.yml) — the machine-readable **Watchlist** the `scout` sweep polls (issue #30).
+  Seeded from the #28 roster sketch; its schema is business-neutral, its entries are illustrative.
+- [`learnings/`](learnings/) — the dated, append-only **Learnings Log** (issue #30): the entry
+  [schema](learnings/README.md), the [index](learnings/index.md), and worked example entries.
+- _(pending)_ — the curated roster prose doc of AI-engineering voices (issue #27) files here once it
+  lands.
