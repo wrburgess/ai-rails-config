@@ -134,6 +134,23 @@ class ParityCheckTest < Minitest::Test
     File.write(File.join(dir, "AGENTS.md"), "#{agents}\n`#{body_rel}`\n")
   end
 
+  # Writes a valid Usage-guides surface into `dir`: every REQUIRED_GUIDES file (with a resolving link,
+  # so check_links stays green). The guide lands under docs/guides/, whose presence activates
+  # check_guides. A README.md that links each guide is written too — not required by check_guides
+  # (reachability is not anchored to README; see the REQUIRED_GUIDES note) but it exercises check_links
+  # on README (which is in LINK_CHECKED). Individual failure tests mutate one file afterward. Mirrors
+  # add_rules / add_skills.
+  def add_guides(dir)
+    FileUtils.mkdir_p(File.join(dir, "docs/guides"))
+    ParityCheck::REQUIRED_GUIDES.each do |rel|
+      FileUtils.mkdir_p(File.join(dir, File.dirname(rel)))
+      # A resolving relative link back to the Canonical Source (../../AGENTS.md from docs/guides/).
+      File.write(File.join(dir, rel), "# Guide\n\nSee [canonical](../../AGENTS.md).\n")
+    end
+    refs = ParityCheck::REQUIRED_GUIDES.map { |g| "[guide](#{g})" }.join(" ")
+    File.write(File.join(dir, "README.md"), "# Host\n\n#{refs}\n")
+  end
+
   # --- happy paths -------------------------------------------------------------------------------
 
   def test_valid_bundle_passes
@@ -498,6 +515,59 @@ class ParityCheckTest < Minitest::Test
       code, out = run_check(dir)
       assert_equal 1, code
       assert_match(/not referenced by AGENTS\.md/, out)
+    end
+  end
+
+  # --- Usage guides (issue #11) ------------------------------------------------------------------
+
+  def test_valid_guides_pass
+    with_bundle do |dir|
+      add_guides(dir)
+      code, out = run_check(dir)
+      assert_equal 0, code, out
+    end
+  end
+
+  def test_guides_absent_are_not_checked
+    # No docs/guides/ dir -> check_guides is a no-op, so a bundle without any guide still passes.
+    with_bundle do |dir|
+      refute Dir.exist?(File.join(dir, "docs/guides"))
+      code, = run_check(dir)
+      assert_equal 0, code
+    end
+  end
+
+  def test_missing_required_guide_fails
+    # docs/guides/ present (gate active) but the required guide gone -> the floor reddens.
+    with_bundle do |dir|
+      add_guides(dir)
+      File.delete(File.join(dir, "docs/guides/usage.md"))
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(%r{Required guide missing: docs/guides/usage\.md}, out)
+    end
+  end
+
+  def test_guide_without_readme_passes
+    # The vendored-copy invariant: ai-config-sync does NOT ship README.md, so a bundle with the guide
+    # but no README must still pass. Reachability is not anchored to README (see REQUIRED_GUIDES) — a
+    # rule that required a README reference would break every vendored copy. Pins that fix.
+    with_bundle do |dir|
+      add_guides(dir)
+      File.delete(File.join(dir, "README.md"))
+      code, out = run_check(dir)
+      assert_equal 0, code, out
+    end
+  end
+
+  def test_dead_link_in_guide_fails
+    # Proves the widened LINK_CHECKED actually guards the guide: a dead link in it reddens.
+    with_bundle do |dir|
+      add_guides(dir)
+      File.write(File.join(dir, "docs/guides/usage.md"), "# Guide\n\n[gone](nope.md)\n")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/Dead link/, out)
     end
   end
 

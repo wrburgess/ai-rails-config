@@ -9,6 +9,10 @@ For the precise vocabulary used throughout (Config Bundle, Generic Baseline, Ada
 Layer, Project Config, Customization…), see [`CONTEXT.md`](CONTEXT.md). The full instruction set is
 [`AGENTS.md`](AGENTS.md) — the one file every agent resolves to.
 
+**New here?** [`docs/guides/usage.md`](docs/guides/usage.md) is the end-to-end walkthrough — vendor,
+activate the guardrails, customize through `PROJECT.md`, and run each skill per tool. The sections
+below are the quick reference.
+
 ## What you get
 
 - **[`AGENTS.md`](AGENTS.md)** — the Canonical Source (model- and business-neutral instructions).
