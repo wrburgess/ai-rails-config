@@ -2,7 +2,7 @@
 date: 2026-07-06
 source:
   person: Erik Schluntz & Barry Zhang (Anthropic)
-  link: https://www.anthropic.com/research/building-effective-agents
+  link: https://www.anthropic.com/engineering/building-effective-agents
   medium: blog
 claim: >
   Prefer simple, composable patterns over frameworks; add agentic complexity only when it

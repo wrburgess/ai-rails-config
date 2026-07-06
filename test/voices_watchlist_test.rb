@@ -16,8 +16,10 @@ class VoicesWatchlistTest < Minitest::Test
   WATCHLIST = File.expand_path("../docs/reference/voices.yml", __dir__)
 
   # `verified:` is an ISO date, so a plain safe_load would raise Psych::DisallowedClass — permit Date.
-  TIERS    = %w[core trend frontier-lab balance org community].freeze
-  STATUSES = %w[active in-flux dormant].freeze
+  TIERS     = %w[core trend frontier-lab balance org community].freeze
+  STATUSES  = %w[active in-flux dormant].freeze
+  CADENCES  = %w[high medium low].freeze
+  HANDLE_KEYS = %w[site x youtube github].freeze
 
   def setup
     @doc = YAML.safe_load(File.read(WATCHLIST), permitted_classes: [Date])
@@ -49,11 +51,12 @@ class VoicesWatchlistTest < Minitest::Test
     end
   end
 
-  def test_status_and_tier_stay_within_the_documented_sets
+  def test_status_tier_and_cadence_stay_within_the_documented_sets
     voices.each do |entry|
       label = entry["name"] || "(unnamed)"
-      assert_includes STATUSES, entry["status"], "#{label}: `status` out of set"
-      assert_includes TIERS,    entry["tier"],   "#{label}: `tier` out of set"
+      assert_includes STATUSES, entry["status"],  "#{label}: `status` out of set"
+      assert_includes TIERS,    entry["tier"],    "#{label}: `tier` out of set"
+      assert_includes CADENCES, entry["cadence"], "#{label}: `cadence` out of set"
     end
   end
 
@@ -73,6 +76,20 @@ class VoicesWatchlistTest < Minitest::Test
       assert_kind_of Array, feeds, "#{label}: `feeds` must be a list (use `[]` when unresolved)"
       feeds.each do |feed|
         assert_match %r{\Ahttps?://\S+\z}, feed.to_s, "#{label}: feed #{feed.inspect} is not a URL"
+      end
+    end
+  end
+
+  # Every non-null handle is a real URL (the schema frames handles as URLs; `null` is the empty state).
+  def test_every_present_handle_is_a_url
+    voices.each do |entry|
+      label = entry["name"] || "(unnamed)"
+      handles = entry["handles"]
+      assert_kind_of Hash, handles, "#{label}: `handles` must be a mapping"
+      handles.each do |key, value|
+        assert_includes HANDLE_KEYS, key, "#{label}: unexpected handle key #{key.inspect}"
+        next if value.nil?
+        assert_match %r{\Ahttps?://\S+\z}, value.to_s, "#{label}: handle #{key} #{value.inspect} is not a URL"
       end
     end
   end
