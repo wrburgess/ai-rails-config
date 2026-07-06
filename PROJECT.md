@@ -84,3 +84,20 @@ definitions.
   and `.github/copilot-instructions.md` is a discovery marker. Set to `render` (a byte-for-byte
   `parity:render` block in `.github/copilot-instructions.md`) only if the host drives work through a
   legacy in-editor Copilot IDE; the parity check enforces the render matches `AGENTS.md`.
+
+## Intake Pipeline
+
+The artifact locations the [`scout`](skills/scout/SKILL.md) sweep reads and writes, declared here so
+the generic Skill body names no path ([ADR 0012](docs/adr/0012-intake-pipeline-placement.md)). These
+ship as **business-neutral placeholders** pointing at the illustrative reference seed; a Host App
+repoints them during Customization if it relocates its intake artifacts.
+
+| Artifact | Location |
+|----------|----------|
+| **Watchlist** — the machine-readable source list the sweep polls | [`docs/reference/voices.yml`](docs/reference/voices.yml) |
+| **Learnings Log** — the dated, append-only entries + their index | [`docs/reference/learnings/`](docs/reference/learnings/) |
+| **Last-swept marker** — the recency stamp the next sweep reads for its incremental window | the `**Last swept:**` line in the Learnings-Log [`index.md`](docs/reference/learnings/index.md) |
+
+The *schemas* for these artifacts (the Watchlist fields, the Learnings-Log entry front-matter with its
+required `stance` and `touches`) are business-neutral mechanism and live with the artifacts; only the
+locations are host-configurable and belong here.
