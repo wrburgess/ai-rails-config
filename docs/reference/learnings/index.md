@@ -8,7 +8,9 @@ Chronological (most recent first) index of intake findings. Each row links an en
 > entries below are worked examples seeding the shape (issue #30); a Host App replaces or extends
 > them. Placement: [ADR 0012](../../adr/0012-intake-pipeline-placement.md).
 
-**Last swept:** 2026-07-06 _(seed — no automated sweep has run yet; the `scout` sweep lands in issue #31)._
+**Last swept:** 2026-07-06 _(seed — no automated sweep has run yet. The marker advances only inside a
+merged `scout` sweep PR; an empty sweep leaves it untouched. Scheduling the sweep is covered in the
+[intake-sweep scheduling guide](../../guides/intake-sweep-scheduling.md).)_
 
 | Date | Source | Claim | Stance | Touches | Status |
 |------|--------|-------|--------|---------|--------|

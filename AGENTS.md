@@ -111,7 +111,10 @@ frontmatter + markdown body + optional bundled files). How each tool invokes it
   [`PROJECT.md`](PROJECT.md) → *Intake Pipeline*, drafts dated Learnings-Log entries that each carry a
   `stance` and a `touches` target, and opens a PR of them for a human to accept, edit, or reject —
   the sweep proposes, a human disposes ([ADR 0012](docs/adr/0012-intake-pipeline-placement.md)). Runs
-  identically invoked by hand or on a schedule.
+  identically invoked by hand or on a schedule; wiring the schedule — cadence, enable/disable, and the
+  empty-sweep (no-PR, log-only) behavior — is covered in the
+  [intake-sweep scheduling guide](docs/guides/intake-sweep-scheduling.md)
+  ([ADR 0013](docs/adr/0013-scheduled-intake-sweep-and-empty-sweep-policy.md)).
 
 ## Rules Layer
 
