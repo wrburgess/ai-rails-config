@@ -12,7 +12,9 @@ accept, edit, or reject. This is the mechanism of the [Intake Pipeline](../../CO
 **proposes**, a human **disposes**.
 
 The sweep runs the **same procedure** whether a person invokes it by hand or a schedule fires it —
-there is no fast path and no tool-specific quality drift.
+there is no fast path and no tool-specific quality drift. How a schedule is wired — the cadence, and
+how to enable or disable it — is host-configured; the intake-sweep scheduling guide
+(`docs/guides/intake-sweep-scheduling.md`) documents both.
 
 Read host-specific values from [`PROJECT.md`](../../PROJECT.md): the **intake artifact locations**
 (Watchlist, Learnings Log, last-swept marker) from *Intake Pipeline*, the branch/PR/issue-linking
@@ -66,6 +68,14 @@ Host App repoints its intake artifacts in Project Config, not in this skill.
    That single discipline is what keeps the log from decaying into a dead-link dump. Better an empty
    sweep than a stance-less entry.
 
+   **Empty sweep → no PR, log-only.** If **no** entry survives this rule — every source produced
+   nothing new in the window, or nothing new could state a stance — the sweep is *empty*: open **no**
+   pull request and **do not** advance the last-swept marker. Record that the sweep ran and found
+   nothing (a scheduled session simply logs "swept, nothing new" and exits clean) and leave the window
+   intact so the next run re-scans it. An empty sweep is a valid, expected result — not a failure, and
+   never a reason to open an empty PR or to invent a finding to justify one. Steps 7–9 below apply
+   **only when at least one entry survived.**
+
 7. **Append the entries to the current-quarter Learnings Log.** Add one file per entry under the log's
    entries directory (dated, per the schema's naming), add its row to the recency-first index, and
    **update the last-swept marker to today** so the next run is incremental and any staleness is
@@ -94,9 +104,11 @@ the human-disposes gate never do.
 <quality-gate>
 
 Before opening the PR: every drafted entry carries a real `source.link` (no invented URL), a
-**`stance`**, and a **`touches`** target; no stance-less entry survived; the last-swept marker was
-advanced; the staleness notes are in the PR body; and the output is a reviewable PR, **never a direct
-commit** to a protected branch. Sign the PR and any lifecycle-host comment with the footer from
+**`stance`**, and a **`touches`** target, and no stance-less entry survived. For a **non-empty
+sweep**, the last-swept marker was advanced, the staleness notes are in the PR body, and the output is
+a reviewable PR, **never a direct commit** to a protected branch. On an **empty sweep** — no entry
+survives the stance rule — the correct output is **no PR and an unadvanced marker** (a log-only
+result), never an empty PR. Sign the PR and any lifecycle-host comment with the footer from
 [`PROJECT.md`](../../PROJECT.md) → *Attribution & Model Declaration*, using your runtime-actual model.
 
 **The gate that never degrades:** the sweep proposes and a human disposes. `scout` does not decide
