@@ -27,6 +27,9 @@ jobs:
       - name: Protected-branch extractor self-test
         run: ruby test/protected_branches_test.rb
 
+      - name: Watchlist data-contract self-test (voices.yml schema)
+        run: ruby test/voices_watchlist_test.rb
+
       - name: Guard self-test (Layer 2 git-hook guard)
         run: bash test/guard_protected_branch.test.sh
 
