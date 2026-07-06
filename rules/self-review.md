@@ -19,9 +19,11 @@
 - [ ] No `TODO` / "needs manual testing" left behind — the test is written, not deferred.
 - [ ] The full quality gate passes locally.
 - [ ] If this is a lifecycle stage, its terminal artifact actually exists (e.g. `impl` is not done until the PR exists — a commit is not the artifact).
+- [ ] Any `<placeholder>`-style token in text posted to the lifecycle host (issue/PR/comment body) is written host-safe (`{name}` / `NAME`) — GitHub strips angle-bracket tokens.
 
 ## Anti-Patterns
 
 - **Never declare work done on a red or un-run check** — because "probably fine" is exactly how regressions ship. *(Extend per host.)*
 - **Never leave a "TODO / needs manual testing" comment in place of a test** — because it never gets written; build the test now. *(Extend per host.)*
 - **Never ship minimal assertions and call it complete** — because the last 20% (edge cases, sad paths, thorough assertions) is where quality lives. *(Extend per host.)*
+- **Never put `<angle-bracket>` placeholders in text you post to the lifecycle host** (issue/PR/comment bodies) — because GitHub's markdown sanitizer silently strips them (even inside backticks), so `path/<name>/file` renders as `path//file` and reads as a typo; use `{name}` or `NAME` in prose bound for a host artifact (angle brackets are fine in committed source files). *(Extend per host.)*
