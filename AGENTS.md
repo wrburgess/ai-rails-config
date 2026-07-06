@@ -71,11 +71,12 @@ spec — stages, roles, gates, and terminal artifacts — is
 
 ## Skills
 
-The Generic Baseline ships eight Skills — `grill-with-docs`, `assess`, `cplan`, `impl`, `verify`,
-`rtr`, `final`, `ship` ([ADR 0006](docs/adr/0006-baseline-skill-set-and-github-default-lifecycle-host.md)).
-Each is authored once as a canonical body (`skills/<name>/SKILL.md`) and reached through a thin,
-tool-specific Invocation Shim; the procedure and quality gates are identical on every tool, and only
-tool-specific execution enhancements degrade gracefully.
+The Generic Baseline ships nine Skills — `grill-with-docs`, `assess`, `cplan`, `impl`, `verify`,
+`rtr`, `final`, `ship`, `scout` ([ADR 0006](docs/adr/0006-baseline-skill-set-and-github-default-lifecycle-host.md),
+[ADR 0012](docs/adr/0012-intake-pipeline-placement.md)). Each is authored once as a canonical body
+(`skills/<name>/SKILL.md`) and reached through a thin, tool-specific Invocation Shim; the procedure and
+quality gates are identical on every tool, and only tool-specific execution enhancements degrade
+gracefully.
 
 ### Invoking a Skill
 
@@ -90,7 +91,7 @@ frontmatter + markdown body + optional bundled files). How each tool invokes it
   `skills/<name>/SKILL.md`. (A tool may additionally define a native prompt/command file where it
   supports one; the Generic Baseline ships none yet.)
 
-**Shipped (8 of 8):**
+**Shipped (9 of 9):**
 
 - [`grill-with-docs`](skills/grill-with-docs/SKILL.md) — a plan-grilling / brainstorming session that
   stress-tests a plan against the project's domain language and captures decisions inline as a
@@ -106,6 +107,11 @@ frontmatter + markdown body + optional bundled files). How each tool invokes it
   end to end, delegating output-heavy work to discardable sub-agents while protecting the two human
   gates ([ADR 0005](docs/adr/0005-ship-hybrid-delegation-offload-retrieval-protect-judgment.md)). It
   adds no phase procedure of its own — the sequencing, delegation policy, and gates are its contract.
+- [`scout`](skills/scout/SKILL.md) — the intake-pipeline sweep: reads the Watchlist declared in
+  [`PROJECT.md`](PROJECT.md) → *Intake Pipeline*, drafts dated Learnings-Log entries that each carry a
+  `stance` and a `touches` target, and opens a PR of them for a human to accept, edit, or reject —
+  the sweep proposes, a human disposes ([ADR 0012](docs/adr/0012-intake-pipeline-placement.md)). Runs
+  identically invoked by hand or on a schedule.
 
 ## Rules Layer
 
