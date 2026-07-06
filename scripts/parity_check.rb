@@ -56,7 +56,7 @@ class ParityCheck
   # through a thin Invocation Shim. Checked only for a bundle that ships a skills/ tree (the
   # SKILLS_DIR gate) so a minimal fixture bundle is unaffected — the same "only for a bundle that
   # ships them" stance as check_rules / check_guardrails. REQUIRED_SKILLS is a floor (the baseline
-  # ships 1 of 8 today); it grows as later issues add skills. The per-present-skill invariants apply
+  # ships all 8 today); it grows as later issues add skills. The per-present-skill invariants apply
   # to EVERY skills/<name>/ dir, so those later skills are covered by construction — no rewrite.
   SKILLS_DIR = "skills"
   CLAUDE_COMMANDS_DIR = ".claude/commands"
@@ -65,7 +65,10 @@ class ParityCheck
   LIFECYCLE_SKILLS = %w[assess cplan impl verify rtr final].freeze
   # Floor: the skills the baseline is expected to ship. Grows as later issues add skills; the shape
   # check applies to every *present* skill regardless, so additions are covered by construction.
-  REQUIRED_SKILLS = (["grill-with-docs"] + LIFECYCLE_SKILLS).freeze
+  # `ship` is the orchestrator (ADR 0005/0006): it belongs in the floor but NOT in LIFECYCLE_SKILLS —
+  # it sequences the lifecycle stages rather than being one, so it isn't forced through the
+  # PROJECT.md-reference check (its body references PROJECT.md by choice, not by that mandate).
+  REQUIRED_SKILLS = (["grill-with-docs"] + LIFECYCLE_SKILLS + ["ship"]).freeze
 
   # Content-neutrality (ADR 0003): a generic Skill body reads host values from PROJECT.md, so a
   # stack/domain proper noun in a body is leftover coupling the purely-structural checks cannot see.

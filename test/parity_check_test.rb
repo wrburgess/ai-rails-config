@@ -418,6 +418,18 @@ class ParityCheckTest < Minitest::Test
     end
   end
 
+  def test_required_ship_skill_absent_fails
+    # `ship` is the orchestrator (ADR 0005/0006) and part of the floor: dropping it reddens too. This
+    # pins ship into REQUIRED_SKILLS so a future edit can't silently drop the eighth baseline skill.
+    with_bundle do |dir|
+      add_skills(dir)
+      FileUtils.rm_rf(File.join(dir, "skills/ship"))
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(%r{Required skill missing: skills/ship/SKILL\.md}, out)
+    end
+  end
+
   # --- Skills content-neutrality (ADR 0003) ------------------------------------------------------
 
   def test_lifecycle_skill_without_project_reference_fails
