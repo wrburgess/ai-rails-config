@@ -16,5 +16,7 @@ content lives here, is recorded in [ADR 0012](../adr/0012-intake-pipeline-placem
   Seeded from the #28 roster sketch; its schema is business-neutral, its entries are illustrative.
 - [`learnings/`](learnings/) — the dated, append-only **Learnings Log** (issue #30): the entry
   [schema](learnings/README.md), the [index](learnings/index.md), and worked example entries.
-- _(pending)_ — the curated roster prose doc of AI-engineering voices (issue #27) files here once it
-  lands.
+- [`ai-engineering-voices.md`](ai-engineering-voices.md) — the curated roster prose doc of
+  AI-engineering voices (issue #27): the human-readable sibling of `voices.yml`. It owns the narrative
+  (per-person **Focus**, tier rationale, and the non-person *balance* documents + *master resource*);
+  `voices.yml` owns the machine fields (`feeds`, `cadence`, `verified`, `status`) the sweep polls.
