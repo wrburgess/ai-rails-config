@@ -100,10 +100,13 @@ covered, no debug/TODO residue, all *Quality Checks* green.
 **Trigger:** the PR exists.
 
 **AC does:** reviews its own PR diff against the approved plan for drift (anything implemented that
-wasn't planned; anything planned that's missing); reviews test quality ("if this test passed but the
-feature were broken, would I know?"); confirms the PR description is complete. The full-diff review may
-be offloaded to a read-only sub-agent that returns a **drift-report**; findings are classified by the
-[`PROJECT.md`](../../PROJECT.md) → *Review Severity Framework*.
+wasn't planned; anything planned that's missing), then runs an explicit **adversarial pass** — it
+actively tries to *refute* the change (off-by-one, nil/empty, boundary, duplicate, concurrent,
+unauthorized) and to break its own tests (hunting the false green that would still pass if the feature
+were reverted), assuming the Reviewer's posture and defaulting skeptical so the external review
+confirms rather than corrects; and confirms the PR description is complete. The full-diff review may
+be offloaded to a read-only sub-agent that returns a **drift-report**; findings (including the
+adversarial ones) are classified by the [`PROJECT.md`](../../PROJECT.md) → *Review Severity Framework*.
 
 **Operates on the existing PR — it never opens one.** **Terminal artifact:** the self-review comment
 on the PR. **Exit:** self-review passes; HC is notified the PR is ready for the Reviewer.

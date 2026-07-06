@@ -46,7 +46,9 @@ lifecycle host — the orchestrator owns that I/O and the attribution.
 `quality_checks` carries one entry per [`PROJECT.md`](../../PROJECT.md) → *Quality Checks* row. When
 `impl` already ran them, copy its check-result (`quality_checks_source: impl_check_result`) rather than
 re-running; standalone, run them here (`ran_here`). `not_run` = ran-but-nothing-applicable, not
-skipped.
+skipped. `findings[]` is where the **adversarial pass** (procedure Step 4) records the defects it
+surfaces, each with a *Review Severity Framework* severity; the schema is unchanged, so the report
+still composes with `ship`'s verify handoff.
 
 </how-to-run>
 
@@ -59,17 +61,28 @@ skipped.
    plan review, check against the *final* plan.
 3. **Check plan alignment** — every plan task has a corresponding change in the diff; no files changed
    that aren't in the plan (no scope creep); no plan item missing.
-4. **Review test quality** — apply [`rules/testing.md`](../../rules/testing.md)'s definition of done
-   to every test in the diff. Are assertions meaningful, or a false green (e.g. only asserting a
-   success status)? For each: "if this test passed but the feature were broken, would I know?" Are the
-   edge cases (invalid input, duplicates, boundary values) tested?
-5. **Check for the findings a Reviewer commonly catches** — incomplete test coverage (the most
-   frequent), missing error/edge-case handling, requirements from the issue not fully addressed, and
-   code-quality issues (naming, structure, duplication). Classify each by the
-   [`PROJECT.md`](../../PROJECT.md) → *Review Severity Framework*.
-6. **Check cleanliness** — no debug code, no commented-out code, no "TODO"/"needs manual testing"
+4. **Adversarial pass — try to break your own change.** This is the heart of the review: don't just
+   confirm each plan item has a change — actively hunt the defect an independent second-model Reviewer
+   would flag, and fix it now so their review *confirms* rather than *corrects*.
+   - **Refute the change** — construct the input or state where it breaks: off-by-one, `nil`/empty,
+     boundary value, duplicate, concurrent operation, unauthorized path. If you can build the failing
+     case, that is a finding.
+   - **Attack the tests, don't count them** — apply [`rules/testing.md`](../../rules/testing.md)'s
+     definition of done and hunt the **false green**: a test that would still pass if the feature were
+     reverted, a missing sad path, or an assertion that checks "it ran" instead of "it's correct." For
+     each test ask, "if this passed but the feature were broken, would I know?"
+   - **Assume the Reviewer's posture** — ask "what is the single most likely thing an independent
+     Reviewer flags here?" (incomplete coverage — the most frequent; missing error/edge-case handling;
+     a requirement from the issue not fully addressed; naming/structure/duplication) — and address it
+     before they see it.
+   - **Default skeptical** — an unproven concern is surfaced as a finding, not waved off.
+
+   Record each finding in the `drift-report` `findings[]` with a severity from
+   [`PROJECT.md`](../../PROJECT.md) → *Review Severity Framework* — the same contract as before, no new
+   schema. This pass runs at full strength whether offloaded to a read-only sub-agent or run inline.
+5. **Check cleanliness** — no debug code, no commented-out code, no "TODO"/"needs manual testing"
    comments, no unrelated changes.
-7. **Review the PR description** — Summary, Changes, Technical Approach, Testing, and Checklist present
+6. **Review the PR description** — Summary, Changes, Technical Approach, Testing, and Checklist present
    and accurate.
 
 **Fix drift now, don't document it for later.** `verdict: needs_fixes` → fix the drift (inline, or by
@@ -89,6 +102,11 @@ from the drift-report:
 - [x] All plan items implemented
 - [x] No scope creep — only planned files changed
 - [Any deviations and why]
+
+### Adversarial Pass
+- [x] Tried to refute the change (off-by-one, nil/empty, boundary, duplicate, concurrent, unauthorized) — [what was attempted]
+- [x] Attacked the tests for false greens and missing sad paths — [what was found / confirmed]
+- [Findings surfaced and their resolution, or "none"]
 
 ### Test Coverage Verified
 - [x] By test type: [summary]
