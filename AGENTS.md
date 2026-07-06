@@ -121,6 +121,7 @@ Host guidance is loaded in two tiers so session context stays lean
   - [`rules/security.md`](rules/security.md) — credentials, secret hygiene, scanners.
   - [`rules/self-review.md`](rules/self-review.md) — the before-done quality checklist.
   - [`rules/scripting.md`](rules/scripting.md) — bundled `bin/`/`scripts/` authoring (ASCII-safe output, stdlib-only).
+  - [`rules/skills.md`](rules/skills.md) — authoring generic, single-sourced Skill bodies + thin shims.
 - **Tier 2 — Deferred Deep Docs** (`docs/rules/<domain>-postmortems.md`): heavy, subsystem-specific
   case studies, **not** auto-loaded — read on demand when a trigger fires. See
   [`docs/rules/README.md`](docs/rules/README.md) for the structure and the full trigger table.
@@ -134,6 +135,7 @@ The **trigger table** links each Tier-1 file to the deferred deep doc it points 
 | `spec/` | `rules/testing.md` | `docs/rules/testing-postmortems.md` |
 | `app/`, `config/`, `lib/` | `rules/security.md` | `docs/rules/security-postmortems.md` |
 | `bin/`, `scripts/` | `rules/scripting.md` | `docs/rules/scripting-postmortems.md` |
+| `skills/`, `.claude/commands/` | `rules/skills.md` | `docs/rules/skills-postmortems.md` |
 
 Claude's `.claude/rules/` auto-load can mirror the Lean Core as a tool-specific accelerator; the
 Generic Baseline keeps a single canonical home under `rules/` (no duplicated tree) and leaves that

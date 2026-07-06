@@ -1,0 +1,21 @@
+# Skills Rules
+
+**Applies to:** `skills/` (canonical Skill bodies) and their Invocation Shims (`.claude/commands/*.md`)
+**Deep doc:** `docs/rules/skills-postmortems.md` (Tier 2 — deferred; read on demand when a trigger fires)
+
+> Tier-1 Lean Core ([ADR 0004](../docs/adr/0004-two-tier-rules-layer-progressive-context.md)): always-resident invariants. Keep this file lean — push heavy, subsystem-specific case studies down to the deep doc. These are business-neutral starters; **extend per host**.
+
+A Skill is authored **once** as a canonical body at `skills/<name>/SKILL.md` and reached through thin per-tool shims ([ADR 0003](../docs/adr/0003-skills-canonical-body-thin-shims-graceful-degradation.md), [ADR 0010](../docs/adr/0010-repo-layout-canonical-skills-at-root.md)). These rules keep every skill body generic, single-sourced, and portable.
+
+## Patterns
+
+- **Read host values from `PROJECT.md`.** Quality-check commands, attribution/model, branch policy, review severities, and the lifecycle host all live in the Project Config. A skill body names the lifecycle *verb* ("post the assessment to the issue"), not a platform command.
+- **Reference, don't restate.** A skill that composes others (e.g. an orchestrator) points at each phase's canonical body for its procedure; it never copies those steps. The procedure lives in exactly one place so an edit can't leave two copies to drift.
+- **Keep the shim thin.** An Invocation Shim carries no procedure — it points at `skills/<name>/SKILL.md`, the single source of truth. Only tool-specific *execution enhancements* degrade across tools; the procedure and quality gates never do.
+- **Use the portable Skill format.** YAML frontmatter with a `name` and `description`, a markdown body, and optional bundled files — so every configured tool can discover and run it.
+
+## Anti-Patterns
+
+- **Never restate another skill's procedure inside a skill body** — because it forks the single source of truth, and the copy silently drifts the next time the original changes. Reference the canonical body instead. *(Extend per host.)*
+- **Never hardcode a host value in a skill body** — a stack command, an attribution string, or a platform verb — because the body must stay generic across every Host App; read it from `PROJECT.md`. *(Extend per host.)*
+- **Never let a shim carry procedure or quality gates** — because a shim that duplicates the body becomes a second, drifting source; it must only point at `skills/<name>/SKILL.md`. *(Extend per host.)*

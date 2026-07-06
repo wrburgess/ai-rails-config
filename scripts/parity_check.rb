@@ -47,7 +47,7 @@ class ParityCheck
   RULES_DIR = "rules"
   REQUIRED_RULES = [
     "rules/backend.md", "rules/frontend.md", "rules/testing.md",
-    "rules/security.md", "rules/self-review.md", "rules/scripting.md"
+    "rules/security.md", "rules/self-review.md", "rules/scripting.md", "rules/skills.md"
   ].freeze
   # Section presence is asserted (the heading line), not content — so a host freely extends the body.
   RULE_REQUIRED_SECTIONS = ["## Patterns", "## Anti-Patterns"].freeze

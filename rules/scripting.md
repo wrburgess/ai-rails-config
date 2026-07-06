@@ -13,5 +13,5 @@
 
 ## Anti-Patterns
 
-- **Never emit non-ASCII bytes from a bundled script's stdout/stderr** — because a Host App or CI runner on a non-UTF-8 locale raises `invalid byte sequence` the moment it reads or matches the output. Use ASCII (`->`, not a unicode arrow), or explicitly set the stream encoding. *(Provenance: issue #5 / PR #14; extend per host.)*
+- **Never emit non-ASCII bytes from a bundled script's stdout/stderr** — because a Host App or CI runner on a non-UTF-8 locale raises `invalid byte sequence` the moment it reads or matches the output. Use ASCII (`->`, not a unicode arrow), or explicitly set the stream encoding. This rule is **author-owned, not machine-enforced**: it governs *runtime output*, whereas the sources deliberately carry non-ASCII bytes elsewhere (em dashes in comments; the functional `EM_DASH` separator constant), so a source-byte scan is the wrong instrument — see [ADR 0011](../docs/adr/0011-ascii-safe-stdout-stays-doc-only.md). The natural catch point is a test that asserts a script's captured output. *(Provenance: issue #5 / PR #14; extend per host.)*
 - **Never add a gem dependency to a bundled script** — because the bundle must run without bundler on a bare interpreter; reach for the standard library instead. *(Extend per host.)*
