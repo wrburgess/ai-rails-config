@@ -104,7 +104,7 @@ from the drift-report:
 
 ### Plan Alignment
 - [x] All plan items implemented
-- [x] No scope creep — only planned files changed
+- [x] No scope creep — only files in the final approved plan changed
 - [Any deviations and why]
 
 ### Adversarial Pass

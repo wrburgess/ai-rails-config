@@ -80,7 +80,7 @@ patterns that don't match the codebase, unaddressed requirements).
 **Exit:** HC approves the plan (or asks for revisions). The AC does not write code without an approved
 plan. An approved plan is **revisable direction, not a frozen contract** — a mid-`impl` discovery that
 it was wrong loops back through this gate to re-plan, an expected outcome rather than a failure
-([ADR 0017](../adr/0017-right-size-plan-revisable-direction.md)).
+([ADR 0019](../adr/0019-right-size-plan-revisable-direction.md)).
 
 ### Stage 3: Implement (`impl`)
 
@@ -148,7 +148,7 @@ An **approved plan is revisable direction, not a frozen contract.** When an Impl
 shows the plan was wrong — including a `ship` emergency stop for core logic the plan didn't anticipate
 — the sanctioned resolution is to **loop back through gate 1** (re-plan, re-approve), never to improvise
 past it. Re-planning *upholds* the gate, it does not weaken or bypass it
-([ADR 0017](../adr/0017-right-size-plan-revisable-direction.md)).
+([ADR 0019](../adr/0019-right-size-plan-revisable-direction.md)).
 
 ## When to skip or compress stages
 
