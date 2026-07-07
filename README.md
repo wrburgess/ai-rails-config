@@ -1,4 +1,4 @@
-# ai-rails-config
+# ai-config
 
 **In plain terms:** modern coding teams increasingly use AI assistants (Claude, Codex, Copilot,
 Gemini) to help write software. Each of those tools normally needs its own separate instructions, so

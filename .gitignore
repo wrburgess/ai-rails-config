@@ -1,4 +1,4 @@
-# ai-rails-config is a Config Bundle repo, not a Rails app — it builds nothing. Ignore only
+# ai-config is a Config Bundle repo, not a Rails app — it builds nothing. Ignore only
 # tool-local (non-shared) settings and OS/editor cruft, never Rails build artifacts.
 
 # Tool-local, non-shared agent settings — never committed, never vendored
