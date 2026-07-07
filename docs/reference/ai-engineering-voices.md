@@ -4,7 +4,7 @@ A curated reference of balanced, high-signal contributors to AI-assisted softwar
 practitioners who ship, document real experiments, and favor best-practices over hype. Not clickbait
 artists.
 
-**Compiled July 2026** · additions folded in **2026-07-06**. Links were verified at time of writing;
+**Compiled July 2026** · additions folded in **2026-07-06**, **2026-07-07**. Links were verified at time of writing;
 **handles and channels drift, so re-check before relying on any single URL.** Where a handle could not
 be verified it is **omitted intentionally** (noted inline) rather than guessed.
 
@@ -113,6 +113,15 @@ The tiers below match `voices.yml`'s `tier` buckets: **core** (Tier 1) · **tren
 - **X:** https://x.com/lilianweng
 - **YouTube:** No dedicated channel
 
+### Addy Osmani
+- **Focus:** AI-assisted engineering, balanced and hype-free. "The 70% Problem" is a widely-cited
+  hard-truths take on AI coding; the *Elevate* newsletter (600k+ readers) runs hands-on deep-dives on
+  agentic workflows, code review, and autonomy levels. Director at Google Cloud AI; 25+ years in
+  developer tooling.
+- **Site:** https://addyosmani.com/  ·  Newsletter: https://addyo.substack.com/ (Elevate)
+- **X:** https://x.com/addyosmani
+- **YouTube:** No dedicated channel (appears on podcasts)
+
 ## Tier 2 — Bigger-picture / trend voices
 
 ### Andrej Karpathy
@@ -148,7 +157,12 @@ directly since primary-source practice ships here first.
   the canonical simple-composable-patterns piece.
 - **Alex Albert** — Head of Claude Relations. Site: https://alexalbert.me/ · X: https://x.com/alexalbert__
 - **Cat Wu** — Claude Code PM / founding engineer. X: https://x.com/_catwu _(verify)_
+- **Thariq Shihipar** — Claude Code engineer; built the AskUserQuestion tool, documents prompt-caching
+  internals and the "HTML is the new Markdown" planning workflow. Site: https://www.thariq.io/ ·
+  X: https://x.com/trq212
 - **Org:** Anthropic Engineering — https://www.anthropic.com/engineering
+- **Channel:** ClaudeDevs — the official Anthropic channel for Claude Code + platform updates
+  (changelogs, API releases, community updates, deep dives); launched 2026. X: https://x.com/ClaudeDevs
 
 ### OpenAI
 - **Romain Huet** — Head of Developer Experience. X: https://x.com/romainhuet

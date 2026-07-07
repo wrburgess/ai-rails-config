@@ -57,6 +57,9 @@ voices:
   - { name: Lilian Weng, tier: core, focus: "Systematic agent/LLM design; 'LLM-Powered Autonomous Agents' (Lil'Log)",
       handles: { site: https://lilianweng.github.io/, x: https://x.com/lilianweng, youtube: null, github: https://github.com/lilianweng },
       feeds: [ https://lilianweng.github.io/index.xml ], cadence: low, verified: 2026-07-07, status: active }
+  - { name: Addy Osmani, tier: core, focus: "AI-assisted engineering practice, hype-free; 'The 70% Problem'; Elevate newsletter; agentic-workflow deep-dives",
+      handles: { site: https://addyosmani.com/, x: https://x.com/addyosmani, youtube: null, github: https://github.com/addyosmani },
+      feeds: [ https://addyosmani.com/feed.xml, https://addyo.substack.com/feed ], cadence: high, verified: 2026-07-07, status: active }   # Elevate newsletter = addyo.substack.com
 
   # --- Tier: bigger-picture / trend ---
   - { name: Andrej Karpathy, tier: trend, focus: "Foundational explainers; 'vibe coding'; Zero-to-Hero; at Anthropic (2026)",
@@ -82,6 +85,9 @@ voices:
   - { name: Cat Wu, tier: frontier-lab, focus: "Head of Product, Claude Code; product velocity in the AI era",
       handles: { site: null, x: https://x.com/_catwu, youtube: null, github: null },
       feeds: [], cadence: low, verified: 2026-07-06, status: active }   # X-only; no free feed
+  - { name: Thariq Shihipar, tier: frontier-lab, focus: "Anthropic Claude Code engineer; built AskUserQuestion; prompt-caching internals; 'HTML is the new Markdown' workflow writing",
+      handles: { site: https://www.thariq.io/, x: https://x.com/trq212, youtube: null, github: https://github.com/ThariqS },
+      feeds: [], cadence: medium, verified: 2026-07-07, status: active }   # thariq.io exposes no RSS; practical content is X-first
   - { name: Romain Huet, tier: frontier-lab, focus: "OpenAI Head of Developer Experience",
       handles: { site: null, x: https://x.com/romainhuet, youtube: null, github: null },
       feeds: [], cadence: medium, verified: 2026-07-06, status: active }   # X-only; no free feed
@@ -97,6 +103,9 @@ voices:
   - { name: Anthropic Engineering, tier: org, focus: "Primary source: agent patterns, Claude Code best-practices",
       handles: { site: https://www.anthropic.com/engineering, x: null, youtube: null, github: null },
       feeds: [], cadence: medium, verified: 2026-07-07, status: active }   # no official RSS; swept via site search
+  - { name: ClaudeDevs, tier: org, focus: "Primary source: official Anthropic channel for Claude Code + platform updates (changelogs, API releases, deep dives)",
+      handles: { site: null, x: https://x.com/ClaudeDevs, youtube: null, github: null },
+      feeds: [], cadence: high, verified: 2026-07-07, status: active }   # X-only; official dev channel, launched Feb 2026
   - { name: OpenAI Cookbook, tier: org, focus: "Primary source: recipes; Codex + AGENTS.md standard",
       handles: { site: https://cookbook.openai.com/, x: null, youtube: null, github: https://github.com/openai/openai-cookbook },
       feeds: [], cadence: medium, verified: 2026-07-07, status: active }   # no working RSS; swept via site/repo
