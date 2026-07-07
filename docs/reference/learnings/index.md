@@ -8,10 +8,11 @@ Chronological (most recent first) index of intake findings. Each row links an en
 > entries below are worked examples seeding the shape (issue #30); a Host App replaces or extends
 > them. Placement: [ADR 0012](../../adr/0012-intake-pipeline-placement.md).
 
-**Last swept:** 2026-07-07 _(first `scout` sweep — window 2026-06-23 → 2026-07-07; 13 entries
-proposed across 8 sources. The marker advances only inside a merged `scout` sweep PR; an empty sweep
-leaves it untouched. Scheduling the sweep is covered in the
-[intake-sweep scheduling guide](../../guides/intake-sweep-scheduling.md).)_
+**Last swept:** 2026-07-07 _(three passes on 2026-07-07: (1) forward sweep, window 2026-06-23 →
+2026-07-07, 13 entries; (2) three human drops via `/drop`; (3) backfill sweep, window 2026-04-23 →
+2026-06-22, 12 entries. The marker tracks the forward frontier and only advances inside a merged
+`scout` sweep PR; a backfill fills in older content without moving the frontier. Scheduling the sweep
+is covered in the [intake-sweep scheduling guide](../../guides/intake-sweep-scheduling.md).)_
 
 | Date | Source | Claim | Stance | Touches | Status |
 |------|--------|-------|--------|---------|--------|
@@ -31,5 +32,17 @@ leaves it untouched. Scheduling the sweep is covered in the
 | [2026-07-07](entries/2026-07-07-hamel-hard-to-eval-product-smell.md) | Hamel Husain | Hard-to-eval output is a product-design smell — redesign for verifiability | extends | `rules/testing.md` | noted |
 | [2026-07-07](entries/2026-07-07-jason-liu-scheduled-work-kinds.md) | Jason Liu | Scheduled Tasks (fresh context each run) vs Scheduled Messages (persistent thread) | extends | `skills/scout` | noted |
 | [2026-07-07](entries/2026-07-07-andrew-ng-loop-engineering.md) | Andrew Ng | "Loop engineering": three nested feedback loops with humans owning the higher-level ones | confirms | `docs/standards/development-lifecycle.md` | noted |
+| [2026-07-07](entries/2026-07-07-anthropic-steering-claude-code.md) | Anthropic | First-party breakdown of Claude Code primitives (rules, skills, subagents, hooks) — the exact set the repo builds on | confirms | `rules/skills.md` | noted |
+| [2026-07-07](entries/2026-07-07-pocock-progressive-disclosure-skills.md) | Matt Pocock | Progressive disclosure (summary resident, body on invoke) cuts session tokens ~63% | confirms | `ADR-0003` | noted |
+| [2026-07-07](entries/2026-07-07-thorsten-ball-building-software-is-learning.md) | Thorsten Ball | Ship-to-learn with fast feedback beats a heavy up-front plan — presses on the plan-approval gate | challenges | `docs/standards/development-lifecycle.md` | noted |
+| [2026-07-07](entries/2026-07-07-eugene-yan-llm-secure-source-code.md) | Eugene Yan | Staged agent security review: threat-model, parallel discovery, independent verifier, human triage | extends | `rules/security.md` | noted |
+| [2026-07-07](entries/2026-07-07-pocock-grill-with-docs-anti-patterns.md) | Matt Pocock | Grilling failure modes (over-broad scope, no handoff, passive steering, discarded output) | extends | `skills/grill-with-docs` | noted |
+| [2026-07-07](entries/2026-07-07-google-io-antigravity-cli-gemini-adapter.md) | Logan Kilpatrick (Google) | Gemini CLI being superseded by Antigravity CLI — repo's Gemini adapter discovery needs re-verification | challenges | `docs/research/tool-config-discovery.md` | noted |
+| [2026-07-07](entries/2026-07-07-openai-cookbook-agent-improvement-loop.md) | OpenAI Cookbook | Traces + feedback become reusable evals; a human approves the diff before merge | confirms | `docs/standards/development-lifecycle.md` | noted |
+| [2026-07-07](entries/2026-07-07-openai-cookbook-iterative-repair-loops.md) | OpenAI Cookbook | Bounded Review→Repair→Validate loop with explicit stop conditions (incl. "human review needed") | extends | `skills/verify` | noted |
+| [2026-07-07](entries/2026-07-07-willison-vibe-coding-agentic-converging.md) | Simon Willison | Reliable agents make rigorous engineering drift into unreviewed vibe coding; value moves to plan + verify | confirms | `docs/standards/development-lifecycle.md` | noted |
+| [2026-07-07](entries/2026-07-07-philipp-schmid-subagent-patterns.md) | Philipp Schmid | Four subagent-orchestration patterns — vocabulary for ship's delegation boundaries | extends | `skills/ship` | noted |
+| [2026-07-07](entries/2026-07-07-eugene-yan-compound-with-ai.md) | Eugene Yan | AI compounds when you encode prefs in config files and mine sessions to refine them | confirms | `skills/scout` | noted |
+| [2026-07-07](entries/2026-07-07-andrew-ng-coding-agent-domain-acceleration.md) | Andrew Ng | Agent acceleration ranks frontend > backend > infra > research — weight guardrails by domain | extends | `rules/backend.md` | noted |
 | [2026-07-06](entries/2026-07-06-building-effective-agents-simplicity.md) | Erik Schluntz & Barry Zhang (Anthropic) | Prefer simple, composable patterns; add agentic complexity only when it measurably helps | confirms | `ADR-0003` | noted |
 | [2026-07-06](entries/2026-07-06-hamel-evals-first-class-tests.md) | Hamel Husain | An AI product needs task-specific evals as first-class tests | extends | `rules/testing.md` | actioned |
