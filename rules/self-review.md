@@ -10,6 +10,7 @@
 - **Run the full quality gate green before saying "done".** All of the host's checks (declared in `PROJECT.md` → *Quality Checks*) must pass, not "probably pass."
 - **Re-read your own diff as a hostile reviewer would**, line by line, and fix what you would flag before anyone else sees it.
 - **Confirm every planned item has a corresponding test**, and that each test would actually fail if the feature broke.
+- **Source every "verified" / "as-of" / factual claim with a citation that actually states it** — put each claim under the exact URL that supports it and quote the load-bearing line; if you can't quote it, you have not verified it.
 
 ## Checklist
 
@@ -27,3 +28,4 @@
 - **Never leave a "TODO / needs manual testing" comment in place of a test** — because it never gets written; build the test now. *(Extend per host.)*
 - **Never ship minimal assertions and call it complete** — because the last 20% (edge cases, sad paths, thorough assertions) is where quality lives. *(Extend per host.)*
 - **Never put `<angle-bracket>` placeholders in text you post to the lifecycle host** (issue/PR/comment bodies) — because GitHub's markdown sanitizer silently strips them (even inside backticks), so `path/<name>/file` renders as `path//file` and reads as a typo; use `{name}` or `NAME` in prose bound for a host artifact (angle brackets are fine in committed source files). *(Extend per host.)*
+- **Never cite a source that doesn't support the claim placed under it** — because a dated URL manufactures false rigor: a reader who follows it finds nothing, and the "verified" label becomes a lie. Attribute each claim to the source that actually states it, and quote the exact supporting line (a structural link-check confirms a URL *resolves*, never that it *supports* the claim — that gap is author-owned). *(Provenance: issue #56 / PR #61; extend per host.)*

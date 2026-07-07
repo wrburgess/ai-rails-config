@@ -173,8 +173,9 @@ This is the highest-uncertainty tool and the one that amends ADR 0002; verdicts 
   all persist (the context-file citation below still applies) — and Antigravity **added
   native `AGENTS.md` reading** in v1.20.3 (2026-03-05), which on its own keeps the
   Canonical Source resolvable even independent of the `@`-import. The Adapter
-  (`GEMINI.md` → `@AGENTS.md`) and the structural parity check are therefore
-  **unaffected**.
+  (`GEMINI.md` → `@AGENTS.md`) and the structural parity check therefore need **no
+  corrective change** — though this PR does additionally teach the check to accept the
+  native-`AGENTS.md` resolution the transition makes first-class (a hardening, not a fix).
 - **Verdict:** **POINTER WORKS** — unchanged by the Antigravity CLI transition (import or
   `context.fileName` on the CLI; IDE Code Assist favors native `GEMINI.md`/`AGENT.md`).
 

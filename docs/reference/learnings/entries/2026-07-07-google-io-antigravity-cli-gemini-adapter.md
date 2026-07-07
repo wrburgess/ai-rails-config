@@ -38,4 +38,6 @@ A stale adapter silently breaks the single-sourcing guarantee for one tool.
 (consumer Gemini CLI retired 2026-06-18), **but Antigravity CLI preserves `GEMINI.md`/`AGENTS.md`
 discovery and the `@`-import** (it even added native `AGENTS.md` in v1.20.3), so the adapter and the
 structural parity check were *not* broken. Docs refreshed for currency (`AGENTS.md` Gemini row + stamp,
-`docs/research/tool-config-discovery.md`, this entry); no `scripts/parity_check.rb` change needed.
+`docs/research/tool-config-discovery.md`, this entry); no *corrective* `scripts/parity_check.rb` change
+was required, though the PR additionally hardens the check to accept native `AGENTS.md` discovery and
+records the citation-integrity lesson in `rules/self-review.md`.

@@ -231,6 +231,38 @@ class ParityCheckTest < Minitest::Test
     end
   end
 
+  def test_gemini_native_discovery_marker_passes
+    # Issue #56: Antigravity CLI reads AGENTS.md natively (v1.20.3) and a host may set
+    # context.fileName -> AGENTS.md, so a Gemini adapter may resolve via a `parity:native` marker
+    # INSTEAD of an @import. That must pass parity (the check would previously false-fail it).
+    with_bundle do |dir|
+      File.write(File.join(dir, "GEMINI.md"), "<!-- parity:native source=AGENTS.md -->\n\nGemini-only notes.\n")
+      code, out = run_check(dir)
+      assert_equal 0, code, out
+    end
+  end
+
+  def test_gemini_neither_import_nor_native_fails
+    # A Gemini adapter with neither an @import nor a native-discovery marker resolves to nothing.
+    with_bundle do |dir|
+      File.write(File.join(dir, "GEMINI.md"), "just prose, no import and no marker\n")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/neither imports the Canonical Source .* nor declares native discovery/, out)
+    end
+  end
+
+  def test_claude_native_marker_does_not_satisfy_import
+    # CLAUDE.md is NOT native-capable (Claude Code has no native AGENTS.md discovery): a parity:native
+    # marker must NOT rescue it — only the @import resolves. Guards the native path as Gemini-only.
+    with_bundle do |dir|
+      File.write(File.join(dir, "CLAUDE.md"), "<!-- parity:native source=AGENTS.md -->\n\nClaude-only notes.\n")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/CLAUDE\.md does not import/, out)
+    end
+  end
+
   def test_dangling_import_target_fails
     with_bundle do |dir|
       File.delete(File.join(dir, "AGENTS.md"))
