@@ -71,9 +71,10 @@ spec — stages, roles, gates, and terminal artifacts — is
 
 ## Skills
 
-The Generic Baseline ships nine Skills — `grill-with-docs`, `assess`, `cplan`, `impl`, `verify`,
-`rtr`, `final`, `ship`, `scout` ([ADR 0006](docs/adr/0006-baseline-skill-set-and-github-default-lifecycle-host.md),
-[ADR 0012](docs/adr/0012-intake-pipeline-placement.md)). Each is authored once as a canonical body
+The Generic Baseline ships ten Skills — `grill-with-docs`, `assess`, `cplan`, `impl`, `verify`,
+`rtr`, `final`, `ship`, `scout`, `drop` ([ADR 0006](docs/adr/0006-baseline-skill-set-and-github-default-lifecycle-host.md),
+[ADR 0012](docs/adr/0012-intake-pipeline-placement.md),
+[ADR 0015](docs/adr/0015-intake-front-door-drop-skill.md)). Each is authored once as a canonical body
 (`skills/<name>/SKILL.md`) and reached through a thin, tool-specific Invocation Shim; the procedure and
 quality gates are identical on every tool, and only tool-specific execution enhancements degrade
 gracefully.
@@ -91,7 +92,7 @@ frontmatter + markdown body + optional bundled files). How each tool invokes it
   `skills/<name>/SKILL.md`. (A tool may additionally define a native prompt/command file where it
   supports one; the Generic Baseline ships none yet.)
 
-**Shipped (9 of 9):**
+**Shipped (10 of 10):**
 
 - [`grill-with-docs`](skills/grill-with-docs/SKILL.md) — a plan-grilling / brainstorming session that
   stress-tests a plan against the project's domain language and captures decisions inline as a
@@ -115,6 +116,12 @@ frontmatter + markdown body + optional bundled files). How each tool invokes it
   empty-sweep (no-PR, log-only) behavior — is covered in the
   [intake-sweep scheduling guide](docs/guides/intake-sweep-scheduling.md)
   ([ADR 0013](docs/adr/0013-scheduled-intake-sweep-and-empty-sweep-policy.md)).
+- [`drop`](skills/drop/SKILL.md) — the intake pipeline's **push front door**, complementing `scout`'s
+  **pull** sweep: a human hands it field output (a screenshot, a link, or a quote) in any session; it
+  enforces a hard real-URL gate, writes a well-formed **stance-less** drop into the manual-drop inbox,
+  then delegates to [`scout`](skills/scout/SKILL.md) (scoped to that one drop) to draft the
+  Learnings-Log entry and open the review PR. One invocation → a reviewable PR is the happy path; a
+  human disposes on the PR ([ADR 0015](docs/adr/0015-intake-front-door-drop-skill.md)).
 
 ## Rules Layer
 

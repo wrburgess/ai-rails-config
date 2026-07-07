@@ -82,13 +82,17 @@ _Avoid_: "the notes", "changelog"
 The human-fed lane where a person drops a raw pointer (a URL + who + one line of why) to field output the `scout` sweep can't fetch on its own — X posts, paywalled or feed-less sources — for the next sweep to turn into a Learnings-Log entry. A drop is raw input and carries no stance; scout assigns it.
 _Avoid_: "the queue", "the dropbox"
 
+**Drop skill**:
+The intake pipeline's **push front door** (the `drop` Skill): it turns field output a human hands over in any session — a screenshot, a link, or a quote — into a well-formed, stance-less Manual-drop inbox drop, enforcing a real-URL gate, then delegates to `scout` to draft the Learnings-Log entry and open the review PR. Complements the `scout` **pull** sweep; a human still disposes on the PR.
+_Avoid_: "the uploader", "the importer"
+
 ## Relationships
 
 - The **Config Bundle** contains one **Canonical Source**, many **Adapters**, many **Skills**, one **Rules Layer**, and one **Project Config**.
 - The **Rules Layer** = **Lean Core** (Tier 1, always resident) + **Deferred Deep Docs** (Tier 2, on demand); a trigger table links a Tier-1 file to its Tier-2 deep doc.
 - A **Host App** vendors the **Generic Baseline**, then applies **Customization** (including its **Project Config**).
 - Each **Adapter** is derived from the **Canonical Source**; every **Skill** reads the **Project Config** for host-specific values.
-- The **Intake Pipeline** reads a **Watchlist** (and a **Manual-drop inbox** for sources it can't fetch), records findings in a **Learnings Log**, and proposes changes to the **Rules Layer**, **Skills**, or ADRs via the `scout` **Skill**.
+- The **Intake Pipeline** reads a **Watchlist**, accepts human drops through the **Drop skill** (`drop`) into the **Manual-drop inbox** for sources it can't fetch, and records findings in a **Learnings Log** via the `scout` **Skill** — proposing changes to the **Rules Layer**, **Skills**, or ADRs. `scout` pulls on a sweep; `drop` pushes on demand.
 
 ## Example dialogue
 
