@@ -1,6 +1,6 @@
-# AI Rails Config
+# ai-config
 
-A generic, model-agnostic AI-agent configuration layer for Rails projects. It ships as a portable, business-neutral baseline that is vendored into a host application and then customized. It drives multiple AI coding agents (Claude, Codex, Copilot, Gemini) from a single source of truth.
+A generic, model-agnostic AI-agent configuration layer for software projects. It ships as a portable, business-neutral baseline that is vendored into a host application and then customized. It drives multiple AI coding agents (Claude, Codex, Copilot, Gemini) from a single source of truth.
 
 ## Language
 
@@ -16,8 +16,12 @@ _Avoid_: "default config", "boilerplate"
 The changes a host app makes after vendoring the Generic Baseline to fit its own domain, tooling, and conventions. Kept separate from the baseline so upstream updates stay mergeable.
 _Avoid_: "overrides", "config"
 
+**Stack Overlay** (a.k.a. **Sidecar Bundle**):
+A stack-specific overlay Config Bundle (e.g. `ai-config-rails`) a Host App vendors *alongside* the Generic Baseline to restore the concrete, stack-named patterns and anti-patterns the baseline states only as neutral, stack-agnostic principles. The baseline names no stack; each overlay supplies one stack's concretes.
+_Avoid_: "plugin", "extension", "fork"
+
 **Host App** (a.k.a. **Consuming App**):
-A Rails application that vendors the Config Bundle. The Config Bundle never assumes anything about a specific Host App's domain.
+A software project that vendors the Config Bundle. The Config Bundle never assumes anything about a specific Host App's domain or stack.
 _Avoid_: "client", "target repo"
 
 **Canonical Source** (a.k.a. **Source of Truth**):
@@ -91,6 +95,7 @@ _Avoid_: "the uploader", "the importer"
 - The **Config Bundle** contains one **Canonical Source**, many **Adapters**, many **Skills**, one **Rules Layer**, and one **Project Config**.
 - The **Rules Layer** = **Lean Core** (Tier 1, always resident) + **Deferred Deep Docs** (Tier 2, on demand); a trigger table links a Tier-1 file to its Tier-2 deep doc.
 - A **Host App** vendors the **Generic Baseline**, then applies **Customization** (including its **Project Config**).
+- A **Host App** may also vendor one or more **Stack Overlays** (e.g. `ai-config-rails`) alongside the **Generic Baseline**: the baseline states each rule as a neutral, stack-agnostic principle; the overlay supplies that stack's concrete patterns and anti-patterns.
 - Each **Adapter** is derived from the **Canonical Source**; every **Skill** reads the **Project Config** for host-specific values.
 - The **Intake Pipeline** reads a **Watchlist**, accepts human drops through the **Drop skill** (`drop`) into the **Manual-drop inbox** for sources it can't fetch, and records findings in a **Learnings Log** via the `scout` **Skill** — proposing changes to the **Rules Layer**, **Skills**, or ADRs. `scout` pulls on a sweep; `drop` pushes on demand.
 

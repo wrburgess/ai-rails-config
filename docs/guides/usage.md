@@ -12,7 +12,7 @@ host-specific value it points to lives in [`PROJECT.md`](../../PROJECT.md), neve
 
 ## 1. Vendor the baseline in
 
-The bundle is distributed by **copying files in** — no submodule, no gem, no upstream tracking
+The bundle is distributed by **copying files in** — no submodule, no package, no upstream tracking
 ([ADR 0001](../adr/0001-distribute-as-copy-in-sync-script.md)). From a clone of this repo:
 
 ```bash

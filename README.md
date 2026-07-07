@@ -11,7 +11,7 @@ protected branch. You don't need to understand the vocabulary below to get that 
 
 ---
 
-A generic, model-agnostic **AI-agent configuration layer** for Rails projects. It ships as a
+A generic, model-agnostic **AI-agent configuration layer** for software projects. It ships as a
 portable, business-neutral **Generic Baseline** — one **Canonical Source** of instructions that
 drives four AI coding agents (Claude, Codex, Copilot, Gemini) in lockstep — which you **vendor into a
 Host App** and then customize.
@@ -45,8 +45,9 @@ below are the quick reference.
   ([ADR 0004](docs/adr/0004-two-tier-rules-layer-progressive-context.md)): the always-resident
   **Tier-1 Lean Core** — seven `rules/*.md` files (`backend`, `frontend`, `testing`, `security`,
   `self-review`, `scripting`, `skills`), each with Patterns + Anti-Patterns — plus the deferred
-  **Tier-2 Deep Docs** (`docs/rules/`, read on demand via the trigger table). Business-neutral
-  starters; extend per host.
+  **Tier-2 Deep Docs** (`docs/rules/`, read on demand via the trigger table). Business-neutral and
+  stack-neutral starters; extend per host — concrete stack-named examples live in a matching **Stack
+  Overlay** (e.g. `ai-config-rails`), vendored alongside the baseline.
 - **Skills** — model-agnostic capabilities authored once as a canonical body (`skills/<name>/SKILL.md`)
   and reached through a thin per-tool Invocation Shim (Claude `.claude/commands/<name>.md`; other tools
   via native `AGENTS.md` discovery), so any configured agent runs the same procedure
@@ -79,7 +80,7 @@ intent, without reading every ADR:
   `AGENTS.md` natively by filename ([ADR 0002](docs/adr/0002-agents-md-canonical-pointer-projection.md)).
   No tool follows a free-text "see AGENTS.md" pointer, so the agents never receive drifted instructions.
 - **A structural parity gate, not a model in the loop.** `scripts/parity_check.rb` is a dependency-free
-  Ruby check that asserts every Adapter still resolves to the Canonical Source, the `PROJECT.md`
+  structural check that asserts every Adapter still resolves to the Canonical Source, the `PROJECT.md`
   contract sections are intact, and every documented link resolves — a fast, deterministic guard that
   drift is mechanically impossible to merge ([ADR 0008](docs/adr/0008-structural-parity-check-not-model-in-the-loop.md)).
 - **A two-tier Rules Layer for progressive context.** Tier 1 is the always-resident **Lean Core**
@@ -111,7 +112,7 @@ copies of the rules.
 
 ## Vendor it into a Host App
 
-The bundle is distributed by **copying files in** — no submodule, no gem, no upstream tracking
+The bundle is distributed by **copying files in** — no submodule, no package, no upstream tracking
 ([ADR 0001](docs/adr/0001-distribute-as-copy-in-sync-script.md)). From a clone of this repo:
 
 ```bash
@@ -126,7 +127,7 @@ The Host App ends up **owning plain files** at their expected paths (real files,
 `ai-config-sync` copies each top-level bundle surface **only if it exists**, so it behaves the same
 as the baseline grows. It does **not** copy this repo's own meta files (`README.md`, `LICENSE`,
 `.gitignore`, `test/`, or the `ai-config-sync` script itself), and it never touches your Host App's
-Rails `.gitignore`.
+own `.gitignore`.
 
 ## Customize after vendoring
 
@@ -176,7 +177,7 @@ setup, the AI-vs-human exemption, and the server-side (GitHub) step are document
 
 ## Quality gate
 
-This repo's own check is dependency-free (standard-library Ruby, no bundler):
+This repo's own check is dependency-free (standard library only, no package manager):
 
 ```bash
 ruby scripts/parity_check.rb

@@ -12,10 +12,12 @@ replace them during Customization.
 
 The commands an agent must run and get green before declaring work done. The generalized Skills read
 this table — they never hardcode a stack's commands. **Host Apps: replace these rows with your real
-commands during Customization** (e.g. a Rails Host App: lint `bundle exec rubocop -a`, tests
-`bundle exec rspec`, security `bin/brakeman --no-pager -q`, dependency audit `bin/bundler-audit check`).
+commands during Customization** (e.g. a Rails host: lint `bundle exec rubocop -a`, tests
+`bundle exec rspec`, security `bin/brakeman --no-pager -q`, dependency audit `bin/bundler-audit check`;
+a JS/TS host: lint `npm run lint`, tests `npm test`, dependency audit `npm audit`). A **Stack Overlay**
+such as `ai-config-rails` can ship a ready-to-paste command set for its stack.
 
-This config repo is itself Rails-free, so its own gate is the structural parity check plus the
+This config repo ships no application code, so its own gate is the structural parity check plus the
 dependency-free stdlib self-tests:
 
 | Purpose | Command |
