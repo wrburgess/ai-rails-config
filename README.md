@@ -1,5 +1,16 @@
 # ai-rails-config
 
+**In plain terms:** modern coding teams increasingly use AI assistants (Claude, Codex, Copilot,
+Gemini) to help write software. Each of those tools normally needs its own separate instructions, so
+they drift apart and give inconsistent advice. This repo fixes that: you write the house rules **once**,
+and every AI assistant on the project reads the same copy and behaves the same way. Drop it into a
+project, adjust one settings file for your team, and your AI helpers start following a consistent,
+reviewable playbook — with built-in guardrails so they can't do risky things like committing to a
+protected branch. You don't need to understand the vocabulary below to get that benefit; the
+[usage guide](docs/guides/usage.md) walks you through it step by step.
+
+---
+
 A generic, model-agnostic **AI-agent configuration layer** for Rails projects. It ships as a
 portable, business-neutral **Generic Baseline** — one **Canonical Source** of instructions that
 drives four AI coding agents (Claude, Codex, Copilot, Gemini) in lockstep — which you **vendor into a
@@ -32,16 +43,66 @@ below are the quick reference.
   *Branch protection* below.
 - **Rules Layer** — a two-tier progressive-context knowledge layer
   ([ADR 0004](docs/adr/0004-two-tier-rules-layer-progressive-context.md)): the always-resident
-  **Tier-1 Lean Core** (`rules/*.md` — `backend`, `frontend`, `testing`, `security`, `self-review`,
-  `scripting`, each with Patterns + Anti-Patterns) plus the deferred **Tier-2 Deep Docs**
-  (`docs/rules/`, read on demand via the trigger table). Business-neutral starters; extend per host.
+  **Tier-1 Lean Core** — seven `rules/*.md` files (`backend`, `frontend`, `testing`, `security`,
+  `self-review`, `scripting`, `skills`), each with Patterns + Anti-Patterns — plus the deferred
+  **Tier-2 Deep Docs** (`docs/rules/`, read on demand via the trigger table). Business-neutral
+  starters; extend per host.
 - **Skills** — model-agnostic capabilities authored once as a canonical body (`skills/<name>/SKILL.md`)
   and reached through a thin per-tool Invocation Shim (Claude `.claude/commands/<name>.md`; other tools
   via native `AGENTS.md` discovery), so any configured agent runs the same procedure
-  ([ADR 0003](docs/adr/0003-skills-canonical-body-thin-shims-graceful-degradation.md)). Shipped (7 of
-  8): `grill-with-docs` and the six lifecycle skills `assess`, `cplan`, `impl`, `verify`, `rtr`,
-  `final` (their five-stage spec is `docs/standards/development-lifecycle.md`); the `ship` orchestrator
-  lands in a later issue.
+  ([ADR 0003](docs/adr/0003-skills-canonical-body-thin-shims-graceful-degradation.md)). Shipped (9):
+  `grill-with-docs`, the six lifecycle skills `assess`, `cplan`, `impl`, `verify`, `rtr`, `final`
+  (their five-stage spec is `docs/standards/development-lifecycle.md`), the `ship` orchestrator that
+  sequences those six end to end (Epic #1), and the `scout` intake sweep (Epic #28).
+- **Intake pipeline** — a living-knowledge sweep that keeps the bundle's reference material current
+  ([ADR 0012](docs/adr/0012-intake-pipeline-placement.md),
+  [ADR 0013](docs/adr/0013-scheduled-intake-sweep-and-empty-sweep-policy.md)): the
+  [`scout`](skills/scout/SKILL.md) skill polls a **Watchlist** (`docs/reference/voices.yml`), drafts
+  dated entries into an append-only **Learnings Log** (`docs/reference/learnings/`), and opens a PR of
+  them for a human to accept, edit, or reject — the sweep proposes, a human disposes. Ships as an
+  **illustrative reference seed**; repoint or extend it per host via `PROJECT.md` → *Intake Pipeline*.
+
+## Technical overview
+
+For a reader who *is* AI/software-savvy, here is how the pieces fit — the architecture and the design
+intent, without reading every ADR:
+
+- **One source of truth → adapters (projection, not duplication).** All instructions are authored once
+  in [`AGENTS.md`](AGENTS.md), the **Canonical Source**. Each tool reaches it through a thin **Adapter**
+  that *resolves back* to that file rather than copying it: Claude and Gemini import it
+  (`@AGENTS.md` in [`CLAUDE.md`](CLAUDE.md) / [`GEMINI.md`](GEMINI.md)), while Codex and Copilot read
+  `AGENTS.md` natively by filename ([ADR 0002](docs/adr/0002-agents-md-canonical-pointer-projection.md)).
+  No tool follows a free-text "see AGENTS.md" pointer, so the agents never receive drifted instructions.
+- **A structural parity gate, not a model in the loop.** `scripts/parity_check.rb` is a dependency-free
+  Ruby check that asserts every Adapter still resolves to the Canonical Source, the `PROJECT.md`
+  contract sections are intact, and every documented link resolves — a fast, deterministic guard that
+  drift is mechanically impossible to merge ([ADR 0008](docs/adr/0008-structural-parity-check-not-model-in-the-loop.md)).
+- **A two-tier Rules Layer for progressive context.** Tier 1 is the always-resident **Lean Core**
+  (`rules/*.md`, small and invariant); Tier 2 is heavy, subsystem-specific **Deep Docs**
+  (`docs/rules/`) that are *not* auto-loaded but pulled in on demand via a trigger table — keeping the
+  session context lean while deep knowledge stays one hop away
+  ([ADR 0004](docs/adr/0004-two-tier-rules-layer-progressive-context.md)).
+- **A single-sourced Skill model.** Each Skill is authored once as a canonical body
+  (`skills/<name>/SKILL.md`) and invoked through a per-tool shim; only tool-specific execution
+  enhancements degrade gracefully, never the procedure or the quality gates
+  ([ADR 0003](docs/adr/0003-skills-canonical-body-thin-shims-graceful-degradation.md)). The lifecycle
+  Skills (`assess` → `cplan` → `impl` → `verify` → `rtr` → `final`) implement an issue/PR-shaped
+  workflow with two mandatory human gates (plan approval, merge).
+- **`ship` — delegation by output-weight.** The orchestrator sequences the six lifecycle Skills end to
+  end while keeping a lean main context: it **offloads output-heavy, signal-light** work (codebase
+  exploration, the code+check+fix loop, full-diff review) to discardable sub-agents that return a
+  compact handoff contract, and **keeps judgment-heavy** work (plan authoring, review-severity calls,
+  merge-readiness) in the clean orchestrator — so a lossy summary can't silently steer the outcome
+  ([ADR 0005](docs/adr/0005-ship-hybrid-delegation-offload-retrieval-protect-judgment.md)).
+- **`scout` — a propose-then-dispose intake pipeline.** A scheduled or hand-run sweep polls the
+  Watchlist, drafts dated Learnings-Log entries (each carrying a `stance` and a `touches` target), and
+  opens a PR for a human to accept, edit, or reject — automation gathers, a human decides
+  ([ADR 0012](docs/adr/0012-intake-pipeline-placement.md),
+  [ADR 0013](docs/adr/0013-scheduled-intake-sweep-and-empty-sweep-policy.md)).
+
+The design intent throughout: **author once, resolve everywhere, and guard the resolution with a
+deterministic check** — so four different AI tools stay in lockstep without a human hand-syncing four
+copies of the rules.
 
 ## Vendor it into a Host App
 

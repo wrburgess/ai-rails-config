@@ -73,17 +73,18 @@ author host-specific content as Customization, never by editing the baseline fil
 
 ## 4. Run each skill per tool
 
-The bundle ships eight Skills — `grill-with-docs` plus the lifecycle set `assess`, `cplan`, `impl`,
-`verify`, `rtr`, `final`, and the `ship` orchestrator. Each is authored **once** as a canonical body
-at `skills/<name>/SKILL.md` and reached through a thin, tool-specific **Invocation Shim**; the
-procedure and quality gates are identical on every tool, and only tool-specific execution enhancements
-degrade gracefully ([ADR 0003](../adr/0003-skills-canonical-body-thin-shims-graceful-degradation.md)).
+The bundle ships nine Skills — `grill-with-docs`, the lifecycle set `assess`, `cplan`, `impl`,
+`verify`, `rtr`, `final`, the `ship` orchestrator that sequences those six end to end, and the `scout`
+intake sweep. Each is authored **once** as a canonical body at `skills/<name>/SKILL.md` and reached
+through a thin, tool-specific **Invocation Shim**; the procedure and quality gates are identical on
+every tool, and only tool-specific execution enhancements degrade gracefully
+([ADR 0003](../adr/0003-skills-canonical-body-thin-shims-graceful-degradation.md)).
 
 **How each configured agent invokes a Skill:**
 
 | Tool | Invocation |
 |------|------------|
-| **Claude Code** | A slash command from the thin shim at `.claude/commands/<name>.md` — e.g. `/assess 11`, `/cplan 11`, `/impl 11`. The shim points at the canonical body. |
+| **Claude Code** | A slash command from the thin shim at `.claude/commands/<name>.md` — e.g. `/assess 11`, `/cplan 11`, `/impl 11`, `/ship 11`, `/scout`. The shim points at the canonical body. |
 | **Codex** | Reads `AGENTS.md` natively, so **the documented procedure is the shim**: to run a Skill, read `skills/<name>/SKILL.md` and follow it. |
 | **Copilot** | Same — its PR surfaces read `AGENTS.md` natively; read `skills/<name>/SKILL.md` and follow it. |
 | **Gemini** | Same — `GEMINI.md` imports `AGENTS.md`; read `skills/<name>/SKILL.md` and follow it. |
@@ -100,6 +101,26 @@ PR id that `impl` opens. Two human gates are mandatory and never bypassed — **
 stages are in [`development-lifecycle.md`](../standards/development-lifecycle.md). To run the whole
 lifecycle hands-off, the [`ship`](../../skills/ship/SKILL.md) orchestrator sequences all six while
 protecting exactly those two gates.
+
+### The intake sweep (`scout`)
+
+The ninth Skill, [`scout`](../../skills/scout/SKILL.md), runs **outside** the issue/PR lifecycle: it
+keeps the bundle's reference material current by polling a **Watchlist**, drafting dated entries into
+an append-only **Learnings Log**, and opening a PR of them for a human to accept, edit, or reject —
+the sweep proposes, a human disposes ([ADR 0012](../adr/0012-intake-pipeline-placement.md)). The
+artifact locations it reads and writes are host-configurable in [`PROJECT.md`](../../PROJECT.md) →
+*Intake Pipeline* (they ship pointing at an illustrative reference seed; repoint them per host).
+
+Run it two ways:
+
+- **By hand** — Claude: `/scout`; the native-discovery tools (Codex, Copilot, Gemini): read and follow
+  `skills/scout/SKILL.md`. Use this for a one-off sweep or to try it before scheduling.
+- **On a schedule** — wire it to run automatically (e.g. nightly). The cadence, enable/disable, and the
+  empty-sweep behavior (when nothing new is found, it logs and opens **no** PR) are covered in the
+  [intake-sweep scheduling guide](intake-sweep-scheduling.md)
+  ([ADR 0013](../adr/0013-scheduled-intake-sweep-and-empty-sweep-policy.md)).
+
+Either way the invocation and its quality bar are identical; only the trigger differs.
 
 ## 5. Keep the bundle green in-host
 
