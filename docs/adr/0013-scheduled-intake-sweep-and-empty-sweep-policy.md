@@ -13,7 +13,7 @@ human-gated PR flow. Its final piece (issue #32, part of the #28 umbrella) is ru
    needs a credential. The Config Bundle ships a **Generic Baseline** that "contains no reference to
    any specific company, product, or domain," and *nothing runs unless triggered*.
 2. **What happens when a scheduled sweep finds nothing?** Left unspecified, a schedule would open an
-   empty PR every cadence, and the `scout` body (steps 7–9) always appended entries and opened a PR.
+   empty PR every cadence, and the `scout` body always appended entries and opened a PR.
 
 ## Decision
 
