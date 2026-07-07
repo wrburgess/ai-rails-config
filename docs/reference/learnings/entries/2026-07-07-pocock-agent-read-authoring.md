@@ -31,6 +31,12 @@ A concrete gap this suggests: `rules/skills.md` could gain a **Pattern** on auth
 (lead with the imperative / leading words; structure over paragraphs; prune ruthlessly), so the craft
 that makes a skill body effective is captured, not just its wiring.
 
+**Related in the log.** Distinct from
+[Pocock — skills as a markdown catalog](2026-07-07-pocock-skills-as-markdown-catalog.md), which
+*confirms* the skills-as-markdown model (what a skill **is**); this entry is about the *prose craft* of
+authoring any agent-read text. Same `touches`, different claim and different source (an X post vs a
+docs page) — surfaced, not silently re-added.
+
 ## Disposition
 
 `noted` — proposes a `rules/skills.md` authoring-craft Pattern; a human disposes. This entry also

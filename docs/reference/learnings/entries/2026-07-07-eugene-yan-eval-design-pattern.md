@@ -28,6 +28,13 @@ Pattern into something concrete: define a sandboxed target, tune difficulty via 
 tools, grade with a **deterministic grader and partial credit via subtasks** (not binary), and guard
 validity with post-cutoff tasks.
 
+**Related in the log.** This joins a cluster on `rules/testing.md`:
+[Hamel — evals as first-class tests](2026-07-06-hamel-evals-first-class-tests.md) (the *why*),
+[Hamel — hard-to-eval is a product smell](2026-07-07-hamel-hard-to-eval-product-smell.md) (*when to
+redesign*), and [Willison — DSPy prompt evals](2026-07-07-willison-dspy-agent-prompt-evals.md)
+(*tooling*). Eugene Yan supplies the missing facet — the eval **design pattern** itself — so this is
+complementary, not a re-add.
+
 ## Disposition
 
 `noted` — proposes a possible refinement to `rules/testing.md`'s evals Pattern (a four-primitive design

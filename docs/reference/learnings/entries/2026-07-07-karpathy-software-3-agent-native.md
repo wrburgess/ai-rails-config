@@ -32,6 +32,11 @@ This **confirms** two foundational bets of this bundle:
   `verify` skill's adversarial pass, and its lifecycle keeps humans on specs/plan-approval and review.
   "Automate what you can verify, keep the human on judgment" is exactly that design.
 
+**Related in the log.** Sits alongside the agent-orchestration/verification cluster (e.g.
+[Willison — AI review caught bugs](2026-07-07-willison-ai-review-caught-bugs.md),
+[Lilian Weng — harness engineering](2026-07-07-lilian-weng-harness-engineering.md)) but is the only
+entry on the *machine-readable-instructions* premise (`ADR-0002`).
+
 ## Disposition
 
 `noted` — external corroboration of the repo's premise (ADR 0002 and the verify-gated lifecycle), no
