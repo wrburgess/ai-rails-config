@@ -6,7 +6,7 @@ Gemini** — discovers its instruction/context files, and whether each reliably
 [ADR 0002](../adr/0002-agents-md-canonical-pointer-projection.md)) or requires the
 canonical content to be **inlined**.
 
-- **Issue:** wrburgess/ai-rails-config#3 (`Part of #1`).
+- **Issue:** wrburgess/ai-config#3 (`Part of #1`).
 - **As-of:** 2026-07-04. These behaviors drift fast (Copilot added three relevant
   capabilities across 2025-08 → 2026-06); **re-verify before each scaffold change**
   and update the date + citations below.
