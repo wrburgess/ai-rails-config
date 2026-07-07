@@ -14,5 +14,6 @@ merged `scout` sweep PR; an empty sweep leaves it untouched. Scheduling the swee
 
 | Date | Source | Claim | Stance | Touches | Status |
 |------|--------|-------|--------|---------|--------|
+| [2026-07-07](entries/2026-07-07-pocock-authoring-discipline-generalizes.md) | Matt Pocock | Structure + leading words + pruning is useful for any text agents read — AGENTS.md, docs, specs, tickets, workflow prompts, not just skills | extends | `rules/skills.md` | noted |
 | [2026-07-06](entries/2026-07-06-building-effective-agents-simplicity.md) | Erik Schluntz & Barry Zhang (Anthropic) | Prefer simple, composable patterns; add agentic complexity only when it measurably helps | confirms | `ADR-0003` | noted |
 | [2026-07-06](entries/2026-07-06-hamel-evals-first-class-tests.md) | Hamel Husain | An AI product needs task-specific evals as first-class tests | extends | `rules/testing.md` | actioned |
