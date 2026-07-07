@@ -37,8 +37,8 @@ voices:
       handles: { site: https://registerspill.thorstenball.com/, x: null, youtube: null, github: null },
       feeds: [ https://registerspill.thorstenball.com/feed ], cadence: medium, verified: 2026-07-07, status: active }
   - { name: Matt Pocock, tier: core, focus: "Constrained AI engineering; mattpocock/skills; Sand Castle; skill rubric",
-      handles: { site: https://www.aihero.dev/, x: https://x.com/mattpocockuk, youtube: https://www.youtube.com/@aihero-dev, github: https://github.com/mattpocock },
-      feeds: [ https://www.aihero.dev/rss.xml ], cadence: high, verified: 2026-07-07, status: active }   # TODO: YouTube feed — @aihero-dev handle 404s; re-verify the channel before adding its videos.xml feed
+      handles: { site: https://www.aihero.dev/, x: https://x.com/mattpocockuk, youtube: https://www.youtube.com/@mattpocockuk, github: https://github.com/mattpocock },
+      feeds: [ https://www.aihero.dev/rss.xml, https://www.youtube.com/feeds/videos.xml?channel_id=UCswG6FSbgZjbWtdf_hMLaow ], cadence: high, verified: 2026-07-07, status: active }   # YouTube channel is @mattpocockuk (was @aihero-dev, which 404s)
   - { name: Hamel Husain, tier: core, focus: "Evals and LLM observability; 'Your AI Product Needs Evals'",
       handles: { site: https://hamel.dev/, x: https://x.com/HamelHusain, youtube: null, github: null },
       feeds: [ https://hamel.dev/index.xml ], cadence: medium, verified: 2026-07-07, status: active }
