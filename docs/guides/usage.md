@@ -73,9 +73,10 @@ author host-specific content as Customization, never by editing the baseline fil
 
 ## 4. Run each skill per tool
 
-The bundle ships nine Skills — `grill-with-docs`, the lifecycle set `assess`, `cplan`, `impl`,
-`verify`, `rtr`, `final`, the `ship` orchestrator that sequences those six end to end, and the `scout`
-intake sweep. Each is authored **once** as a canonical body at `skills/<name>/SKILL.md` and reached
+The bundle ships ten Skills — `grill-with-docs`, the lifecycle set `assess`, `cplan`, `impl`,
+`verify`, `rtr`, `final`, the `ship` orchestrator that sequences those six end to end, the `scout`
+intake sweep, and the `drop` intake front door that pushes a human-handed item into that sweep. Each
+is authored **once** as a canonical body at `skills/<name>/SKILL.md` and reached
 through a thin, tool-specific **Invocation Shim**; the procedure and quality gates are identical on
 every tool, and only tool-specific execution enhancements degrade gracefully
 ([ADR 0003](../adr/0003-skills-canonical-body-thin-shims-graceful-degradation.md)).
@@ -84,7 +85,7 @@ every tool, and only tool-specific execution enhancements degrade gracefully
 
 | Tool | Invocation |
 |------|------------|
-| **Claude Code** | A slash command from the thin shim at `.claude/commands/<name>.md` — e.g. `/assess 11`, `/cplan 11`, `/impl 11`, `/ship 11`, `/scout`. The shim points at the canonical body. |
+| **Claude Code** | A slash command from the thin shim at `.claude/commands/<name>.md` — e.g. `/assess 11`, `/cplan 11`, `/impl 11`, `/ship 11`, `/scout`, `/drop`. The shim points at the canonical body. |
 | **Codex** | Reads `AGENTS.md` natively, so **the documented procedure is the shim**: to run a Skill, read `skills/<name>/SKILL.md` and follow it. |
 | **Copilot** | Same — its PR surfaces read `AGENTS.md` natively; read `skills/<name>/SKILL.md` and follow it. |
 | **Gemini** | Same — `GEMINI.md` imports `AGENTS.md`; read `skills/<name>/SKILL.md` and follow it. |
@@ -102,16 +103,18 @@ stages are in [`development-lifecycle.md`](../standards/development-lifecycle.md
 lifecycle hands-off, the [`ship`](../../skills/ship/SKILL.md) orchestrator sequences all six while
 protecting exactly those two gates.
 
-### The intake sweep (`scout`)
+### The intake pipeline (`scout` + `drop`)
 
-The ninth Skill, [`scout`](../../skills/scout/SKILL.md), runs **outside** the issue/PR lifecycle: it
-keeps the bundle's reference material current by polling a **Watchlist**, drafting dated entries into
-an append-only **Learnings Log**, and opening a PR of them for a human to accept, edit, or reject —
-the sweep proposes, a human disposes ([ADR 0012](../adr/0012-intake-pipeline-placement.md)). The
-artifact locations it reads and writes are host-configurable in [`PROJECT.md`](../../PROJECT.md) →
-*Intake Pipeline* (they ship pointing at an illustrative reference seed; repoint them per host).
+Two Skills run **outside** the issue/PR lifecycle, keeping the bundle's reference material current —
+`scout` is the **pull** sweep, `drop` is the **push** front door.
 
-Run it two ways:
+[`scout`](../../skills/scout/SKILL.md) polls a **Watchlist**, drafts dated entries into an
+append-only **Learnings Log**, and opens a PR of them for a human to accept, edit, or reject — the
+sweep proposes, a human disposes ([ADR 0012](../adr/0012-intake-pipeline-placement.md)). The artifact
+locations it reads and writes are host-configurable in [`PROJECT.md`](../../PROJECT.md) → *Intake
+Pipeline* (they ship pointing at an illustrative reference seed; repoint them per host).
+
+Run `scout` two ways:
 
 - **By hand** — Claude: `/scout`; the native-discovery tools (Codex, Copilot, Gemini): read and follow
   `skills/scout/SKILL.md`. Use this for a one-off sweep or to try it before scheduling.
@@ -121,6 +124,15 @@ Run it two ways:
   ([ADR 0013](../adr/0013-scheduled-intake-sweep-and-empty-sweep-policy.md)).
 
 Either way the invocation and its quality bar are identical; only the trigger differs.
+
+The tenth Skill, [`drop`](../../skills/drop/SKILL.md), is the pipeline's **push front door**: when a
+human already has a specific item in hand — a screenshot, a link, or a quote — and wants it ingested
+now rather than at the next sweep, `drop` captures it, enforces a hard **real-URL gate**, writes a
+**stance-less** drop into the manual-drop inbox, then delegates to `scout` (scoped to that one drop)
+to draft the entry and open the review PR ([ADR 0015](../adr/0015-intake-front-door-drop-skill.md)).
+One invocation → a reviewable PR is the happy path; a human disposes on the PR. Invoke it the same
+way as any Skill — Claude: `/drop`; the native-discovery tools: read and follow
+`skills/drop/SKILL.md`.
 
 ## 5. Keep the bundle green in-host
 

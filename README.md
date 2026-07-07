@@ -50,16 +50,21 @@ below are the quick reference.
 - **Skills** — model-agnostic capabilities authored once as a canonical body (`skills/<name>/SKILL.md`)
   and reached through a thin per-tool Invocation Shim (Claude `.claude/commands/<name>.md`; other tools
   via native `AGENTS.md` discovery), so any configured agent runs the same procedure
-  ([ADR 0003](docs/adr/0003-skills-canonical-body-thin-shims-graceful-degradation.md)). Shipped (9):
+  ([ADR 0003](docs/adr/0003-skills-canonical-body-thin-shims-graceful-degradation.md)). Shipped (10):
   `grill-with-docs`, the six lifecycle skills `assess`, `cplan`, `impl`, `verify`, `rtr`, `final`
   (their five-stage spec is `docs/standards/development-lifecycle.md`), the `ship` orchestrator that
-  sequences those six end to end (Epic #1), and the `scout` intake sweep (Epic #28).
+  sequences those six end to end (Epic #1), the `scout` intake sweep (Epic #28), and the `drop` intake
+  front door that pushes a human-handed item into that sweep (Issue #46).
 - **Intake pipeline** — a living-knowledge sweep that keeps the bundle's reference material current
   ([ADR 0012](docs/adr/0012-intake-pipeline-placement.md),
   [ADR 0013](docs/adr/0013-scheduled-intake-sweep-and-empty-sweep-policy.md)): the
   [`scout`](skills/scout/SKILL.md) skill polls a **Watchlist** (`docs/reference/voices.yml`), drafts
   dated entries into an append-only **Learnings Log** (`docs/reference/learnings/`), and opens a PR of
-  them for a human to accept, edit, or reject — the sweep proposes, a human disposes. Ships as an
+  them for a human to accept, edit, or reject — the sweep proposes, a human disposes. The
+  [`drop`](skills/drop/SKILL.md) skill is the pipeline's **push front door** complementing `scout`'s
+  **pull** sweep: hand it a screenshot, a link, or a quote and it enforces a real-URL gate, writes a
+  stance-less drop into the manual-drop inbox, and delegates to `scout` to draft the entry and open
+  that same review PR ([ADR 0015](docs/adr/0015-intake-front-door-drop-skill.md)). Ships as an
   **illustrative reference seed**; repoint or extend it per host via `PROJECT.md` → *Intake Pipeline*.
 
 ## Technical overview
