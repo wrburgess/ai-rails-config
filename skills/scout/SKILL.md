@@ -1,6 +1,6 @@
 ---
 name: scout
-description: Sweep the intake Watchlist for new field output, draft dated Learnings-Log entries that each carry a stance and a touches target, and open a PR of them for a human to accept, edit, or reject. Runs identically whether invoked manually or on a schedule. Use to keep the Config Bundle's guidance current against how AI-assisted engineering is evolving.
+description: Sweep the intake Watchlist for new field output, draft dated Learnings-Log entries that each carry a stance and a touches target, then — on an interactive run — walk them one finding at a time for a human to accept, edit, or reject before opening the PR (a scheduled run opens the PR for asynchronous disposition). Use to keep the Config Bundle's guidance current against how AI-assisted engineering is evolving.
 ---
 
 <what-to-do>
@@ -11,9 +11,12 @@ published since the last sweep (plus any items a human left in the **manual-drop
 then open a pull request of those drafts for a human to accept, edit, or reject. This is the mechanism of the [Intake Pipeline](../../CONTEXT.md); `scout`
 **proposes**, a human **disposes**.
 
-The sweep runs the **same procedure** whether a person invokes it by hand or a schedule fires it —
-there is no fast path and no tool-specific quality drift. How a schedule is wired — the cadence, and
-how to enable or disable it — is host-configured; the intake-sweep scheduling guide
+The sweep runs the **same discovery-and-drafting procedure** whether a person invokes it by hand or a
+schedule fires it — there is no fast path and no tool-specific quality drift. The one place interactive
+and scheduled runs legitimately differ is **disposition** (step 7): an interactive run walks each
+finding one at a time; a scheduled/headless run opens the PR for asynchronous disposition — the terminal
+artifact (a review PR) and the quality bar are identical either way. How a schedule is wired — the
+cadence, and how to enable or disable it — is host-configured; the intake-sweep scheduling guide
 (`docs/guides/intake-sweep-scheduling.md`) documents both.
 
 Read host-specific values from [`PROJECT.md`](../../PROJECT.md): the **intake artifact locations**
@@ -38,11 +41,11 @@ an **inbox-only** run:
 - **Inbox-only / specific-drop.** When the [`drop`](../drop/SKILL.md) front door hands off a single
   item (or a run is otherwise scoped to the inbox), process **only** the manual-drop inbox — the
   handed-over drop. In this mode: **(a)** skip the Watchlist feed/handle sweep entirely (step 3's
-  feed poll and step 4's search); **(b)** do **not** advance the last-swept marker (step 7) — no feed
+  feed poll and step 4's search); **(b)** do **not** advance the last-swept marker (step 8) — no feed
   window was swept, and advancing it would make a later full sweep skip everything up to today; and
-  **(c)** do **not** surface feed-staleness for un-swept sources (step 8) — only the inbox item is in
-  scope. Steps 5–6 (draft + the one hard rule) and step 9 (open the PR) apply unchanged, scoped to the
-  drop.
+  **(c)** do **not** surface feed-staleness for un-swept sources (step 9) — only the inbox item is in
+  scope. Steps 5–6 (draft + the one hard rule), the interactive disposition (step 7), and step 10 (open
+  the PR) apply unchanged, scoped to the drop.
 
 1. **Resolve the intake locations from Project Config.** Read [`PROJECT.md`](../../PROJECT.md) →
    *Intake Pipeline* for the Watchlist path, the Learnings-Log directory + index, the last-swept
@@ -70,7 +73,7 @@ an **inbox-only** run:
      *raw input* — it carries no `stance`, and assigning its `stance` and `touches` is your job, not the
      dropper's.
    - **No URL is ever fabricated.** If a source has no resolvable new output, it contributes nothing,
-     and an unresolved feed is reported as *staleness to surface* (see step 8), never papered over
+     and an unresolved feed is reported as *staleness to surface* (see step 9), never papered over
      with a placeholder.
 
 5. **Draft a Learnings-Log entry for each genuine finding — stance and touches are required.** Follow
@@ -95,10 +98,28 @@ an **inbox-only** run:
    pull request and **do not** advance the last-swept marker. Record that the sweep ran and found
    nothing (a scheduled session simply logs "swept, nothing new" and exits clean) and leave the window
    intact so the next run re-scans it. An empty sweep is a valid, expected result — not a failure, and
-   never a reason to open an empty PR or to invent a finding to justify one. Steps 7–9 below apply
+   never a reason to open an empty PR or to invent a finding to justify one. Steps 7–10 below apply
    **only when at least one entry survived.**
 
-7. **Append the entries to the current-quarter Learnings Log.** Add one file per entry under the log's
+7. **Dispose interactively — one finding at a time.** When a human is present (an interactive
+   invocation), do **not** hand the drafts over as a bulk list. Walk the surviving findings **one at a
+   time**: for each, present its `claim`, `stance`, `touches`, and a **recommended disposition** (accept
+   as drafted / edit / drop) with a one-line rationale, then **wait for the human's accept, edit, or
+   reject before presenting the next** — the same one-at-a-time discipline
+   [`grill-with-docs`](../grill-with-docs/SKILL.md) uses for questions. Apply each decision as it is
+   made: an accepted entry stands, an edited one is revised in place, a rejected one is dropped and
+   never appended. This step runs **only when at least one entry survived step 6** — an empty sweep has
+   nothing to walk. A single-finding run (a [`drop`](../drop/SKILL.md) hand-off) walks that one finding,
+   then continues to the PR, so the degenerate case feels identical.
+
+   *Graceful degradation ([ADR 0003](../../docs/adr/0003-skills-canonical-body-thin-shims-graceful-degradation.md)):*
+   the one-at-a-time walk is the **interactive enhancement**, not a new gate. A **scheduled/headless**
+   sweep (no human to answer) and any **tool without an interactive-question mechanism** skip the walk,
+   append every surviving draft, and open the PR for **asynchronous disposition** — the reviewable PR is
+   the floor and the terminal artifact either way. The disposition *mechanism* degrades; the
+   human-disposes gate never does.
+
+8. **Append the surviving entries to the current-quarter Learnings Log.** Add one file per entry under the log's
    entries directory (dated, per the schema's naming), add its row to the recency-first index, and —
    **on a full sweep** — **update the last-swept marker to today** so the next run is incremental and
    any staleness is visible (in an inbox-only run **leave the marker untouched**: no feed window was
@@ -106,7 +127,7 @@ an **inbox-only** run:
    in this same PR** — a drop whose learning has been proposed has done its job and must not be swept
    again.
 
-8. **Surface staleness.** *(Full sweep only — an inbox-only run swept no feeds, so it reports no
+9. **Surface staleness.** *(Full sweep only — an inbox-only run swept no feeds, so it reports no
    feed-staleness; only the inbox item is in scope.)* In the PR description, note which sources had
    unresolved feeds (still `[]`), which produced nothing this window, and any handles whose `verified`
    date is aging — so the human sees the sweep's blind spots rather than a false "all clear." **Also
@@ -114,7 +135,7 @@ an **inbox-only** run:
    earn a stance:** leave it in the manual-drop inbox (a human curated it — never silently discard) and
    name it here so the dropper can sharpen the context or remove it.
 
-9. **Open the PR — never commit directly.** Create the feature branch per
+10. **Open the PR — never commit directly.** Create the feature branch per
    [`PROJECT.md`](../../PROJECT.md) → *Branch & PR Policy*, commit the new entries + index update with
    the attribution trailer from *Attribution & Model Declaration*, push, and open a pull request whose
    body lists each drafted entry (source, claim, stance, touches) plus the staleness notes (full
@@ -125,7 +146,8 @@ an **inbox-only** run:
 *Graceful degradation ([ADR 0003](../../docs/adr/0003-skills-canonical-body-thin-shims-graceful-degradation.md)):*
 the fetch-and-draft churn (steps 3–6) is output-heavy and **may be offloaded to a sub-agent** that
 returns the drafted entries + staleness notes; the invoking context keeps the judgment (the stance
-call, the one hard rule) and owns the lifecycle-host I/O (commit, push, open PR). On a tool without
+call, the one hard rule, the interactive disposition) and owns the lifecycle-host I/O (commit, push,
+open PR). On a tool without
 sub-agents, run every step inline. The mechanism degrades; the procedure, the stance discipline, and
 the human-disposes gate never do.
 
@@ -136,7 +158,7 @@ the human-disposes gate never do.
 Before opening the PR: every drafted entry carries a real `source.link` (no invented URL), a
 **`stance`**, and a **`touches`** target, and no stance-less entry survived. Whenever at least one
 entry survives, the output is a reviewable PR, **never a direct commit** to a protected branch. The
-marker and staleness invariants depend on the invocation mode (steps 7–8):
+marker and staleness invariants depend on the invocation mode (steps 8–9):
 
 - **Full sweep** — the last-swept marker was advanced to today and the staleness notes are in the PR
   body.
@@ -150,7 +172,8 @@ unadvanced marker** (a log-only result), never an empty PR. Sign the PR and any 
 with the footer from [`PROJECT.md`](../../PROJECT.md) → *Attribution & Model Declaration*, using your
 runtime-actual model.
 
-**The gate that never degrades:** the sweep proposes and a human disposes. `scout` does not decide
-what counts as a durable learning — it drafts, stamps recency, and hands a person a clean PR to judge.
+**The gate that never degrades:** the sweep proposes and a human disposes — **one finding at a time when
+a human is present** (step 7), on the PR otherwise. `scout` does not decide what counts as a durable
+learning — it drafts, stamps recency, and hands a person the findings to judge.
 
 </quality-gate>

@@ -13,7 +13,8 @@ want it ingested now. It captures the item, enforces a hard **real-URL gate**, w
 **stance-less** drop into the **manual-drop inbox**, then **delegates the rest of the pipeline to
 `scout`** — the compare/contrast, the drafted Learnings-Log entry (its `stance` and `touches`), the
 clearing of the processed drop, and the review PR. One invocation → a reviewable
-PR is the **happy path**; a human **disposes on the PR**, exactly as with any sweep finding.
+PR is the **happy path**; a human **disposes** exactly as with any sweep finding — on the single
+finding interactively when a human is present, otherwise on the PR.
 
 `drop` **adds no ingestion procedure of its own**. The compare/contrast, the stance call, the
 drop-clear, and the PR all live once in `scout`'s canonical body, which `drop` references and never
@@ -104,6 +105,7 @@ an item that cannot earn a stance, the **reported no-PR outcome** with the drop 
 [`PROJECT.md`](../../PROJECT.md) → *Attribution & Model Declaration*, using your runtime-actual model.
 
 **The gate that never degrades:** `drop` **proposes** — it captures, gates the URL, and hands `scout`
-a clean drop; a **human disposes** on the PR. The front door never accepts a learning on its own.
+a clean drop; a **human disposes** — on the single finding interactively when present, otherwise on the
+PR. The front door never accepts a learning on its own.
 
 </quality-gate>

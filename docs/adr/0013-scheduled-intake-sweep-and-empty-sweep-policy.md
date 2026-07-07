@@ -1,6 +1,6 @@
 # Scheduled intake sweep: document the trigger, ship no live scheduler; empty sweep is log-only
 
-**Status:** accepted
+**Status:** accepted — refined by [ADR 0016](0016-interactive-sequential-disposition-scout.md) (interactive vs scheduled disposition)
 
 ## Context
 
