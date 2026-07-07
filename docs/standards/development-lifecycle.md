@@ -65,16 +65,22 @@ not proceed without a chosen option.
 
 **Trigger:** HC picks an option.
 
-**AC produces:** a step-by-step plan with specific file paths; a **testing strategy decided now, not
-during implementation** (which test types, which scenarios, which edge cases); any data/schema-change
-plan; the list of files to create/modify (used to size single-agent vs. parallel work).
+**AC produces:** a plan **right-sized to the task** — a step-by-step plan with specific file paths when
+the change is well understood, or, for an HC-elected **exploratory/discovery issue**, a thin hypothesis
++ a spike/prototype step + an explicit re-plan checkpoint (a *plan to learn*, still posted and still
+approved); a **testing strategy decided now, not during implementation** (which test types, which
+scenarios, which edge cases) — for an exploratory plan the production-code strategy is decided in the
+post-spike re-plan, deferred in detail but **never skipped**; any data/schema-change plan; the list of
+files to create/modify (used to size single-agent vs. parallel work).
 
 **Quality gate:** HC sends the plan to the Reviewer (steps too vague to implement, missing edge cases,
 patterns that don't match the codebase, unaddressed requirements).
 
 **Terminal artifact:** the plan posted on the issue. **This is the first mandatory human gate.**
 **Exit:** HC approves the plan (or asks for revisions). The AC does not write code without an approved
-plan.
+plan. An approved plan is **revisable direction, not a frozen contract** — a mid-`impl` discovery that
+it was wrong loops back through this gate to re-plan, an expected outcome rather than a failure
+([ADR 0017](../adr/0017-right-size-plan-revisable-direction.md)).
 
 ### Stage 3: Implement (`impl`)
 
@@ -138,12 +144,19 @@ Two gates are mandatory and never bypassed, on any tool or track:
 2. **Merge** — after `final` posts the SOW with a green gate and no open must-fix findings. The AC
    never merges.
 
+An **approved plan is revisable direction, not a frozen contract.** When an Implement-stage discovery
+shows the plan was wrong — including a `ship` emergency stop for core logic the plan didn't anticipate
+— the sanctioned resolution is to **loop back through gate 1** (re-plan, re-approve), never to improvise
+past it. Re-planning *upholds* the gate, it does not weaken or bypass it
+([ADR 0017](../adr/0017-right-size-plan-revisable-direction.md)).
+
 ## When to skip or compress stages
 
 | Scenario | Approach |
 |----------|----------|
 | Trivial fix (typo, config change, dependency bump) | Assess → Implement → Deliver (skip Plan; compress self-review) |
 | Bug fix with an obvious cause | Assess → Plan (brief) → Implement → Deliver |
+| Exploratory / discovery issue (outcome uncertain) | Assess → Plan (thin: hypothesis + spike + re-plan checkpoint) → Implement (spike) → re-Plan → Implement → Deliver |
 | Large change (many files / independent subsystems) | Full lifecycle, parallel agents if the host supports them |
 | Documentation-only change | Implement → Deliver |
 
