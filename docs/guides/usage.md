@@ -123,14 +123,18 @@ Run `scout` two ways:
   [intake-sweep scheduling guide](intake-sweep-scheduling.md)
   ([ADR 0013](../adr/0013-scheduled-intake-sweep-and-empty-sweep-policy.md)).
 
-Either way the invocation and its quality bar are identical; only the trigger differs.
+Either way the discovery-and-drafting procedure and its quality bar are identical; the trigger and the
+disposition of findings differ — an interactive run walks findings one at a time, a scheduled run opens
+the PR for asynchronous disposition
+([ADR 0016](../adr/0016-interactive-sequential-disposition-scout.md)).
 
 The tenth Skill, [`drop`](../../skills/drop/SKILL.md), is the pipeline's **push front door**: when a
 human already has a specific item in hand — a screenshot, a link, or a quote — and wants it ingested
 now rather than at the next sweep, `drop` captures it, enforces a hard **real-URL gate**, writes a
 **stance-less** drop into the manual-drop inbox, then delegates to `scout` (scoped to that one drop)
 to draft the entry and open the review PR ([ADR 0015](../adr/0015-intake-front-door-drop-skill.md)).
-One invocation → a reviewable PR is the happy path; a human disposes on the PR. Invoke it the same
+One invocation → a reviewable PR is the happy path; a human disposes — on the single finding
+interactively when present, otherwise on the PR. Invoke it the same
 way as any Skill — Claude: `/drop`; the native-discovery tools: read and follow
 `skills/drop/SKILL.md`.
 

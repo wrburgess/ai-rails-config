@@ -18,8 +18,11 @@ which is documented for the host to enable, not applied for it.
 - **Manually** — invoke `/scout` (Claude) or follow the skill's documented procedure (Codex, Copilot,
   Gemini) whenever you want a sweep. This needs no setup.
 - **On a schedule** — a recurring job invokes the *same* skill on a cadence and files the review PR
-  for you. That is what this guide sets up. The sweep runs the identical procedure either way — there
-  is no scheduled-only fast path.
+  for you. That is what this guide sets up. The sweep runs the identical **discovery-and-drafting**
+  procedure either way — there is no scheduled-only fast path. The one legitimate difference is
+  **disposition**: an interactive run walks each finding one at a time before opening the PR, while a
+  scheduled run (no human present) opens the PR for **asynchronous** disposition
+  ([ADR 0016](../adr/0016-interactive-sequential-disposition-scout.md)).
 
 The output is always a **review PR, never an auto-merge**: the sweep proposes, a human disposes.
 

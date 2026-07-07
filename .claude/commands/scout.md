@@ -1,5 +1,5 @@
 ---
-description: Sweep the intake Watchlist for new field output, draft dated Learnings-Log entries that each carry a stance and a touches target, and open a PR of them for a human to accept, edit, or reject.
+description: Sweep the intake Watchlist for new field output, draft dated Learnings-Log entries that each carry a stance and a touches target, then — on an interactive run — walk them one finding at a time for a human to accept, edit, or reject before opening the PR (a scheduled run opens the PR for asynchronous disposition).
 ---
 
 Read and follow the canonical skill body at
