@@ -15,6 +15,9 @@ leaves it untouched. Scheduling the sweep is covered in the
 
 | Date | Source | Claim | Stance | Touches | Status |
 |------|--------|-------|--------|---------|--------|
+| [2026-07-07](entries/2026-07-07-karpathy-software-3-agent-native.md) | Andrej Karpathy | Agent-native infra (machine-readable schemas, CLIs) is the missing piece; automate what you can verify | confirms | `ADR-0002` | noted |
+| [2026-07-07](entries/2026-07-07-eugene-yan-eval-design-pattern.md) | Eugene Yan | Agent evals share a four-primitive design + partial credit via subtasks | extends | `rules/testing.md` | noted |
+| [2026-07-07](entries/2026-07-07-pocock-agent-read-authoring.md) | Matt Pocock (@mattpocockuk) | structure + leading words + pruning helps any agent-read text, not just writing | extends | `rules/skills.md` | noted |
 | [2026-07-07](entries/2026-07-07-pocock-kill-context-bloat.md) | Matt Pocock | Measure unused tools via a logging proxy, then disable them to cut context bloat | extends | `ADR-0004` | noted |
 | [2026-07-07](entries/2026-07-07-pocock-grill-with-docs.md) | Matt Pocock | Repo's `grill-with-docs` is copied from Pocock's upstream original — currently uncredited (attribution gap) | challenges | `skills/grill-with-docs` | actioned (#51) |
 | [2026-07-07](entries/2026-07-07-pocock-skills-as-markdown-catalog.md) | Matt Pocock | Skills as focused markdown files (instructions + inputs + outputs) mapped to engineering moments | confirms | `rules/skills.md` | noted |
