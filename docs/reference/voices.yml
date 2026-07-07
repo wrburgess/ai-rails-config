@@ -20,6 +20,13 @@
 #   - `status` and `tier` stay within the sets above
 #   - every element of a non-empty `feeds` list is a real URL — an unresolved feed stays `[]`, never a
 #     placeholder string. No feed URL is invented; where none is known the list is empty with a `# TODO` note.
+#
+# Feed notes (as of 2026-07-07 sweep):
+#   - Feeds are an OPTIMIZATION, not a requirement: where `feeds` is `[]`, the `scout` skill falls back
+#     to WebSearch/WebFetch against `handles`. An unresolved feed is surfaced as staleness, never faked.
+#   - X (Twitter) exposes no free/public feed since 2023, and consumer X Premium grants no API access —
+#     so X-only voices stay `feeds: []` and are swept via handle search (or a future manual-drop inbox).
+#   - YouTube feeds use the public per-channel endpoint (…/feeds/videos.xml?channel_id=UC…); no key needed.
 
 voices:
   # --- Tier: core practical ---
@@ -28,90 +35,90 @@ voices:
       feeds: [ https://simonwillison.net/atom/everything/ ], cadence: high, verified: 2026-07-06, status: active }
   - { name: Thorsten Ball, tier: core, focus: "Agent fundamentals; 'How to build an agent'; Register Spill; Amp",
       handles: { site: https://registerspill.thorstenball.com/, x: null, youtube: null, github: null },
-      feeds: [], cadence: medium, verified: 2026-07-06, status: active }   # TODO: Register Spill RSS
+      feeds: [ https://registerspill.thorstenball.com/feed ], cadence: medium, verified: 2026-07-07, status: active }
   - { name: Matt Pocock, tier: core, focus: "Constrained AI engineering; mattpocock/skills; Sand Castle; skill rubric",
-      handles: { site: https://www.aihero.dev/, x: https://x.com/mattpocockuk, youtube: https://www.youtube.com/@aihero-dev, github: https://github.com/mattpocock },
-      feeds: [], cadence: high, verified: 2026-07-06, status: active }
+      handles: { site: https://www.aihero.dev/, x: https://x.com/mattpocockuk, youtube: https://www.youtube.com/@mattpocockuk, github: https://github.com/mattpocock },
+      feeds: [ https://www.aihero.dev/rss.xml, https://www.youtube.com/feeds/videos.xml?channel_id=UCswG6FSbgZjbWtdf_hMLaow ], cadence: high, verified: 2026-07-07, status: active }   # YouTube channel is @mattpocockuk (was @aihero-dev, which 404s)
   - { name: Hamel Husain, tier: core, focus: "Evals and LLM observability; 'Your AI Product Needs Evals'",
       handles: { site: https://hamel.dev/, x: https://x.com/HamelHusain, youtube: null, github: null },
-      feeds: [], cadence: medium, verified: 2026-07-06, status: active }
+      feeds: [ https://hamel.dev/index.xml ], cadence: medium, verified: 2026-07-07, status: active }
   - { name: Jason Liu, tier: core, focus: "Structured outputs and RAG; creator of Instructor",
       handles: { site: https://jxnl.co/, x: https://x.com/jxnlco, youtube: null, github: null },
-      feeds: [], cadence: medium, verified: 2026-07-06, status: active }
+      feeds: [ https://jxnl.co/feed_rss_created.xml ], cadence: medium, verified: 2026-07-07, status: active }
   - { name: Eugene Yan, tier: core, focus: "Patterns for LLM systems/products; task-specific eval techniques",
       handles: { site: https://eugeneyan.com/, x: https://x.com/eugeneyan, youtube: null, github: null },
-      feeds: [], cadence: medium, verified: 2026-07-06, status: active }
+      feeds: [ https://eugeneyan.com/rss/ ], cadence: medium, verified: 2026-07-07, status: active }
   - { name: Chip Huyen, tier: core, focus: "AI Engineering (O'Reilly 2025); ML/DevOps best-practice in production",
       handles: { site: https://huyenchip.com/, x: https://x.com/chipro, youtube: null, github: null },
-      feeds: [], cadence: low, verified: 2026-07-06, status: active }
+      feeds: [ https://huyenchip.com/feed.xml ], cadence: low, verified: 2026-07-07, status: active }
   - { name: Shreya Shankar, tier: core, focus: "Evals for real LLM pipelines; DocETL; co-authors O'Reilly Evals book",
       handles: { site: https://www.sh-reya.com/, x: https://x.com/sh_reya, youtube: null, github: null },
-      feeds: [], cadence: medium, verified: 2026-07-06, status: active }   # also https://evals.info/
+      feeds: [ https://www.sh-reya.com/rss.xml ], cadence: medium, verified: 2026-07-07, status: active }   # also https://evals.info/
   - { name: Lilian Weng, tier: core, focus: "Systematic agent/LLM design; 'LLM-Powered Autonomous Agents' (Lil'Log)",
       handles: { site: https://lilianweng.github.io/, x: https://x.com/lilianweng, youtube: null, github: https://github.com/lilianweng },
-      feeds: [], cadence: low, verified: 2026-07-06, status: active }
+      feeds: [ https://lilianweng.github.io/index.xml ], cadence: low, verified: 2026-07-07, status: active }
 
   # --- Tier: bigger-picture / trend ---
   - { name: Andrej Karpathy, tier: trend, focus: "Foundational explainers; 'vibe coding'; Zero-to-Hero; at Anthropic (2026)",
       handles: { site: https://karpathy.ai/, x: https://x.com/karpathy, youtube: https://www.youtube.com/@AndrejKarpathy, github: https://github.com/karpathy },
-      feeds: [], cadence: low, verified: 2026-07-06, status: active }
+      feeds: [ https://www.youtube.com/feeds/videos.xml?channel_id=UCXUPKJO5MZQN11PqgIvyuvQ ], cadence: low, verified: 2026-07-07, status: active }   # karpathy.ai has no RSS; YouTube only
   - { name: Steve Yegge, tier: trend, focus: "Shifting developer role; Sourcegraph; long-form essays",
       handles: { site: null, x: https://x.com/steve_yegge, youtube: null, github: null },
-      feeds: [], cadence: low, verified: 2026-07-06, status: active }
+      feeds: [], cadence: low, verified: 2026-07-06, status: active }   # X-only; no free feed
   - { name: Andrew Ng, tier: trend, focus: "The Batch weekly digest; broad, steady, low-noise",
       handles: { site: https://www.deeplearning.ai/the-batch/, x: https://x.com/AndrewYNg, youtube: https://www.youtube.com/@Deeplearningai, github: null },
-      feeds: [], cadence: high, verified: 2026-07-06, status: active }   # TODO: The Batch RSS
+      feeds: [ https://www.youtube.com/feeds/videos.xml?channel_id=UCcIXc5mJsHVYTZR1maL5l9w ], cadence: high, verified: 2026-07-07, status: active }   # The Batch has no native RSS; DeepLearningAI YouTube feed
 
   # --- Tier: frontier-lab (people + orgs) ---
   - { name: Boris Cherny, tier: frontier-lab, focus: "Creator of Claude Code; agentic-coding-at-scale practice",
       handles: { site: null, x: https://x.com/bcherny, youtube: null, github: https://github.com/bcherny },
-      feeds: [], cadence: low, verified: 2026-07-06, status: active }
+      feeds: [], cadence: low, verified: 2026-07-06, status: active }   # X-only; no free feed
   - { name: Erik Schluntz & Barry Zhang, tier: frontier-lab, focus: "Authors, 'Building Effective Agents' (Anthropic)",
       handles: { site: https://www.anthropic.com/engineering, x: null, youtube: null, github: null },
-      feeds: [], cadence: low, verified: 2026-07-06, status: active }
+      feeds: [], cadence: low, verified: 2026-07-06, status: active }   # anthropic.com/engineering has no RSS
   - { name: Alex Albert, tier: frontier-lab, focus: "Head of Claude Relations; capability-bet framing",
       handles: { site: https://alexalbert.me/, x: https://x.com/alexalbert__, youtube: null, github: null },
-      feeds: [], cadence: medium, verified: 2026-07-06, status: active }
+      feeds: [], cadence: medium, verified: 2026-07-07, status: active }   # beehiiv newsletter; no discoverable public feed
   - { name: Cat Wu, tier: frontier-lab, focus: "Head of Product, Claude Code; product velocity in the AI era",
       handles: { site: null, x: https://x.com/_catwu, youtube: null, github: null },
-      feeds: [], cadence: low, verified: 2026-07-06, status: active }
+      feeds: [], cadence: low, verified: 2026-07-06, status: active }   # X-only; no free feed
   - { name: Romain Huet, tier: frontier-lab, focus: "OpenAI Head of Developer Experience",
       handles: { site: null, x: https://x.com/romainhuet, youtube: null, github: null },
-      feeds: [], cadence: medium, verified: 2026-07-06, status: active }
+      feeds: [], cadence: medium, verified: 2026-07-06, status: active }   # X-only; no free feed
   - { name: Logan Kilpatrick, tier: frontier-lab, focus: "Google AI Studio + Gemini API DevRel (role in flux mid-2026)",
       handles: { site: https://blog.google/authors/logan-kilpatrick/, x: https://x.com/OfficialLoganK, youtube: null, github: null },
-      feeds: [], cadence: high, verified: 2026-07-06, status: in-flux }
+      feeds: [], cadence: high, verified: 2026-07-07, status: in-flux }   # no author-scoped feed (blog.google/rss is site-wide only)
   - { name: Philipp Schmid, tier: frontier-lab, focus: "Staff DevRel/DevX, Google DeepMind; hands-on agentic-Gemini guides",
       handles: { site: https://www.philschmid.de/, x: null, youtube: null, github: https://github.com/philschmid },
-      feeds: [], cadence: high, verified: 2026-07-06, status: active }   # TODO: philschmid.de RSS
+      feeds: [ https://www.philschmid.de/rss ], cadence: high, verified: 2026-07-07, status: active }
   - { name: Paige Bailey, tier: frontier-lab, focus: "AI DevRel Engineering Lead, Google DeepMind (ex-GitHub/Copilot)",
       handles: { site: null, x: https://x.com/dynamicwebpaige, youtube: null, github: https://github.com/dynamicwebpaige },
-      feeds: [], cadence: medium, verified: 2026-07-06, status: active }
+      feeds: [], cadence: medium, verified: 2026-07-06, status: active }   # X-only; no free feed
   - { name: Anthropic Engineering, tier: org, focus: "Primary source: agent patterns, Claude Code best-practices",
       handles: { site: https://www.anthropic.com/engineering, x: null, youtube: null, github: null },
-      feeds: [], cadence: medium, verified: 2026-07-06, status: active }
+      feeds: [], cadence: medium, verified: 2026-07-07, status: active }   # no official RSS; swept via site search
   - { name: OpenAI Cookbook, tier: org, focus: "Primary source: recipes; Codex + AGENTS.md standard",
       handles: { site: https://cookbook.openai.com/, x: null, youtube: null, github: https://github.com/openai/openai-cookbook },
-      feeds: [], cadence: medium, verified: 2026-07-06, status: active }
+      feeds: [], cadence: medium, verified: 2026-07-07, status: active }   # no working RSS; swept via site/repo
   - { name: Google AI for Developers, tier: org, focus: "Primary source: Gemini API + Gemini CLI",
       handles: { site: https://ai.google.dev/, x: null, youtube: null, github: null },
-      feeds: [], cadence: medium, verified: 2026-07-06, status: active }
+      feeds: [], cadence: medium, verified: 2026-07-07, status: active }   # no RSS; swept via site search
 
   # --- Tier: balance (contrarian / primary sources) ---
   - { name: Sara Hooker, tier: balance, focus: "Scaling-race skeptic; ex-Cohere Labs; founder Adaption Labs (small/adaptive models)",
       handles: { site: https://www.sarahooker.me/, x: https://x.com/sarahookr, youtube: null, github: null },
-      feeds: [], cadence: low, verified: 2026-07-06, status: active }
+      feeds: [ https://www.sarahooker.me/2/feed ], cadence: low, verified: 2026-07-07, status: active }
   - { name: Rachel Thomas, tier: balance, focus: "Data ethics + AI-hype skepticism; co-founder fast.ai; R&D Answer.AI",
       handles: { site: https://rachel.fast.ai/, x: null, youtube: null, github: null },
-      feeds: [], cadence: low, verified: 2026-07-06, status: active }
+      feeds: [ https://rachel.fast.ai/index.xml ], cadence: low, verified: 2026-07-07, status: active }
   - { name: Emily Bender, tier: balance, focus: "Critical-linguistics counterweight ('stochastic parrots'; The AI Con)",
       handles: { site: https://faculty.washington.edu/ebender/, x: null, youtube: null, github: null },
-      feeds: [], cadence: low, verified: 2026-07-06, status: active }   # active on Bluesky (emilymbender.bsky.social), not X
+      feeds: [], cadence: low, verified: 2026-07-06, status: active }   # active on Bluesky (emilymbender.bsky.social), not X; faculty page has no RSS
 
   # --- Tier: community aggregator ---
   - { name: Latent Space (swyx + Alessio Fanelli), tier: community, focus: "The AI Engineer podcast/newsletter; connective tissue that surfaces most voices above",
       handles: { site: https://www.latent.space/, x: https://x.com/swyx, youtube: null, github: null },
-      feeds: [], cadence: high, verified: 2026-07-06, status: active }   # TODO: latent.space RSS
+      feeds: [ https://www.latent.space/feed ], cadence: high, verified: 2026-07-07, status: active }
 
 # Also tracked as primary-source *documents* (not people); kept in the roster doc but out of the
 # person-sweep unless they get their own feed:

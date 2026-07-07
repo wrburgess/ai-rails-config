@@ -78,13 +78,17 @@ _Avoid_: "feed list", "sources file"
 The dated, append-only record of intake findings, each entry carrying a stance, a touches target, and a status.
 _Avoid_: "the notes", "changelog"
 
+**Manual-drop inbox**:
+The human-fed lane where a person drops a raw pointer (a URL + who + one line of why) to field output the `scout` sweep can't fetch on its own — X posts, paywalled or feed-less sources — for the next sweep to turn into a Learnings-Log entry. A drop is raw input and carries no stance; scout assigns it.
+_Avoid_: "the queue", "the dropbox"
+
 ## Relationships
 
 - The **Config Bundle** contains one **Canonical Source**, many **Adapters**, many **Skills**, one **Rules Layer**, and one **Project Config**.
 - The **Rules Layer** = **Lean Core** (Tier 1, always resident) + **Deferred Deep Docs** (Tier 2, on demand); a trigger table links a Tier-1 file to its Tier-2 deep doc.
 - A **Host App** vendors the **Generic Baseline**, then applies **Customization** (including its **Project Config**).
 - Each **Adapter** is derived from the **Canonical Source**; every **Skill** reads the **Project Config** for host-specific values.
-- The **Intake Pipeline** reads a **Watchlist**, records findings in a **Learnings Log**, and proposes changes to the **Rules Layer**, **Skills**, or ADRs via the `scout` **Skill**.
+- The **Intake Pipeline** reads a **Watchlist** (and a **Manual-drop inbox** for sources it can't fetch), records findings in a **Learnings Log**, and proposes changes to the **Rules Layer**, **Skills**, or ADRs via the `scout` **Skill**.
 
 ## Example dialogue
 
