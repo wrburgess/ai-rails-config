@@ -9,7 +9,10 @@ claim: >
   in the Gemini API.
 stance: challenges
 touches: docs/research/tool-config-discovery.md
-status: noted
+status: actioned
+status_detail: >
+  → #56: re-verify the Gemini adapter (GEMINI.md → @AGENTS.md discovery) against Antigravity CLI and
+  update docs/research/tool-config-discovery.md + the AGENTS.md Gemini row if the discovery path changed.
 ---
 
 ## Compare / contrast
