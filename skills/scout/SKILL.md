@@ -6,9 +6,9 @@ description: Sweep the intake Watchlist for new field output, draft dated Learni
 <what-to-do>
 
 Run one **intake sweep**: read the [Watchlist](../../CONTEXT.md), find what each tracked source has
-published since the last sweep, and draft **Learnings-Log** entries that compare each finding against
-how *this* Config Bundle already works — then open a pull request of those drafts for a human to
-accept, edit, or reject. This is the mechanism of the [Intake Pipeline](../../CONTEXT.md); `scout`
+published since the last sweep (plus any items a human left in the **manual-drop inbox**), and draft
+**Learnings-Log** entries that compare each finding against how *this* Config Bundle already works —
+then open a pull request of those drafts for a human to accept, edit, or reject. This is the mechanism of the [Intake Pipeline](../../CONTEXT.md); `scout`
 **proposes**, a human **disposes**.
 
 The sweep runs the **same procedure** whether a person invokes it by hand or a schedule fires it —
@@ -30,8 +30,8 @@ Host App repoints its intake artifacts in Project Config, not in this skill.
 <procedure>
 
 1. **Resolve the intake locations from Project Config.** Read [`PROJECT.md`](../../PROJECT.md) →
-   *Intake Pipeline* for the Watchlist path, the Learnings-Log directory + index, and the last-swept
-   marker. Everything below refers to those by role, never by a hardcoded path.
+   *Intake Pipeline* for the Watchlist path, the Learnings-Log directory + index, the last-swept
+   marker, and the manual-drop inbox. Everything below refers to those by role, never by a hardcoded path.
 
 2. **Read the last-swept marker** — the date the previous sweep recorded in the Learnings-Log index.
    It defines the **incremental window**: this run only looks for output published *after* it. A
@@ -47,6 +47,11 @@ Host App repoints its intake artifacts in Project Config, not in this skill.
    - When the entry has resolved `feeds`, poll them for items newer than the window.
    - When `feeds` is empty (`[]` — unresolved), fall back to `WebSearch` / `WebFetch` against the
      source's `handles` (site, and named accounts) to find genuinely new, dated output.
+   - **Also read the manual-drop inbox.** Each drop is a human-curated pointer to output the automated
+     sweep can't reach on its own (X, paywalled, feed-less). Treat every drop as a first-class
+     candidate: fetch or read its `url` and carry it into step 5 exactly like a feed item. A drop is
+     *raw input* — it carries no `stance`, and assigning its `stance` and `touches` is your job, not the
+     dropper's.
    - **No URL is ever fabricated.** If a source has no resolvable new output, it contributes nothing,
      and an unresolved feed is reported as *staleness to surface* (see step 8), never papered over
      with a placeholder.
@@ -79,11 +84,15 @@ Host App repoints its intake artifacts in Project Config, not in this skill.
 7. **Append the entries to the current-quarter Learnings Log.** Add one file per entry under the log's
    entries directory (dated, per the schema's naming), add its row to the recency-first index, and
    **update the last-swept marker to today** so the next run is incremental and any staleness is
-   visible. Recency is stamped, never assumed.
+   visible. Recency is stamped, never assumed. **Clear each processed drop from the manual-drop inbox
+   in this same PR** — a drop whose learning has been proposed has done its job and must not be swept
+   again.
 
 8. **Surface staleness.** In the PR description, note which sources had unresolved feeds (still `[]`),
    which produced nothing this window, and any handles whose `verified` date is aging — so the human
-   sees the sweep's blind spots rather than a false "all clear."
+   sees the sweep's blind spots rather than a false "all clear." **Also flag any drop that could not
+   earn a stance:** leave it in the manual-drop inbox (a human curated it — never silently discard) and
+   name it here so the dropper can sharpen the context or remove it.
 
 9. **Open the PR — never commit directly.** Create the feature branch per
    [`PROJECT.md`](../../PROJECT.md) → *Branch & PR Policy*, commit the new entries + index update with

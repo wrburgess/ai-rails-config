@@ -97,7 +97,8 @@ repoints them during Customization if it relocates its intake artifacts.
 | **Watchlist** — the machine-readable source list the sweep polls | [`docs/reference/voices.yml`](docs/reference/voices.yml) |
 | **Learnings Log** — the dated, append-only entries + their index | [`docs/reference/learnings/`](docs/reference/learnings/) |
 | **Last-swept marker** — the recency stamp the next sweep reads for its incremental window | the `**Last swept:**` line in the Learnings-Log [`index.md`](docs/reference/learnings/index.md) |
+| **Manual-drop inbox** — human-curated pointers to output the sweep can't fetch (X, paywalled, feed-less) | [`docs/reference/intake-inbox/`](docs/reference/intake-inbox/) |
 
 The *schemas* for these artifacts (the Watchlist fields, the Learnings-Log entry front-matter with its
-required `stance` and `touches`) are business-neutral mechanism and live with the artifacts; only the
-locations are host-configurable and belong here.
+required `stance` and `touches`, the drop shape in the manual-drop inbox) are business-neutral mechanism
+and live with the artifacts; only the locations are host-configurable and belong here.

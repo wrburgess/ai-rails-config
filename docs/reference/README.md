@@ -16,6 +16,10 @@ content lives here, is recorded in [ADR 0012](../adr/0012-intake-pipeline-placem
   Seeded from the #28 roster sketch; its schema is business-neutral, its entries are illustrative.
 - [`learnings/`](learnings/) — the dated, append-only **Learnings Log** (issue #30): the entry
   [schema](learnings/README.md), the [index](learnings/index.md), and worked example entries.
+- [`intake-inbox/`](intake-inbox/) — the **manual-drop inbox** (issue #28,
+  [ADR 0014](../adr/0014-manual-drop-inbox-for-unfetchable-sources.md)): where a human drops raw
+  pointers to output `scout` can't fetch (X, paywalled, feed-less) for the next sweep to turn into
+  learnings. Its [drop schema](intake-inbox/README.md) is business-neutral; drops are host content.
 - [`ai-engineering-voices.md`](ai-engineering-voices.md) — the curated roster prose doc of
   AI-engineering voices (issue #27): the human-readable sibling of `voices.yml`. It owns the narrative
   (per-person **Focus**, tier rationale, and the non-person *balance* documents + *master resource*);
