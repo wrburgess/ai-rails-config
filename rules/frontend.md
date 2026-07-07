@@ -1,20 +1,20 @@
 # Frontend Rules
 
-**Applies to:** `app/javascript/`, `app/views/`, `app/components/`, `app/assets/`
+**Applies to:** UI / view-layer code — templates, view components, client-side behavior, and assets
 **Deep doc:** `docs/rules/frontend-postmortems.md` (Tier 2 — deferred; read on demand when a trigger fires)
 
-> Tier-1 Lean Core ([ADR 0004](../docs/adr/0004-two-tier-rules-layer-progressive-context.md)): always-resident invariants. Keep this file lean — push heavy, subsystem-specific case studies down to the deep doc. These are business-neutral starters; **extend per host**.
+> Tier-1 Lean Core ([ADR 0004](../docs/adr/0004-two-tier-rules-layer-progressive-context.md)): always-resident invariants. Keep this file lean — push heavy, subsystem-specific case studies down to the deep doc. These are business-neutral, stack-neutral starters; **extend per host** — concrete stack-named examples live in the matching **Stack Overlay** (e.g. `ai-config-rails`), vendored alongside the baseline.
 
 ## Patterns
 
-- **Hotwire first.** Use Turbo (frames, streams) and Stimulus for interactivity; most "we need a frontend framework" cases are a Turbo frame plus a small Stimulus controller.
-- **Reusable UI as components.** Extract repeated markup into ViewComponents rather than partial soup, and unit-test the component in isolation.
-- **Behavior in Stimulus controllers.** Wire DOM behavior through named controllers/targets/actions so it is discoverable and testable.
+- **Native / server-driven interactivity first.** Prefer your platform's native or server-driven interactivity before reaching for heavier client-side machinery; most "we need a frontend framework" cases are a small server-driven fragment plus a little scoped behavior.
+- **Reusable UI as components.** Extract repeated markup into reusable, unit-tested UI components rather than partial soup, and unit-test each component in isolation.
+- **Behavior in named, testable units.** Wire DOM behavior through named, discoverable, testable units so it is easy to find and test.
 - **Style with the design system.** Use the host CSS framework's utility classes and shared stylesheets; keep markup semantic.
 
 ## Anti-Patterns
 
-- **Never introduce a SPA/component framework** (React, Vue, Angular, Alpine, Svelte) — because it fractures the Hotwire model and doubles the rendering stack. *(Extend per host.)*
-- **Never write inline `<script>` JavaScript in a view** — because it can't be reused or tested; put it in a Stimulus controller. *(Extend per host.)*
-- **Never add jQuery or a jQuery plugin** — because Stimulus + Turbo already own DOM interaction; jQuery reintroduces a parallel, untested idiom. *(Extend per host.)*
-- **Never add inline styles in a template** — because they bypass the design system; use utility classes or a stylesheet. *(Mailer templates, which require inline CSS for email-client compatibility, are the documented exception.)*
+- **Never run a second, parallel UI rendering paradigm** alongside the one your app is already committed to — because it fractures the established model and doubles the rendering stack. *(Extend per host.)*
+- **Never write untestable inline behavior scripting in a template/view** — because it can't be reused or tested; move it into a named, testable behavior unit. *(Extend per host.)*
+- **Never add a parallel DOM-manipulation idiom** that duplicates your primary interactivity model — because your existing model already owns DOM interaction; a second idiom reintroduces a parallel, untested path. *(Extend per host.)*
+- **Never add inline styles in a template** — because they bypass the design system; use utility classes or a stylesheet. *(Mailer/email templates, which require inline CSS for email-client compatibility, are the documented exception.)*

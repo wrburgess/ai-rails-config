@@ -134,9 +134,9 @@ Host guidance is loaded in two tiers so session context stays lean
 - **Tier 1 — Lean Core** (`rules/*.md`): small, always-resident, invariant per-domain rule files,
   each with a **Patterns** and a required **Anti-Patterns** section. The Generic Baseline ships
   business-neutral starters, marked *extend per host*:
-  - [`rules/backend.md`](rules/backend.md) — models, controllers, jobs, services; Rails-ecosystem-first.
-  - [`rules/frontend.md`](rules/frontend.md) — Hotwire (Turbo + Stimulus), ViewComponent, assets.
-  - [`rules/testing.md`](rules/testing.md) — factories over fixtures, behavior-level assertions.
+  - [`rules/backend.md`](rules/backend.md) — backend / domain code (models, controllers, background jobs, service objects); framework-and-standard-library-first.
+  - [`rules/frontend.md`](rules/frontend.md) — UI / view code: reusable view components, native/server-driven behavior, assets.
+  - [`rules/testing.md`](rules/testing.md) — programmatic builders over static test data, behavior-level assertions.
   - [`rules/security.md`](rules/security.md) — credentials, secret hygiene, scanners.
   - [`rules/self-review.md`](rules/self-review.md) — the before-done quality checklist.
   - [`rules/scripting.md`](rules/scripting.md) — bundled `bin/`/`scripts/` authoring (ASCII-safe output, stdlib-only).
@@ -149,12 +149,14 @@ The **trigger table** links each Tier-1 file to the deferred deep doc it points 
 
 | Working in… | Tier-1 rule | Deferred deep doc |
 |---|---|---|
-| `app/models/`, `app/controllers/`, `app/jobs/`, `app/services/` | `rules/backend.md` | `docs/rules/backend-postmortems.md` |
-| `app/javascript/`, `app/views/`, `app/components/`, `app/assets/` | `rules/frontend.md` | `docs/rules/frontend-postmortems.md` |
-| `spec/` | `rules/testing.md` | `docs/rules/testing-postmortems.md` |
-| `app/`, `config/`, `lib/` | `rules/security.md` | `docs/rules/security-postmortems.md` |
-| `bin/`, `scripts/` | `rules/scripting.md` | `docs/rules/scripting-postmortems.md` |
-| `skills/`, `.claude/commands/` | `rules/skills.md` | `docs/rules/skills-postmortems.md` |
+| Backend / domain code | `rules/backend.md` | `docs/rules/backend-postmortems.md` |
+| UI / view code | `rules/frontend.md` | `docs/rules/frontend-postmortems.md` |
+| Tests | `rules/testing.md` | `docs/rules/testing-postmortems.md` |
+| Code handling secrets, auth, or input | `rules/security.md` | `docs/rules/security-postmortems.md` |
+| Bundled / CLI scripts | `rules/scripting.md` | `docs/rules/scripting-postmortems.md` |
+| Skill bodies + shims | `rules/skills.md` | `docs/rules/skills-postmortems.md` |
+
+A host binds each role to its own path globs — declare them in `PROJECT.md` or its stack overlay.
 
 Claude's `.claude/rules/` auto-load can mirror the Lean Core as a tool-specific accelerator; the
 Generic Baseline keeps a single canonical home under `rules/` (no duplicated tree) and leaves that

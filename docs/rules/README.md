@@ -12,14 +12,15 @@ Each Tier-1 rule names the deferred deep doc to read when working in its area:
 
 | Working in… | Tier-1 rule | Deferred deep doc |
 |---|---|---|
-| `app/models/`, `app/controllers/`, `app/jobs/`, `app/services/` | `rules/backend.md` | `docs/rules/backend-postmortems.md` |
-| `app/javascript/`, `app/views/`, `app/components/`, `app/assets/` | `rules/frontend.md` | `docs/rules/frontend-postmortems.md` |
-| `spec/` (tests) | `rules/testing.md` | `docs/rules/testing-postmortems.md` |
-| `app/`, `config/`, `lib/` (secrets, scanners) | `rules/security.md` | `docs/rules/security-postmortems.md` |
-| `bin/`, `scripts/` (bundled scripts) | `rules/scripting.md` | `docs/rules/scripting-postmortems.md` |
-| `skills/`, `.claude/commands/` (Skill bodies + shims) | `rules/skills.md` | `docs/rules/skills-postmortems.md` |
+| Backend / domain code | `rules/backend.md` | `docs/rules/backend-postmortems.md` |
+| UI / view code | `rules/frontend.md` | `docs/rules/frontend-postmortems.md` |
+| Tests | `rules/testing.md` | `docs/rules/testing-postmortems.md` |
+| Code handling secrets, auth, or input | `rules/security.md` | `docs/rules/security-postmortems.md` |
+| Bundled / CLI scripts | `rules/scripting.md` | `docs/rules/scripting-postmortems.md` |
+| Skill bodies + shims | `rules/skills.md` | `docs/rules/skills-postmortems.md` |
 | before declaring work done | `rules/self-review.md` | (none — the checklist is the whole rule) |
 
+A host binds each role to its own path globs — declare them in `PROJECT.md` or its stack overlay.
 Extend this table per host as you add domains.
 
 ## Convention: reference a not-yet-existing path as a backticked path, never a markdown link
