@@ -11,15 +11,17 @@ throughout (Config Bundle, Adapter, Skill, Rules Layer, Project Config, …).
 
 ## How each tool consumes this file
 
-Verified per-tool (2026-07-04, issue #3 → [`docs/research/tool-config-discovery.md`](docs/research/tool-config-discovery.md));
-decision recorded in [ADR 0002](docs/adr/0002-agents-md-canonical-pointer-projection.md):
+Verified per-tool (2026-07-04, issue #3 → [`docs/research/tool-config-discovery.md`](docs/research/tool-config-discovery.md);
+Gemini row re-verified 2026-07-07, issue #56); decision recorded in [ADR 0002](docs/adr/0002-agents-md-canonical-pointer-projection.md):
 
 - **Claude Code** — reads `CLAUDE.md`, which imports this file via `@AGENTS.md` (expanded at launch).
 - **Codex** — reads `AGENTS.md` **natively** by filename. No Adapter needed.
 - **Copilot** — its PR-relevant surfaces (coding agent, code review, VS Code) read `AGENTS.md`
   **natively**. `.github/copilot-instructions.md` is only a discovery marker, not a copy.
 - **Gemini** — reads `GEMINI.md`, which imports this file via `@AGENTS.md` (or names it via the
-  `context.fileName` setting).
+  `context.fileName` setting). Google's terminal surface is now **Antigravity CLI** (consumer Gemini
+  CLI retired 2026-06-18; enterprise Code Assist unchanged), which still reads both `GEMINI.md` and
+  `AGENTS.md` and honors `@`-imports — so this Adapter is unchanged.
 
 No tool follows a free-text "see AGENTS.md" pointer — resolution is either **import-expansion**
 (`@AGENTS.md`) or **native discovery** (the tool reads `AGENTS.md` by filename). A parity check

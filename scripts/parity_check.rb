@@ -25,8 +25,23 @@ require_relative "protected_branches"
 class ParityCheck
   CANONICAL = "AGENTS.md"
 
-  # Import Adapters: files that must carry a resolvable `@AGENTS.md` import.
+  # Import Adapters: files that resolve to the Canonical Source. The existence + count invariants apply
+  # to every entry; how each is allowed to resolve is governed by NATIVE_CAPABLE_ADAPTERS below.
   IMPORT_ADAPTERS = ["CLAUDE.md", "GEMINI.md"].freeze
+
+  # Adapters that may resolve via NATIVE discovery instead of an `@AGENTS.md` import. `GEMINI.md`
+  # qualifies: Google's Antigravity CLI (which superseded Gemini CLI, announced 2026-05-19) reads
+  # `AGENTS.md` natively since v1.20.3, and a host may point the tool straight at `AGENTS.md` via the
+  # `context.fileName` setting — both are first-class resolutions per ADR 0002, so a Gemini adapter
+  # that declares native discovery (a `parity:native source=AGENTS.md` marker, the same mechanism the
+  # Copilot adapter uses) must not false-fail parity. `CLAUDE.md` is NOT native-capable — Claude Code
+  # has no native `AGENTS.md` discovery, so the import is its only resolution.
+  #
+  # ADR 0008 boundary: this stays a purely STRUCTURAL check — it verifies the Adapter *file* resolves
+  # to `AGENTS.md`, not that the external tool actually reads that filename. No structural check can
+  # detect a future tool renaming its default context file (a false-green); that liveness is re-verified
+  # out-of-band in docs/research/tool-config-discovery.md (last re-verified for Antigravity CLI, #56).
+  NATIVE_CAPABLE_ADAPTERS = ["GEMINI.md"].freeze
 
   COPILOT_ADAPTER = ".github/copilot-instructions.md"
   PROJECT_CONFIG = "PROJECT.md"
@@ -168,7 +183,17 @@ class ParityCheck
         err("Import Adapter missing: #{adapter} not found")
         next
       end
-      unless read(adapter).match?(IMPORT_TOKEN)
+      body = read(adapter)
+      next if body.match?(IMPORT_TOKEN)
+
+      # No `@AGENTS.md` import: allowed only for a native-capable adapter that declares native discovery
+      # (a `parity:native source=AGENTS.md` marker) — the context.fileName / Antigravity-native path.
+      if NATIVE_CAPABLE_ADAPTERS.include?(adapter)
+        next if body.lines.any? { |l| l.strip.match?(NATIVE_MARKER) }
+
+        err("Adapter #{adapter} neither imports the Canonical Source (`@#{CANONICAL}`) nor declares " \
+            "native discovery (expected an `@#{CANONICAL}` line or a `parity:native source=#{CANONICAL}` marker)")
+      else
         err("Import Adapter #{adapter} does not import the Canonical Source (expected an `@#{CANONICAL}` line)")
       end
     end

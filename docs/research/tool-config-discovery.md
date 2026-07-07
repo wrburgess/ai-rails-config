@@ -6,10 +6,12 @@ Gemini** — discovers its instruction/context files, and whether each reliably
 [ADR 0002](../adr/0002-agents-md-canonical-pointer-projection.md)) or requires the
 canonical content to be **inlined**.
 
-- **Issue:** wrburgess/ai-config#3 (`Part of #1`).
-- **As-of:** 2026-07-04. These behaviors drift fast (Copilot added three relevant
-  capabilities across 2025-08 → 2026-06); **re-verify before each scaffold change**
-  and update the date + citations below.
+- **Issue:** wrburgess/ai-config#3 (`Part of #1`); Gemini re-verification #56.
+- **As-of:** 2026-07-07 (Gemini row re-verified against the 2026-05-19 Gemini CLI →
+  Antigravity CLI transition, issue #56; all other rows as-of 2026-07-04). These
+  behaviors drift fast (Copilot added three relevant capabilities across 2025-08 →
+  2026-06; Google renamed its CLI surface mid-2026); **re-verify before each scaffold
+  change** and update the date + citations below.
 - **Method:** live fetch of each vendor's primary docs (not recollection); every
   verdict is backed by a dated URL + direct quote in its section. One research pass
   per tool.
@@ -20,7 +22,7 @@ canonical content to be **inlined**.
 and is amended.** The mechanism that makes the Canonical Source (`AGENTS.md`) work
 splits cleanly into two kinds, and *neither* is a free-text "see AGENTS.md" pointer:
 
-- **Import-expansion** (Claude, Gemini CLI) — the Adapter file contains an `@AGENTS.md`
+- **Import-expansion** (Claude, Gemini/Antigravity CLI) — the Adapter file contains an `@AGENTS.md`
   directive that the tool *expands and inlines at load time*. Deterministic, not
   fragile pointer-following. **Pointer works.**
 - **Native discovery** (Codex, Copilot's relevant surfaces) — the tool reads
@@ -43,7 +45,7 @@ both of which now read `AGENTS.md` natively.
 | **Copilot — code review** | PR comments | `AGENTS.md` (root), `copilot-instructions.md` | **native** (since 2026-06-18) | No — pointers not followed | **NATIVE-CANONICAL** |
 | **Copilot — VS Code in-editor** | in-editor chat | `AGENTS.md` (auto), `copilot-instructions.md`, `*.instructions.md` | **native** (gated by `chat.useAgentsMdFile`) | No — links not a guaranteed load | **NATIVE-CANONICAL** |
 | **Copilot — other IDEs** (JetBrains/VS/Xcode/Eclipse) | in-editor chat | `.github/copilot-instructions.md` only | not documented | **No** | **HYBRID-RENDER NEEDED** |
-| **Gemini** | not-yet-in-use (CLI) | `GEMINI.md` (configurable) | via import or `context.fileName` | **Yes** — `@AGENTS.md`, 5-hop max | **POINTER WORKS** |
+| **Gemini** | Antigravity CLI (was Gemini CLI) | `GEMINI.md` (configurable) | via import or `context.fileName` | **Yes** — `@AGENTS.md`, 5-hop max | **POINTER WORKS** |
 
 Classifications: **POINTER WORKS** (an `@import` in the Adapter reliably inlines the
 Canonical Source) · **NATIVE-CANONICAL** (the tool reads `AGENTS.md` directly, no
@@ -162,13 +164,29 @@ This is the highest-uncertainty tool and the one that amends ADR 0002; verdicts 
   `GEMINI.md` or `AGENT.md` (singular) and manual `@FILENAME` inclusion, but does not
   document the import processor or `context.fileName` — there, prefer native
   `GEMINI.md`/`AGENT.md` over a thin pointer.
-- **Verdict:** **POINTER WORKS** on the CLI (import or `context.fileName`); IDE Code
-  Assist favors native.
+- **Antigravity CLI transition (announced 2026-05-19).** At Google I/O 2026 Google
+  announced that **Gemini CLI is superseded by Antigravity CLI**; consumer Gemini CLI +
+  Gemini Code Assist IDE extensions stopped serving requests on **2026-06-18**
+  (enterprise Code Assist Standard/Enterprise access is **unchanged**). This is a
+  *surface rename, not a mechanism change*: the context-file layer carries over — the
+  default `GEMINI.md`, the `context.fileName` setting, and the `@file.md` memory import
+  all persist (the context-file citation below still applies) — and Antigravity **added
+  native `AGENTS.md` reading** in v1.20.3 (2026-03-05), which on its own keeps the
+  Canonical Source resolvable even independent of the `@`-import. The Adapter
+  (`GEMINI.md` → `@AGENTS.md`) and the structural parity check therefore need **no
+  corrective change** — though this PR does additionally teach the check to accept the
+  native-`AGENTS.md` resolution the transition makes first-class (a hardening, not a fix).
+- **Verdict:** **POINTER WORKS** — unchanged by the Antigravity CLI transition (import or
+  `context.fileName` on the CLI; IDE Code Assist favors native `GEMINI.md`/`AGENT.md`).
 
 **Citations** (fetched 2026-07-04)
 - <https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/gemini-md.md> — "While `GEMINI.md` is the default filename, you can configure this in your `settings.json`"; example `"context": { "fileName": ["AGENTS.md", "CONTEXT.md", "GEMINI.md"] }`; "loads various context files … concatenates the contents … and sends them to the model with every prompt."
 - <https://geminicli.com/docs/reference/memport/> — "Use the `@` symbol followed by the path to the file you want to import"; "a configurable maximum import depth (default: 5 levels)"; "automatically detects and prevents circular imports."
 - <https://developers.google.com/gemini-code-assist/docs/use-agentic-chat-pair-programmer> — Code Assist: create "a file named either GEMINI.md or AGENT.md at the root of your project"; "add context by including a file manually with the @FILENAME syntax."
+- <https://blog.google/innovation-and-ai/technology/developers-tools/google-io-2026-developer-highlights/> — (fetched 2026-07-07) I/O 2026 developer highlights (2026-05-19): "We encourage Gemini CLI users to migrate to Antigravity CLI."
+- <https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/> — (fetched 2026-07-07) "On June 18, 2026, Gemini CLI and Gemini Code Assist IDE extensions will stop serving requests for Google AI Pro and Ultra"; enterprise Code Assist Standard/Enterprise "access remains unchanged"; Antigravity CLI "keeps the most critical features" of Gemini CLI (Agent Skills, Hooks, Subagents, Extensions). *(This post covers the transition and dates only — the `GEMINI.md`/`AGENTS.md`/`@`-import continuity is sourced from the two citations below, not here.)*
+- <https://discuss.ai.google.dev/t/antigravity-update-1-20-3-2026-3-5/129320> — (fetched 2026-07-07) Antigravity update **1.20.3** (2026-03-05): "Added support for reading rules from `AGENTS.md` in addition to `GEMINI.md`." Native `AGENTS.md`, so the Canonical Source is read directly even without the `@`-import.
+- <https://geminicli.com/docs/cli/gemini-md.md> — (fetched 2026-07-07) current context-file doc (carries a banner that "Gemini CLI will be replaced by Antigravity CLI"): default file `GEMINI.md`, filename configurable via `context.fileName` (example `["AGENTS.md", "CONTEXT.md", "GEMINI.md"]`), and "break down large `GEMINI.md` files … by importing content from other files using the `@file.md` syntax" — i.e. the `context.fileName` + `@`-import mechanism persists across the surface rename.
 
 ---
 
@@ -183,7 +201,8 @@ its core decision (one Canonical Source; per-tool Adapters resolve to it) and
    4-hop recursion limit.)
 2. **Confirmed — Gemini Adapter.** `GEMINI.md` → `@AGENTS.md` works (or name
    `AGENTS.md` directly via `context.fileName`). IDE Code Assist favors native
-   `GEMINI.md`/`AGENT.md`.
+   `GEMINI.md`/`AGENT.md`. Unchanged by the 2026-05-19 Gemini CLI → Antigravity CLI
+   transition (re-verified 2026-07-07, #56): Antigravity CLI still honors both files.
 3. **Confirmed — Codex.** Reads `AGENTS.md` natively; no Adapter needed — as ADR 0002
    already stated.
 4. **Amended — Copilot Adapter (ADR 0002 line: "`.github/copilot-instructions.md` —
@@ -211,8 +230,9 @@ the default. **Scaffolding (issue #2 / Epic #1) may proceed** on ADR 0002 as ame
   ~10 months.
 - **Watch items:** native `AGENTS.md` in Claude Code (open FR #6235); Copilot
   `AGENTS.md` reaching JetBrains/Visual Studio/Xcode/Eclipse in-editor (would retire
-  the one HYBRID-RENDER surface); the `chat.useAgentsMdFile` default; Gemini Code
-  Assist adding import/`contextFileName` support.
+  the one HYBRID-RENDER surface); the `chat.useAgentsMdFile` default; a future
+  **Antigravity CLI** release changing the default context filename away from `GEMINI.md`
+  (the one scenario that would silently false-green the structural parity check).
 - **Method to repeat:** one research pass per tool against the vendor's primary docs;
   record dated URL + direct quote per verdict; update the **As-of** date at the top.
 
