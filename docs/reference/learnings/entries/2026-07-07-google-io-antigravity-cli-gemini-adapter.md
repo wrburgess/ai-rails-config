@@ -33,3 +33,9 @@ at all, or does the adapter (and the parity check's Gemini expectations) need up
 the Gemini adapter against Antigravity CLI before the next release, updating
 `docs/research/tool-config-discovery.md` and the `AGENTS.md` Gemini row if the discovery path changed.
 A stale adapter silently breaks the single-sourcing guarantee for one tool.
+
+**Resolution (#56, 2026-07-07):** re-verified against primary sources — the transition is real
+(consumer Gemini CLI retired 2026-06-18), **but Antigravity CLI preserves `GEMINI.md`/`AGENTS.md`
+discovery and the `@`-import** (it even added native `AGENTS.md` in v1.20.3), so the adapter and the
+structural parity check were *not* broken. Docs refreshed for currency (`AGENTS.md` Gemini row + stamp,
+`docs/research/tool-config-discovery.md`, this entry); no `scripts/parity_check.rb` change needed.
