@@ -117,7 +117,8 @@ an **inbox-only** run:
 9. **Open the PR — never commit directly.** Create the feature branch per
    [`PROJECT.md`](../../PROJECT.md) → *Branch & PR Policy*, commit the new entries + index update with
    the attribution trailer from *Attribution & Model Declaration*, push, and open a pull request whose
-   body lists each drafted entry (source, claim, stance, touches) plus the staleness notes. Link the
+   body lists each drafted entry (source, claim, stance, touches) plus the staleness notes (full
+   sweep; an inbox-only run swept no feeds, so its PR body covers only the handed-over drop). Link the
    issue per the branch/PR policy. The PR is a **proposal**: the human accepts, edits, or rejects each
    entry before anything merges.
 

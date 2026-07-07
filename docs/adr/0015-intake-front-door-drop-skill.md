@@ -36,9 +36,12 @@ happy path; a human **disposes on the PR**.
   the URL gate, the well-formed drop, and the hand-off. This matches the
   [`ship`](0005-ship-hybrid-delegation-offload-retrieval-protect-judgment.md) orchestrator precedent —
   a composing skill that sequences others by reference.
-- **The real-URL gate is promoted to a first-class rule.** A drop needs a real, fetchable permalink to
-  the item; if the human handed over a screenshot or quote with no URL, `drop` **asks the human** for
-  the permalink — it never fudges to a profile/handle/home-page URL and never invents one. This is the
+- **The real-URL gate is promoted to a first-class rule.** A drop needs a **real permalink** to the
+  item — one a human can open. The gate is *reality*, not the agent's own reach: a real-but-unfetchable
+  X/paywalled/feed-less URL **passes** (that is precisely the unreachable-by-sweep output the inbox
+  exists to carry), and only an **absent or fake** URL fails. When the human handed over a screenshot or
+  quote with no URL, `drop` **asks the human** for the permalink — it never fudges to a
+  profile/handle/home-page URL and never invents one. This is the
   same discipline the Watchlist, the Learnings Log, and the inbox already state
   ([ADR 0014](0014-manual-drop-inbox-for-unfetchable-sources.md)); `drop` makes it the front door's
   hard gate rather than an improvised judgment call.
