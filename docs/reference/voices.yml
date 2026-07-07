@@ -105,9 +105,9 @@ voices:
       feeds: [], cadence: medium, verified: 2026-07-07, status: active }   # no RSS; swept via site search
 
   # --- Tier: balance (contrarian / primary sources) ---
-  - { name: Sara Hooker, tier: balance, focus: "Scaling-race skeptic; ex-Cohere Labs; founder Adaption Labs (small/adaptive models)",
-      handles: { site: https://www.sarahooker.me/, x: https://x.com/sarahookr, youtube: null, github: null },
-      feeds: [ https://www.sarahooker.me/2/feed ], cadence: low, verified: 2026-07-07, status: active }
+  - { name: Sara Hooker, tier: balance, focus: "Scaling-race skeptic; ex-Cohere Labs; founder Adaption Labs (small/adaptive models); publishes via the Adaption Labs blog",
+      handles: { site: https://adaptionlabs.ai/blog, x: https://x.com/sarahookr, youtube: null, github: null },
+      feeds: [], cadence: low, verified: 2026-07-07, status: active }   # 2026-07-07 sweep: prior feed https://www.sarahooker.me/2/feed returned a stale 2020 post; sarahooker.me is her academic homepage and underratedml.com a defunct 2020 podcast. Active output = Adaption Labs blog (no verified RSS; poll the index)
   - { name: Rachel Thomas, tier: balance, focus: "Data ethics + AI-hype skepticism; co-founder fast.ai; R&D Answer.AI",
       handles: { site: https://rachel.fast.ai/, x: null, youtube: null, github: null },
       feeds: [ https://rachel.fast.ai/index.xml ], cadence: low, verified: 2026-07-07, status: active }

@@ -16,7 +16,7 @@ leaves it untouched. Scheduling the sweep is covered in the
 | Date | Source | Claim | Stance | Touches | Status |
 |------|--------|-------|--------|---------|--------|
 | [2026-07-07](entries/2026-07-07-pocock-kill-context-bloat.md) | Matt Pocock | Measure unused tools via a logging proxy, then disable them to cut context bloat | extends | `ADR-0004` | noted |
-| [2026-07-07](entries/2026-07-07-pocock-grill-with-docs.md) | Matt Pocock | An AI interview capturing vocabulary as a glossary and hard-to-reverse choices as ADRs before code | confirms | `skills/grill-with-docs` | noted |
+| [2026-07-07](entries/2026-07-07-pocock-grill-with-docs.md) | Matt Pocock | Repo's `grill-with-docs` is copied from Pocock's upstream original — currently uncredited (attribution gap) | challenges | `skills/grill-with-docs` | actioned (#51) |
 | [2026-07-07](entries/2026-07-07-pocock-skills-as-markdown-catalog.md) | Matt Pocock | Skills as focused markdown files (instructions + inputs + outputs) mapped to engineering moments | confirms | `rules/skills.md` | noted |
 | [2026-07-07](entries/2026-07-07-willison-ai-review-caught-bugs.md) | Simon Willison | An AI-run code review caught critical bugs before a release shipped | confirms | `skills/verify` | noted |
 | [2026-07-07](entries/2026-07-07-willison-better-models-worse-tools.md) | Simon Willison | Newer models are worse at custom third-party tools — tool-specific mechanisms are fragile across versions | confirms | `ADR-0003` | noted |
