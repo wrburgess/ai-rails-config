@@ -11,3 +11,6 @@ This file is a thin **Invocation Shim** ([ADR 0003](../../docs/adr/0003-skills-c
 of its own**. The canonical body and its sibling format specs
 (`skills/grill-with-docs/CONTEXT-FORMAT.md`, `skills/grill-with-docs/ADR-FORMAT.md`) are the single
 source of truth; the same skill is invoked by every other tool via native `AGENTS.md` discovery.
+
+> **Upstream:** adapted from Matt Pocock's `grill-with-docs`
+> (<https://www.aihero.dev/grill-with-docs>) — see the canonical body's *Provenance* note.
