@@ -2,7 +2,7 @@
 
 **Status:** accepted
 
-Abstracting the bundle to stack-neutral ([ADR 0016](0016-stack-neutral-baseline-with-stack-overlays.md),
+Abstracting the bundle to stack-neutral ([ADR 0017](0017-stack-neutral-baseline-with-stack-overlays.md),
 issue #48) raised two "do we touch the quality-gate tooling?" questions. We deliberately answer **no**
 to both and record the scope boundary here, so a future reader does not mistake the untouched Ruby
 tooling — or the absence of a neutrality check — for an oversight.

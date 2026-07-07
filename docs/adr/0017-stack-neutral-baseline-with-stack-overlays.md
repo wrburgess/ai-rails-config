@@ -53,4 +53,4 @@ neutral, stack-agnostic principle, and that every concrete stack-named pattern/a
   markdown links**, per the forward-reference convention in
   [`docs/rules/README.md`](../rules/README.md), so the parity link-checker stays green.
 - Rules-neutrality is guarded by author + review, not a machine check — see
-  [ADR 0017](0017-neutrality-pass-scope-tooling-and-enforcement.md).
+  [ADR 0018](0018-neutrality-pass-scope-tooling-and-enforcement.md).

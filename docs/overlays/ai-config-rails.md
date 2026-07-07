@@ -1,7 +1,7 @@
 # ai-config-rails — Stack Overlay (seed content)
 
 > **Status:** seed content for the future standalone `ai-config-rails` **Stack Overlay** repo
-> ([ADR 0016](../adr/0016-stack-neutral-baseline-with-stack-overlays.md)). **Interim** — it lives here
+> ([ADR 0017](../adr/0017-stack-neutral-baseline-with-stack-overlays.md)). **Interim** — it lives here
 > until a follow-up issue extracts it into its own repo and removes it from the baseline. A Rails
 > **Host App** vendors this overlay *alongside* the Generic Baseline to restore the concrete,
 > Rails-named patterns and anti-patterns that the baseline states only as neutral, stack-agnostic
