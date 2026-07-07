@@ -8,7 +8,7 @@
 ## Patterns
 
 - **Native / server-driven interactivity first.** Prefer your platform's native or server-driven interactivity before reaching for heavier client-side machinery; most "we need a frontend framework" cases are a small server-driven fragment plus a little scoped behavior.
-- **Reusable UI as components.** Extract repeated markup into reusable, unit-tested UI components rather than partial soup, and unit-test each component in isolation.
+- **Reusable UI as components.** Extract repeated markup into reusable UI components rather than duplicating it across templates, and unit-test each component in isolation.
 - **Behavior in named, testable units.** Wire DOM behavior through named, discoverable, testable units so it is easy to find and test.
 - **Style with the design system.** Use the host CSS framework's utility classes and shared stylesheets; keep markup semantic.
 

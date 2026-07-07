@@ -17,7 +17,7 @@ commands during Customization** (e.g. a Rails host: lint `bundle exec rubocop -a
 a JS/TS host: lint `npm run lint`, tests `npm test`, dependency audit `npm audit`). A **Stack Overlay**
 such as `ai-config-rails` can ship a ready-to-paste command set for its stack.
 
-This config repo is itself Rails-free, so its own gate is the structural parity check plus the
+This config repo ships no application code, so its own gate is the structural parity check plus the
 dependency-free stdlib self-tests:
 
 | Purpose | Command |
