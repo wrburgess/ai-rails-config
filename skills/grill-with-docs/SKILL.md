@@ -86,3 +86,12 @@ Only offer to create an ADR when all three are true:
 If any of the three is missing, skip the ADR. Use the format in [ADR-FORMAT.md](./ADR-FORMAT.md).
 
 </supporting-info>
+
+## Provenance
+
+This skill is **adapted from Matt Pocock's upstream `grill-with-docs`**
+(<https://www.aihero.dev/grill-with-docs>) — his is the original; this repo's copy is downstream. Watch
+his version for refinements (prompt shape, capture format) worth backporting here. Matt Pocock is
+already a tracked voice on the intake [Watchlist](../../docs/reference/voices.yml), so the `scout` sweep
+surfaces his updates. (This credits the skill's external *source*; it is separate from the repo's
+per-agent model *Attribution*.)
