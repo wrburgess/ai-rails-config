@@ -168,9 +168,11 @@ This is the highest-uncertainty tool and the one that amends ADR 0002; verdicts 
   announced that **Gemini CLI is superseded by Antigravity CLI**; consumer Gemini CLI +
   Gemini Code Assist IDE extensions stopped serving requests on **2026-06-18**
   (enterprise Code Assist Standard/Enterprise access is **unchanged**). This is a
-  *surface rename, not a mechanism change*: Antigravity CLI keeps reading both
-  `GEMINI.md` and `AGENTS.md` with no modification, preserves the `@`-import processor,
-  and **added native `AGENTS.md` support** in v1.20.3 (2026-03-05). The Adapter
+  *surface rename, not a mechanism change*: the context-file layer carries over — the
+  default `GEMINI.md`, the `context.fileName` setting, and the `@file.md` memory import
+  all persist (the context-file citation below still applies) — and Antigravity **added
+  native `AGENTS.md` reading** in v1.20.3 (2026-03-05), which on its own keeps the
+  Canonical Source resolvable even independent of the `@`-import. The Adapter
   (`GEMINI.md` → `@AGENTS.md`) and the structural parity check are therefore
   **unaffected**.
 - **Verdict:** **POINTER WORKS** — unchanged by the Antigravity CLI transition (import or
@@ -181,7 +183,9 @@ This is the highest-uncertainty tool and the one that amends ADR 0002; verdicts 
 - <https://geminicli.com/docs/reference/memport/> — "Use the `@` symbol followed by the path to the file you want to import"; "a configurable maximum import depth (default: 5 levels)"; "automatically detects and prevents circular imports."
 - <https://developers.google.com/gemini-code-assist/docs/use-agentic-chat-pair-programmer> — Code Assist: create "a file named either GEMINI.md or AGENT.md at the root of your project"; "add context by including a file manually with the @FILENAME syntax."
 - <https://blog.google/innovation-and-ai/technology/developers-tools/google-io-2026-developer-highlights/> — (fetched 2026-07-07) I/O 2026 developer highlights (2026-05-19): "We encourage Gemini CLI users to migrate to Antigravity CLI."
-- <https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/> — (fetched 2026-07-07) "On June 18, 2026, Gemini CLI and Gemini Code Assist IDE extensions will stop serving requests for Google AI Pro and Ultra" (enterprise Code Assist unaffected); "Antigravity CLI keeps the most critical features of Gemini CLI." Both `GEMINI.md` and `AGENTS.md` continue to work in Antigravity CLI with no modifications and the `@`-import syntax is preserved (native `AGENTS.md` since Antigravity v1.20.3, 2026-03-05).
+- <https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/> — (fetched 2026-07-07) "On June 18, 2026, Gemini CLI and Gemini Code Assist IDE extensions will stop serving requests for Google AI Pro and Ultra"; enterprise Code Assist Standard/Enterprise "access remains unchanged"; Antigravity CLI "keeps the most critical features" of Gemini CLI (Agent Skills, Hooks, Subagents, Extensions). *(This post covers the transition and dates only — the `GEMINI.md`/`AGENTS.md`/`@`-import continuity is sourced from the two citations below, not here.)*
+- <https://discuss.ai.google.dev/t/antigravity-update-1-20-3-2026-3-5/129320> — (fetched 2026-07-07) Antigravity update **1.20.3** (2026-03-05): "Added support for reading rules from `AGENTS.md` in addition to `GEMINI.md`." Native `AGENTS.md`, so the Canonical Source is read directly even without the `@`-import.
+- <https://geminicli.com/docs/cli/gemini-md.md> — (fetched 2026-07-07) current context-file doc (carries a banner that "Gemini CLI will be replaced by Antigravity CLI"): default file `GEMINI.md`, filename configurable via `context.fileName` (example `["AGENTS.md", "CONTEXT.md", "GEMINI.md"]`), and "break down large `GEMINI.md` files … by importing content from other files using the `@file.md` syntax" — i.e. the `context.fileName` + `@`-import mechanism persists across the surface rename.
 
 ---
 
