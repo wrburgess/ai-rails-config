@@ -17,7 +17,7 @@ is covered in the [intake-sweep scheduling guide](../../guides/intake-sweep-sche
 
 | Date | Source | Claim | Stance | Touches | Status |
 |------|--------|-------|--------|---------|--------|
-| [2026-07-08](entries/2026-07-08-pocock-wayfinder-blocking-tickets.md) | Matt Pocock (AI Hero) | /wayfinder maps an oversized plan to session-sized GitHub issues with blocking edges; /to-tickets emits vertical-slice tickets with blocking edges (local file or native tracker) | extends | `docs/standards/development-lifecycle.md` | noted |
+| [2026-07-08](entries/2026-07-08-pocock-wayfinder-blocking-tickets.md) | Matt Pocock (AI Hero) | /wayfinder maps an oversized plan to session-sized GitHub issues with blocking edges; /to-tickets emits vertical-slice tickets with blocking edges (local file or native tracker) | extends | `docs/standards/development-lifecycle.md` | actioned (#71) |
 | [2026-07-08](entries/2026-07-08-pocock-grilling-fixes-backport.md) | Matt Pocock (AI Hero) | Grilling fixes to backport: confirmation gate before implementation, Facts-vs-Decisions leading words to stop self-grilling, sharper one-question-at-a-time rationale | extends | `skills/grill-with-docs` | noted |
 | [2026-07-08](entries/2026-07-08-pocock-code-review-fowler-smells.md) | Matt Pocock (AI Hero) | /code-review names Martin Fowler's refactoring smells (cheap, leverages model priors) + two-axis (standards/spec) sub-agents; refactor moved out of the TDD loop into review | extends | `rules/self-review.md` | noted |
 | [2026-07-07](entries/2026-07-07-karpathy-software-3-agent-native.md) | Andrej Karpathy | Agent-native infra (machine-readable schemas, CLIs) is the missing piece; automate what you can verify | confirms | `ADR-0002` | noted |

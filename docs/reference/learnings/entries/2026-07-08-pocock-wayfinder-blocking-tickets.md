@@ -10,7 +10,10 @@ claim: >
   whose blocking edges are either local text or native tracker links, so frontier tickets parallelize.
 stance: extends
 touches: docs/standards/development-lifecycle.md
-status: noted
+status: actioned
+status_detail: >
+  → #71: add a plan-decomposition capability (map an oversized plan into session-sized,
+  blocking-linked issues) upstream of assess — likely a new Skill, decided via a grill session.
 ---
 
 ## Compare / contrast
