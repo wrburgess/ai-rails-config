@@ -17,9 +17,11 @@ file holds only Claude-specific configuration notes that have no place in the to
   [`.claude/commands/scout.md`](.claude/commands/scout.md) → `/scout` (canonical body:
   `skills/scout/SKILL.md`), the intake front-door shim
   [`.claude/commands/drop.md`](.claude/commands/drop.md) → `/drop` (canonical body:
-  `skills/drop/SKILL.md`), and the authoring front-door shim
+  `skills/drop/SKILL.md`), the authoring front-door shim
   [`.claude/commands/create-skill.md`](.claude/commands/create-skill.md) → `/create-skill` (canonical
-  body: `skills/create-skill/SKILL.md`) complete the set of eleven.
+  body: `skills/create-skill/SKILL.md`), and the roster front-door shim
+  [`.claude/commands/voice.md`](.claude/commands/voice.md) → `/voice` (canonical body:
+  `skills/voice/SKILL.md`) complete the set of twelve.
 - **Settings & hooks** — `.claude/settings.json` wires the branch-protection fast-fail
   ([`.claude/hooks/enforce-branch-creation.sh`](.claude/hooks/enforce-branch-creation.sh)) as a
   PreToolUse hook — Layer 3 over the portable git hooks in `.githooks/`

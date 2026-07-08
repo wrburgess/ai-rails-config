@@ -51,12 +51,13 @@ below are the quick reference.
 - **Skills** — model-agnostic capabilities authored once as a canonical body (`skills/<name>/SKILL.md`)
   and reached through a thin per-tool Invocation Shim (Claude `.claude/commands/<name>.md`; other tools
   via native `AGENTS.md` discovery), so any configured agent runs the same procedure
-  ([ADR 0003](docs/adr/0003-skills-canonical-body-thin-shims-graceful-degradation.md)). Shipped (11):
+  ([ADR 0003](docs/adr/0003-skills-canonical-body-thin-shims-graceful-degradation.md)). Shipped (12):
   `grill-with-docs`, the six lifecycle skills `assess`, `cplan`, `impl`, `verify`, `rtr`, `final`
   (their five-stage spec is `docs/standards/development-lifecycle.md`), the `ship` orchestrator that
   sequences those six end to end (Epic #1), the `scout` intake sweep (Epic #28), the `drop` intake
-  front door that pushes a human-handed item into that sweep (Issue #46), and the `create-skill`
-  authoring front door that scaffolds a new, conforming skill from full repo context (Issue #67).
+  front door that pushes a human-handed item into that sweep (Issue #46), the `create-skill`
+  authoring front door that scaffolds a new, conforming skill from full repo context (Issue #67), and
+  the `voice` roster front door that adds or updates a Watchlist voice from a handle or link (Issue #66).
 - **Intake pipeline** — a living-knowledge sweep that keeps the bundle's reference material current
   ([ADR 0012](docs/adr/0012-intake-pipeline-placement.md),
   [ADR 0013](docs/adr/0013-scheduled-intake-sweep-and-empty-sweep-policy.md)): the

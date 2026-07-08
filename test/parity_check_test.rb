@@ -503,6 +503,18 @@ class ParityCheckTest < Minitest::Test
     end
   end
 
+  def test_required_voice_skill_absent_fails
+    # `voice` is the intake-pipeline roster front door (ADR 0021) and part of the floor: dropping it
+    # reddens too. This pins voice into REQUIRED_SKILLS so a future edit can't silently drop it.
+    with_bundle do |dir|
+      add_skills(dir)
+      FileUtils.rm_rf(File.join(dir, "skills/voice"))
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(%r{Required skill missing: skills/voice/SKILL\.md}, out)
+    end
+  end
+
   # --- Skills content-neutrality (ADR 0003) ------------------------------------------------------
 
   def test_lifecycle_skill_without_project_reference_fails
