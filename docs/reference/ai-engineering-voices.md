@@ -145,6 +145,11 @@ The tiers below match `voices.yml`'s `tier` buckets: **core** (Tier 1) · **tren
 - **X:** https://x.com/AndrewYNg
 - **YouTube:** https://www.youtube.com/@Deeplearningai (DeepLearningAI)
 
+### Every
+- **Focus:** Practitioner essays on building with AI and its effect on knowledge work; Dan Shipper's "Chain of Thought"; the *AI & I* podcast.
+- **Site:** https://every.to/
+- **X:** https://x.com/every
+
 ## Tier 3 — Frontier-lab voices (Anthropic / OpenAI / Google)
 
 The humans and org channels behind the primary-source docs cited under *For balance*. Worth following
