@@ -79,9 +79,11 @@ never self-merges; a human disposes on the PR.
    - **Reference it in [`AGENTS.md`](../../AGENTS.md)** → *Skills* — this reference is **parity-enforced**;
      a present `skills/<name>/` with no `skills/<name>/SKILL.md` reference in `AGENTS.md` reddens CI. Add
      its bullet to the shipped-Skills list.
-   - **Flip the count prose** everywhere it is stated — `AGENTS.md`, [`README.md`](../../README.md), and
-     [`docs/guides/usage.md`](../../docs/guides/usage.md) each carry a written skill count and list. These
-     strings are **unenforced** (CI stays green if they drift), so update them by discipline.
+   - **Flip the count prose** everywhere it is stated — `AGENTS.md`, [`README.md`](../../README.md),
+     [`docs/guides/usage.md`](../../docs/guides/usage.md), and the Claude adapter
+     [`CLAUDE.md`](../../CLAUDE.md) (which enumerates the per-tool shims) each carry a written skill count
+     and/or list. These strings are **unenforced** (CI stays green if they drift), so update every one by
+     discipline — grep the tree for the current count word and the phrase "set of" to catch stragglers.
    - **Pin the floor + add its self-test** if the Skill is a baseline member: add its name to
      `REQUIRED_SKILLS` in [`scripts/parity_check.rb`](../../scripts/parity_check.rb) (the one line that
      grows per Skill) and a matching self-test in [`test/parity_check_test.rb`](../../test/parity_check_test.rb)
@@ -121,8 +123,8 @@ never do.
 Before opening the PR — and before the run is complete: the new Skill has a **canonical body** with
 `name:` frontmatter and a **thin shim** whose link contains the literal `skills/<name>/SKILL.md`; the
 body is **business- and stack-neutral** (no host-specific token — grep it before committing); the Skill
-is **referenced in `AGENTS.md`** and the count prose is updated in `AGENTS.md`, `README.md`, and
-`docs/guides/usage.md`; a baseline Skill is **pinned into `REQUIRED_SKILLS` with a matching self-test**;
+is **referenced in `AGENTS.md`** and the count prose is updated in `AGENTS.md`, `README.md`,
+`docs/guides/usage.md`, and `CLAUDE.md`; a baseline Skill is **pinned into `REQUIRED_SKILLS` with a matching self-test**;
 an adapted Skill carries its **`## Provenance` credit** (body) and `> **Upstream:**` echo (shim); and the
 host's *Quality Checks* are **green**. The output is a **reviewable PR**, **never a direct commit** to a
 protected branch. Sign every lifecycle-host comment with the footer from [`PROJECT.md`](../../PROJECT.md)

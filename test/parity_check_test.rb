@@ -491,7 +491,7 @@ class ParityCheckTest < Minitest::Test
     end
   end
 
-  def test_required_create_skill_skill_absent_fails
+  def test_required_create_skill_absent_fails
     # `create-skill` is the authoring front door (ADR 0019) and part of the floor: dropping it reddens
     # too. This pins create-skill into REQUIRED_SKILLS so a future edit can't silently drop it.
     with_bundle do |dir|
