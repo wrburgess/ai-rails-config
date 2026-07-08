@@ -99,11 +99,12 @@ class ParityCheck
   LIFECYCLE_SKILLS = %w[assess cplan impl verify rtr final].freeze
   # Floor: the skills the baseline is expected to ship. Grows as later issues add skills; the shape
   # check applies to every *present* skill regardless, so additions are covered by construction.
-  # `ship` is the orchestrator (ADR 0005/0006), `scout` is the intake-pipeline sweep (ADR 0012), and
-  # `drop` is the intake pipeline's push front door (ADR 0015): all belong in the floor but NOT in
-  # LIFECYCLE_SKILLS — none is a lifecycle stage, so none is forced through the PROJECT.md-reference
-  # check (each body references PROJECT.md by choice, not by that mandate).
-  REQUIRED_SKILLS = (["grill-with-docs"] + LIFECYCLE_SKILLS + ["ship", "scout", "drop"]).freeze
+  # `ship` is the orchestrator (ADR 0005/0006), `scout` is the intake-pipeline sweep (ADR 0012),
+  # `drop` is the intake pipeline's push front door (ADR 0015), and `create-skill` is the authoring
+  # front door (ADR 0019): all belong in the floor but NOT in LIFECYCLE_SKILLS — none is a lifecycle
+  # stage, so none is forced through the PROJECT.md-reference check (each body references PROJECT.md by
+  # choice, not by that mandate).
+  REQUIRED_SKILLS = (["grill-with-docs"] + LIFECYCLE_SKILLS + ["ship", "scout", "drop", "create-skill"]).freeze
 
   # Content-neutrality (ADR 0003): a generic Skill body reads host values from PROJECT.md, so a
   # stack/domain proper noun in a body is leftover coupling the purely-structural checks cannot see.
