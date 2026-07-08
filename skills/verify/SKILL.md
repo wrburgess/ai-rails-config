@@ -57,10 +57,14 @@ still composes with `ship`'s verify handoff.
 1. **Read the PR** — its description and full diff.
 2. **Read the approved plan** from the linked issue — find the linked issue via the PR's closing
    references, falling back to the bare issue number in the PR body (`Closes #N` leaf preferred, then
-   `Part of #N`), and fetch the plan comment specifically. If the plan was revised after a Reviewer
-   plan review, check against the *final* plan.
-3. **Check plan alignment** — every plan task has a corresponding change in the diff; no files changed
-   that aren't in the plan (no scope creep); no plan item missing.
+   `Part of #N`), and fetch the plan comment specifically. If the plan was revised through a
+   **sanctioned re-plan** — a Reviewer plan review, or a mid-`impl` loop-back that re-entered plan
+   approval (e.g. a spike's re-plan checkpoint) — check against the *final, approved* plan.
+3. **Check plan alignment** — every plan task has a corresponding change in the diff; no plan item
+   missing. Divergence from the plan splits two ways: a **sanctioned re-plan** (it went back through
+   plan approval — check against that final plan, it is not drift) versus **unsanctioned scope creep**
+   (files or behavior that never went back through the gate — that is a finding, regardless of the
+   "revisable plan" framing).
 4. **Adversarial pass — try to break your own change.** This is the heart of the review: don't just
    confirm each plan item has a change — actively hunt the defect an independent second-model Reviewer
    would flag, and fix it now so their review *confirms* rather than *corrects*.
@@ -100,7 +104,7 @@ from the drift-report:
 
 ### Plan Alignment
 - [x] All plan items implemented
-- [x] No scope creep — only planned files changed
+- [x] No scope creep — only files in the final approved plan changed
 - [Any deviations and why]
 
 ### Adversarial Pass
