@@ -71,6 +71,9 @@ voices:
   - { name: Andrew Ng, tier: trend, focus: "The Batch weekly digest; broad, steady, low-noise",
       handles: { site: https://www.deeplearning.ai/the-batch/, x: https://x.com/AndrewYNg, youtube: https://www.youtube.com/@Deeplearningai, github: null },
       feeds: [ https://www.youtube.com/feeds/videos.xml?channel_id=UCcIXc5mJsHVYTZR1maL5l9w ], cadence: high, verified: 2026-07-07, status: active }   # The Batch has no native RSS; DeepLearningAI YouTube feed
+  - { name: Every, tier: trend, focus: "Practitioner essays on building with AI and its effect on knowledge work; Dan Shipper's 'Chain of Thought'; the AI & I podcast",
+      handles: { site: https://every.to/, x: https://x.com/every, youtube: null, github: null },
+      feeds: [], cadence: high, verified: 2026-07-08, status: active }   # every.to/feed is HTML, not RSS; no public feed discovered — poll the site index
 
   # --- Tier: frontier-lab (people + orgs) ---
   - { name: Boris Cherny, tier: frontier-lab, focus: "Creator of Claude Code; agentic-coding-at-scale practice",
