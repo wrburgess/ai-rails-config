@@ -65,13 +65,13 @@ the terminal artifact is instead an **"already tracked" report** — no empty PR
 
 4. **Assemble a schema-valid entry honoring the Watchlist's own contract.** Follow the **Watchlist's
    documented schema and invariants** (its header / the data test that guards it) rather than a set
-   restated here — the schema is business-neutral mechanism that lives with the artifact. Gather the
-   entry's fields (its name, tier, focus, handle set, feeds, cadence, verified date, status); resolve
-   the *other* handles and any real feed from the one input **best-effort**, leaving each unresolved
-   handle absent and each unresolved feed an empty list per step 2. Keep every enumerated field within
-   its documented set and give the entry a **real verified date** (today's). Feeds are an
-   optimization, not a requirement — an entry with no discoverable free feed legitimately keeps an
-   empty feed list.
+   restated here — the schema is business-neutral mechanism that lives with the artifact, so deferring
+   to it keeps this body from going stale when a field is added or renamed. Populate each field the
+   header defines; resolve the *other* handles and any real feed from the one input **best-effort**,
+   leaving each unresolved handle absent and each unresolved feed an empty list per step 2. Keep every
+   enumerated field within its documented set, and stamp the entry's verification date as a **real
+   date** (today's). Feeds are an optimization, not a requirement — an entry with no discoverable free
+   feed legitimately keeps an empty feed list.
 
 5. **Keep the roster's prose companion in parity — by construction.** The Watchlist has a human-readable
    companion kept in sync with it (a cross-file parity check asserts every roster entry appears there).
