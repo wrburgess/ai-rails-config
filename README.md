@@ -29,7 +29,7 @@ deterministic check** — so four different AI tools stay in lockstep with no hu
   instructions ([ADR 0002](docs/adr/0002-agents-md-canonical-pointer-projection.md)).
 - **[`PROJECT.md`](PROJECT.md) — the one Customization surface.** A Host App declares its quality-check
   commands, attribution/model, branch policy, review-severity framework, and lifecycle host here; the
-  baseline files stay generic. It is the one file a re-sync preserves.
+  baseline files stay generic. A re-sync preserves it (and an existing `bin/setup`).
 - **A structural parity gate, not a model in the loop.** `scripts/parity_check.rb` is a dependency-free
   check that asserts every Adapter still resolves, the `PROJECT.md` contract sections are intact, and
   every documented link resolves — making drift mechanically impossible to merge
@@ -92,11 +92,11 @@ cd /path/to/host-app && bin/setup
 
 ## Next steps
 
-- **Customize** — edit [`PROJECT.md`](PROJECT.md) (the one file preserved on re-sync) and add your
+- **Customize** — edit [`PROJECT.md`](PROJECT.md) (preserved on re-sync, with an existing `bin/setup`) and add your
   domain Patterns / Anti-Patterns to the Rules Layer as Customization; leave `AGENTS.md` and the
   Adapters as the baseline so every tool stays in lockstep. Steps → [`usage.md`](docs/guides/usage.md).
 - **Update / re-sync** — re-run `ruby bin/ai-config-sync /path/to/host-app`, then reconcile with
-  `git diff`. Baseline files are overwritten; `PROJECT.md` is preserved (`--force` overwrites it for a
+  `git diff`. Baseline files are overwritten; `PROJECT.md` and an existing `bin/setup` are preserved (`--force` overwrites `PROJECT.md` for a
   deliberate reset) ([ADR 0001](docs/adr/0001-distribute-as-copy-in-sync-script.md)).
 - **Branch protection** — full setup, the AI-vs-human exemption, and the server-side (GitHub) step are
   in [`docs/guides/branch-protection.md`](docs/guides/branch-protection.md).
