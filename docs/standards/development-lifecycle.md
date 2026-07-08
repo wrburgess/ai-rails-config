@@ -71,7 +71,9 @@ the change is well understood, or, for an HC-elected **exploratory/discovery iss
 approved); a **testing strategy decided now, not during implementation** (which test types, which
 scenarios, which edge cases) — for an exploratory plan the production-code strategy is decided in the
 post-spike re-plan, deferred in detail but **never skipped**; any data/schema-change plan; the list of
-files to create/modify (used to size single-agent vs. parallel work).
+files to create/modify (used to size single-agent vs. parallel work). For an exploratory plan the spike
+is run *to learn* — its terminal artifact is the re-planned, re-approved production plan, **not a PR**;
+Implement (Stage 3) and its PR follow only once that final plan clears this gate.
 
 **Quality gate:** HC sends the plan to the Reviewer (steps too vague to implement, missing edge cases,
 patterns that don't match the codebase, unaddressed requirements).
@@ -99,7 +101,10 @@ requesting any review — every plan item implemented and tested, meaningful ass
 covered, no debug/TODO residue, all *Quality Checks* green.
 
 **Terminal artifact:** the open PR. **`impl` creates the PR here and nowhere else; commit ≠ done.**
-**Exit:** checks pass, self-review complete, PR opened and linked to the issue.
+Implement always executes a **final approved** plan; an exploratory spike is a Plan-stage activity that
+opens no PR (its exit is the re-plan), so Stage 3 is reached only once the production plan is approved —
+the invariant is unconditional. **Exit:** checks pass, self-review complete, PR opened and linked to the
+issue.
 
 ### Stage 4: Verify (`verify`)
 
@@ -156,7 +161,7 @@ past it. Re-planning *upholds* the gate, it does not weaken or bypass it
 |----------|----------|
 | Trivial fix (typo, config change, dependency bump) | Assess → Implement → Deliver (skip Plan; compress self-review) |
 | Bug fix with an obvious cause | Assess → Plan (brief) → Implement → Deliver |
-| Exploratory / discovery issue (outcome uncertain) | Assess → Plan (thin: hypothesis + spike + re-plan checkpoint) → Implement (spike) → re-Plan → Implement → Deliver |
+| Exploratory / discovery issue (outcome uncertain) | Assess → Plan (thin hypothesis + spike run to learn → re-Plan checkpoint) → Implement → Deliver — the spike is a Plan-stage activity (no PR); Implement and its PR run once, on the re-approved plan |
 | Large change (many files / independent subsystems) | Full lifecycle, parallel agents if the host supports them |
 | Documentation-only change | Implement → Deliver |
 

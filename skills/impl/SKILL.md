@@ -15,6 +15,11 @@ Never hardcode a stack's commands, branch names, or platform verbs here.
 
 **Terminal artifact: the open PR.** `impl` creates the PR here and nowhere else — commit ≠ done.
 
+`impl` executes a **final approved** plan. An **exploratory spike-then-plan** issue is not yet at
+Implement: the spike is a Plan-stage activity ([`cplan`](../../skills/cplan/SKILL.md)) that opens **no**
+PR and exits at the re-plan checkpoint — `impl` runs only once the post-spike production plan is
+re-approved, then opens the single production PR as usual.
+
 </what-to-do>
 
 <how-to-run>

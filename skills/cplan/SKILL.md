@@ -1,6 +1,6 @@
 ---
 name: cplan
-description: Stage 2 of the development lifecycle. Turn the HC's chosen option from the assessment into a concrete, ordered implementation plan with a testing strategy decided up front. Use after the HC picks an option and before writing any code.
+description: Stage 2 of the development lifecycle. Turn the HC's chosen option into a right-sized plan — a concrete, ordered implementation plan with its testing strategy decided up front for well-understood work, or an HC-elected exploratory spike/re-plan plan (a plan to learn) whose production test strategy is decided in the post-spike re-plan. Use after the HC picks an option and before writing any code.
 ---
 
 <what-to-do>
@@ -30,7 +30,9 @@ them here.
    the [development lifecycle](../../docs/standards/development-lifecycle.md)).
 3. **Break the work into discrete, ordered tasks** — each specific enough to implement without
    guessing, with the files it creates or modifies named. (For an exploratory plan, the ordered tasks
-   are the spike itself; the production tasks are authored in the post-spike re-plan.)
+   are the spike itself, run to *learn*; its exit is the re-plan checkpoint. The spike is a Plan-stage
+   activity — it opens **no** PR. The production tasks, and the PR that delivers them, are authored and
+   opened by `impl` only after the post-spike re-plan is re-approved, never straight from the spike.)
 4. **Define the testing strategy — decided now, not during implementation.** This is the load-bearing
    part of the plan. Following [`rules/testing.md`](../../rules/testing.md), decide:
    - Which test types the change needs (unit, integration, end-to-end, and whatever tiers the Host
