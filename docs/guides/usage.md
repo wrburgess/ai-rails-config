@@ -73,10 +73,11 @@ author host-specific content as Customization, never by editing the baseline fil
 
 ## 4. Run each skill per tool
 
-The bundle ships eleven Skills — `grill-with-docs`, the lifecycle set `assess`, `cplan`, `impl`,
+The bundle ships twelve Skills — `grill-with-docs`, the lifecycle set `assess`, `cplan`, `impl`,
 `verify`, `rtr`, `final`, the `ship` orchestrator that sequences those six end to end, the `scout`
-intake sweep, the `drop` intake front door that pushes a human-handed item into that sweep, and the
-`create-skill` authoring front door that scaffolds a new, conforming skill from full repo context. Each
+intake sweep, the `drop` intake front door that pushes a human-handed item into that sweep, the
+`create-skill` authoring front door that scaffolds a new, conforming skill from full repo context, and
+the `voice` roster front door that adds or updates a Watchlist voice from a handle or link. Each
 is authored **once** as a canonical body at `skills/<name>/SKILL.md` and reached
 through a thin, tool-specific **Invocation Shim**; the procedure and quality gates are identical on
 every tool, and only tool-specific execution enhancements degrade gracefully

@@ -73,11 +73,12 @@ spec — stages, roles, gates, and terminal artifacts — is
 
 ## Skills
 
-The Generic Baseline ships eleven Skills — `grill-with-docs`, `assess`, `cplan`, `impl`, `verify`,
-`rtr`, `final`, `ship`, `scout`, `drop`, `create-skill` ([ADR 0006](docs/adr/0006-baseline-skill-set-and-github-default-lifecycle-host.md),
+The Generic Baseline ships twelve Skills — `grill-with-docs`, `assess`, `cplan`, `impl`, `verify`,
+`rtr`, `final`, `ship`, `scout`, `drop`, `create-skill`, `voice` ([ADR 0006](docs/adr/0006-baseline-skill-set-and-github-default-lifecycle-host.md),
 [ADR 0012](docs/adr/0012-intake-pipeline-placement.md),
 [ADR 0015](docs/adr/0015-intake-front-door-drop-skill.md),
-[ADR 0019](docs/adr/0019-create-skill-authoring-front-door.md)). Each is authored once as a canonical body
+[ADR 0019](docs/adr/0019-create-skill-authoring-front-door.md),
+[ADR 0021](docs/adr/0021-voice-watchlist-front-door.md)). Each is authored once as a canonical body
 (`skills/<name>/SKILL.md`) and reached through a thin, tool-specific Invocation Shim; the procedure and
 quality gates are identical on every tool, and only tool-specific execution enhancements degrade
 gracefully.
@@ -95,7 +96,7 @@ frontmatter + markdown body + optional bundled files). How each tool invokes it
   `skills/<name>/SKILL.md`. (A tool may additionally define a native prompt/command file where it
   supports one; the Generic Baseline ships none yet.)
 
-**Shipped (11 of 11):**
+**Shipped (12 of 12):**
 
 - [`grill-with-docs`](skills/grill-with-docs/SKILL.md) — a plan-grilling / brainstorming session that
   stress-tests a plan against the project's domain language and captures decisions inline as a
@@ -136,6 +137,15 @@ frontmatter + markdown body + optional bundled files). How each tool invokes it
   Anthropic's `skill-creator` and credited as such, it **references** [`rules/skills.md`](rules/skills.md)
   and the [authoring-the-bundle guide](docs/guides/authoring-the-bundle.md) rather than restating them
   ([ADR 0019](docs/adr/0019-create-skill-authoring-front-door.md)).
+- [`voice`](skills/voice/SKILL.md) — the intake pipeline's **roster front door**: it turns a bare
+  handle or a link into the correct add-or-update on the **Watchlist roster** (the roster + its prose
+  companion), deduping the normalized input against the existing entries first — so an already-tracked
+  account is *refreshed*, never duplicated — while honoring the roster's real-URL discipline (no invented
+  handle or feed) and keeping its prose parity green, then opens a review PR for a human to dispose. It
+  maintains *who* the sweep watches — a different artifact and schema from the `stance`-bearing Learnings
+  Log that [`drop`](skills/drop/SKILL.md) and [`scout`](skills/scout/SKILL.md) feed — and reads the
+  Watchlist location from [`PROJECT.md`](PROJECT.md) → *Intake Pipeline*
+  ([ADR 0021](docs/adr/0021-voice-watchlist-front-door.md)).
 
 ## Rules Layer
 
