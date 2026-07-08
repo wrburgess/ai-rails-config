@@ -73,9 +73,10 @@ author host-specific content as Customization, never by editing the baseline fil
 
 ## 4. Run each skill per tool
 
-The bundle ships ten Skills — `grill-with-docs`, the lifecycle set `assess`, `cplan`, `impl`,
+The bundle ships eleven Skills — `grill-with-docs`, the lifecycle set `assess`, `cplan`, `impl`,
 `verify`, `rtr`, `final`, the `ship` orchestrator that sequences those six end to end, the `scout`
-intake sweep, and the `drop` intake front door that pushes a human-handed item into that sweep. Each
+intake sweep, the `drop` intake front door that pushes a human-handed item into that sweep, and the
+`create-skill` authoring front door that scaffolds a new, conforming skill from full repo context. Each
 is authored **once** as a canonical body at `skills/<name>/SKILL.md` and reached
 through a thin, tool-specific **Invocation Shim**; the procedure and quality gates are identical on
 every tool, and only tool-specific execution enhancements degrade gracefully
@@ -85,7 +86,7 @@ every tool, and only tool-specific execution enhancements degrade gracefully
 
 | Tool | Invocation |
 |------|------------|
-| **Claude Code** | A slash command from the thin shim at `.claude/commands/<name>.md` — e.g. `/assess 11`, `/cplan 11`, `/impl 11`, `/ship 11`, `/scout`, `/drop`. The shim points at the canonical body. |
+| **Claude Code** | A slash command from the thin shim at `.claude/commands/<name>.md` — e.g. `/assess 11`, `/cplan 11`, `/impl 11`, `/ship 11`, `/scout`, `/drop`, `/create-skill`. The shim points at the canonical body. |
 | **Codex** | Reads `AGENTS.md` natively, so **the documented procedure is the shim**: to run a Skill, read `skills/<name>/SKILL.md` and follow it. |
 | **Copilot** | Same — its PR surfaces read `AGENTS.md` natively; read `skills/<name>/SKILL.md` and follow it. |
 | **Gemini** | Same — `GEMINI.md` imports `AGENTS.md`; read `skills/<name>/SKILL.md` and follow it. |

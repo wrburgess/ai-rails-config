@@ -73,10 +73,11 @@ spec — stages, roles, gates, and terminal artifacts — is
 
 ## Skills
 
-The Generic Baseline ships ten Skills — `grill-with-docs`, `assess`, `cplan`, `impl`, `verify`,
-`rtr`, `final`, `ship`, `scout`, `drop` ([ADR 0006](docs/adr/0006-baseline-skill-set-and-github-default-lifecycle-host.md),
+The Generic Baseline ships eleven Skills — `grill-with-docs`, `assess`, `cplan`, `impl`, `verify`,
+`rtr`, `final`, `ship`, `scout`, `drop`, `create-skill` ([ADR 0006](docs/adr/0006-baseline-skill-set-and-github-default-lifecycle-host.md),
 [ADR 0012](docs/adr/0012-intake-pipeline-placement.md),
-[ADR 0015](docs/adr/0015-intake-front-door-drop-skill.md)). Each is authored once as a canonical body
+[ADR 0015](docs/adr/0015-intake-front-door-drop-skill.md),
+[ADR 0019](docs/adr/0019-create-skill-authoring-front-door.md)). Each is authored once as a canonical body
 (`skills/<name>/SKILL.md`) and reached through a thin, tool-specific Invocation Shim; the procedure and
 quality gates are identical on every tool, and only tool-specific execution enhancements degrade
 gracefully.
@@ -94,7 +95,7 @@ frontmatter + markdown body + optional bundled files). How each tool invokes it
   `skills/<name>/SKILL.md`. (A tool may additionally define a native prompt/command file where it
   supports one; the Generic Baseline ships none yet.)
 
-**Shipped (10 of 10):**
+**Shipped (11 of 11):**
 
 - [`grill-with-docs`](skills/grill-with-docs/SKILL.md) — a plan-grilling / brainstorming session that
   stress-tests a plan against the project's domain language and captures decisions inline as a
@@ -127,6 +128,14 @@ frontmatter + markdown body + optional bundled files). How each tool invokes it
   then delegates to [`scout`](skills/scout/SKILL.md) (scoped to that one drop) to draft the
   Learnings-Log entry and open the review PR. One invocation → a reviewable PR is the happy path; a
   human disposes on the PR ([ADR 0015](docs/adr/0015-intake-front-door-drop-skill.md)).
+- [`create-skill`](skills/create-skill/SKILL.md) — the **authoring front door**: the Skill you invoke to
+  build the next Skill. It loads the repo's architecture and *every* existing Skill as exemplars, then
+  scaffolds a **conforming** canonical body + thin shim, wires the bookkeeping (the parity-enforced
+  `AGENTS.md` reference, the count prose, and a `REQUIRED_SKILLS` floor entry with its self-test), and
+  opens a review PR with the parity gate green — the front door proposes, a human disposes. Adapted from
+  Anthropic's `skill-creator` and credited as such, it **references** [`rules/skills.md`](rules/skills.md)
+  and the [authoring-the-bundle guide](docs/guides/authoring-the-bundle.md) rather than restating them
+  ([ADR 0019](docs/adr/0019-create-skill-authoring-front-door.md)).
 
 ## Rules Layer
 
