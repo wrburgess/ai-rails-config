@@ -114,7 +114,7 @@ plan was wrong — an assumption broke, the spike taught something the plan didn
 **expected, valid outcome** that loops back to re-plan (re-run `cplan` → plan approval), not a
 deviation or a failure. This **does not weaken the plan-approval gate**: the gate's job is a human
 checkpoint against confidently building the wrong thing at scale, which a re-plan *serves* rather than
-bypasses ([ADR 0019](../../docs/adr/0019-right-size-plan-revisable-direction.md)).
+bypasses ([ADR 0020](../../docs/adr/0020-right-size-plan-revisable-direction.md)).
 
 ## Quality standard
 
