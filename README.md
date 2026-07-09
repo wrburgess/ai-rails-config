@@ -18,41 +18,48 @@ project, edit one file, and every AI coding assistant follows the same reviewabl
 
 ## What it is & how it works
 
-Seven pillars — each a **benefit**, then the mechanism that proves it. The throughline is **author
+Seven pillars — each a **benefit**, then the mechanisms that prove it. The throughline is **author
 once, resolve everywhere, and guard the resolution with a deterministic check**, so four different AI
-tools stay in lockstep with no human hand-syncing. **Secure** leads the list; **Efficient** is on the
-roadmap.
+tools stay in lockstep with no human hand-syncing. **Secure** leads the list, and **Efficient** is on
+the roadmap.
 
 1. **Secure — stops any agent (or human) from committing to a protected branch, and keeps secrets out
-   of the repo.** Defense-in-depth branch protection — portable git hooks (`.githooks/` +
-   `bin/guard-protected-branch` + `bin/install-git-hooks`) *and* a per-tool fast-fail
-   (`.claude/hooks/enforce-branch-creation.sh`) — blocks the write before it happens; the protected
-   list is authored in [`PROJECT.md`](PROJECT.md), never hardcoded. Secret hygiene lives in
-   [`rules/security.md`](rules/security.md)
-   ([ADR 0009](docs/adr/0009-defense-in-depth-branch-protection-all-agents.md)).
+   of the repo.**
+   - Defense-in-depth branch protection: portable git hooks (`.githooks/` +
+     `bin/guard-protected-branch` + `bin/install-git-hooks`) *and* a per-tool fast-fail
+     (`.claude/hooks/enforce-branch-creation.sh`) block the write before it happens.
+   - The protected-branch list is authored in [`PROJECT.md`](PROJECT.md), never hardcoded.
+   - Secret hygiene lives in [`rules/security.md`](rules/security.md)
+     ([ADR 0009](docs/adr/0009-defense-in-depth-branch-protection-all-agents.md)).
 
-2. **Portable — write the house rules once; Claude, Codex, Copilot & Gemini all read the same copy.**
-   Every instruction is authored once in the Canonical Source [`AGENTS.md`](AGENTS.md); each tool reaches
-   it through a thin **Adapter** that *resolves back* rather than copying (Claude and Gemini import it
-   via `@AGENTS.md`; Codex and Copilot read `AGENTS.md` natively). No tool follows a free-text pointer,
-   so none receives drifted instructions — and `scripts/parity_check.rb` enforces zero drift as a merge
-   gate ([ADR 0002](docs/adr/0002-agents-md-canonical-pointer-projection.md),
-   [ADR 0008](docs/adr/0008-structural-parity-check-not-model-in-the-loop.md)).
+2. **Portable — write the house rules once, and Claude, Codex, Copilot & Gemini all read the same
+   copy.**
+   - Every instruction is authored once in the Canonical Source [`AGENTS.md`](AGENTS.md).
+   - Each tool reaches it through a thin **Adapter** that *resolves back* rather than copying: Claude
+     and Gemini import it via `@AGENTS.md`, while Codex and Copilot read `AGENTS.md` natively. No tool
+     follows a free-text pointer, so none receives drifted instructions.
+   - `scripts/parity_check.rb` enforces zero drift as a merge gate
+     ([ADR 0002](docs/adr/0002-agents-md-canonical-pointer-projection.md),
+     [ADR 0008](docs/adr/0008-structural-parity-check-not-model-in-the-loop.md)).
 
-3. **Methodical — a repeatable, human-gated path from idea to merge.** Six lifecycle Skills —
-   `/assess → /devise → /invoke → /verify → /listen → /final` — carry an issue to a merged PR, with
-   `/distill` to sharpen the plan first and `/ship` to run the whole sequence hands-off. **Plan
-   approval** and **merge** are mandatory human gates that are never bypassed
-   ([ADR 0006](docs/adr/0006-baseline-skill-set-and-github-default-lifecycle-host.md)); `/ship` stays
-   lean by offloading output-heavy work to discardable sub-agents while keeping the judgment calls in a
-   clean orchestrator ([ADR 0005](docs/adr/0005-ship-hybrid-delegation-offload-retrieval-protect-judgment.md)).
+3. **Methodical — a repeatable, human-gated path from idea to merge.**
+   - Six lifecycle Skills — `/assess → /devise → /invoke → /verify → /listen → /final` — carry an issue
+     to a merged PR, with `/distill` to sharpen the plan first and `/ship` to run the whole sequence
+     hands-off.
+   - **Plan approval** and **merge** are mandatory human gates that are never bypassed
+     ([ADR 0006](docs/adr/0006-baseline-skill-set-and-github-default-lifecycle-host.md)).
+   - `/ship` stays lean by offloading output-heavy work to discardable sub-agents while keeping the
+     judgment calls in a clean orchestrator
+     ([ADR 0005](docs/adr/0005-ship-hybrid-delegation-offload-retrieval-protect-judgment.md)).
 
-4. **Customizable — tailor it to any project without forking the baseline.** One Customization surface,
-   [`PROJECT.md`](PROJECT.md), is where a Host App declares its quality checks, attribution/model, branch
-   policy, review severities, and lifecycle host; a two-tier **Rules Layer** (an always-resident Lean
-   Core of `rules/*.md` plus Deferred Deep Docs pulled in on demand) carries the domain guidance. The
-   baseline stays stack-neutral — extend it per host, or vendor a matching **Stack Overlay** (e.g.
-   `ai-config-rails`) alongside ([ADR 0004](docs/adr/0004-two-tier-rules-layer-progressive-context.md)).
+4. **Customizable — tailor it to any project without forking the baseline.**
+   - One Customization surface — [`PROJECT.md`](PROJECT.md) — where a Host App declares its quality
+     checks, attribution/model, branch policy, review severities, and lifecycle host.
+   - A two-tier **Rules Layer** (an always-resident Lean Core of `rules/*.md` plus Deferred Deep Docs
+     pulled in on demand) carries the domain guidance.
+   - The baseline stays stack-neutral — extend it per host, or vendor a matching **Stack Overlay** (e.g.
+     `ai-config-rails`) alongside
+     ([ADR 0004](docs/adr/0004-two-tier-rules-layer-progressive-context.md)).
 
 5. **Transparent — see *who/what* made each change and *why* each decision was made.** Two mechanisms,
    answering two questions:
@@ -63,24 +70,25 @@ roadmap.
    - **ADRs → *why*.** Every non-trivial choice is a numbered, append-only Architecture Decision Record
      in [`docs/adr/`](docs/adr) — context, options weighed, decision + consequences — so the config
      never decays into unexplained conventions.
+   - *Methodical vs. Transparent:* Methodical means the process is disciplined **up front** (gates,
+     stages), while Transparent means you can **audit it after the fact** (who/what/why).
 
-   *Methodical vs. Transparent:* Methodical means the process is disciplined **up front** (gates,
-   stages); Transparent means you can **audit it after the fact** (who/what/why).
-
-6. **Evolving — watches the field and proposes updates for you to approve.** An intake pipeline keeps the
-   bundle's reference material current: `/scout` **pulls** — polling a **Watchlist**
-   (`docs/reference/voices.yml`) and drafting dated **Learnings Log** entries
-   (`docs/reference/learnings/`) — while `/clip` **pushes** a screenshot, link, or quote you hand it, and
-   `/follow` curates the Watchlist roster. Every path opens a review PR; **a human always disposes**
-   ([ADR 0012](docs/adr/0012-intake-pipeline-placement.md),
-   [ADR 0015](docs/adr/0015-intake-front-door-drop-skill.md)).
+6. **Evolving — watches the field and proposes updates for you to approve.**
+   - `/scout` **pulls** — polling a **Watchlist** (`docs/reference/voices.yml`) and drafting dated
+     **Learnings Log** entries (`docs/reference/learnings/`).
+   - `/clip` **pushes** a screenshot, link, or quote you hand it.
+   - `/follow` curates the Watchlist roster.
+   - Every path opens a review PR, and **a human always disposes**
+     ([ADR 0012](docs/adr/0012-intake-pipeline-placement.md),
+     [ADR 0015](docs/adr/0015-intake-front-door-drop-skill.md)).
 
 7. **Efficient — the right model for each job: cheap work on cheap models, judgment on the frontier.**
-   Cost-aware model routing. *Roadmap — [#77](https://github.com/wrburgess/ai-config/issues/77): today
-   only the per-agent model **declaration** in [`PROJECT.md`](PROJECT.md) exists, not yet the routing
-   that spends it wisely.*
+   - Cost-aware model routing.
+   - *Roadmap ([#77](https://github.com/wrburgess/ai-config/issues/77)):* today only the per-agent
+     model **declaration** in [`PROJECT.md`](PROJECT.md) exists — not yet the routing that spends it
+     wisely.
 
-Every pillar above traces to a numbered ADR in [`docs/adr/`](docs/adr); the domain vocabulary (Config
+Every pillar above traces to a numbered ADR in [`docs/adr/`](docs/adr). The domain vocabulary (Config
 Bundle, Adapter, Skill, Rules Layer…) is defined in [`CONTEXT.md`](CONTEXT.md).
 
 ## Get started
