@@ -122,7 +122,7 @@ Option [X] because [rationale].
 
 ### Next Step
 HC: send this assessment to the Reviewer, then reply with your chosen option and run the plan skill
-(`cplan`) for the same issue.
+(`devise`) for the same issue.
 ```
 
 Sign the comment with the attribution footer from [`PROJECT.md`](../../PROJECT.md) → *Attribution &

@@ -1,15 +1,15 @@
 ---
 name: ship
-description: The hands-off orchestrator. Sequences the six lifecycle skills (assess → cplan → impl → verify → rtr → final) end to end while keeping a lean orchestrator context — delegating output-heavy work to discardable sub-agents and protecting the two mandatory human gates. Use to run the whole development lifecycle for one issue in a single driven flow.
+description: The hands-off orchestrator. Sequences the six lifecycle skills (assess → devise → invoke → verify → listen → final) end to end while keeping a lean orchestrator context — delegating output-heavy work to discardable sub-agents and protecting the two mandatory human gates. Use to run the whole development lifecycle for one issue in a single driven flow.
 ---
 
 <what-to-do>
 
 Run the full [development lifecycle](../../docs/standards/development-lifecycle.md) for the tracked
 issue named in the invocation, from Assess through Deliver, by **sequencing the six lifecycle
-skills** — [`assess`](../../skills/assess/SKILL.md) → [`cplan`](../../skills/cplan/SKILL.md) →
-[`impl`](../../skills/impl/SKILL.md) → [`verify`](../../skills/verify/SKILL.md) →
-[`rtr`](../../skills/rtr/SKILL.md) → [`final`](../../skills/final/SKILL.md). `ship` **adds no phase
+skills** — [`assess`](../../skills/assess/SKILL.md) → [`devise`](../../skills/devise/SKILL.md) →
+[`invoke`](../../skills/invoke/SKILL.md) → [`verify`](../../skills/verify/SKILL.md) →
+[`listen`](../../skills/listen/SKILL.md) → [`final`](../../skills/final/SKILL.md). `ship` **adds no phase
 procedure of its own**: each phase's steps, gates, and terminal artifact remain defined once in that
 phase's canonical body, which `ship` reads and follows in order. What `ship` owns is the *sequencing*
 — the delegation policy, the session boundaries, the two human gates, the emergency stops, and the
@@ -36,20 +36,20 @@ the decisions that matter are made on context the orchestrator actually saw.
 | Phase | Disposition | What the orchestrator keeps | Handoff contract |
 |-------|-------------|------------------------------|------------------|
 | `assess` exploration | **Delegate** | Assessment synthesis, option framing, the recommendation | `exploration-summary` ([`assess`](../../skills/assess/SKILL.md)) |
-| `cplan` | **Keep** | Plan authoring + reconciliation against the codebase | — (judgment-heavy; no offload) |
-| `impl` code + check + fix loop | **Delegate** | Branch setup, commit, push, open PR, issue linking | `check-result` ([`impl`](../../skills/impl/SKILL.md)) |
+| `devise` | **Keep** | Plan authoring + reconciliation against the codebase | — (judgment-heavy; no offload) |
+| `invoke` code + check + fix loop | **Delegate** | Branch setup, commit, push, open PR, issue linking | `check-result` ([`invoke`](../../skills/invoke/SKILL.md)) |
 | `verify` full-diff review | **Delegate** | Reading the report, classifying by severity, posting the self-review | `drift-report` ([`verify`](../../skills/verify/SKILL.md)) |
-| `rtr` fetch-and-fix churn | **Delegate** | Severity classification, the stop-and-ask call, the HC summary | `review-response` (defined below) |
+| `listen` fetch-and-fix churn | **Delegate** | Severity classification, the stop-and-ask call, the HC summary | `review-response` (defined below) |
 | `final` merge-readiness | **Keep** | The green-gate + no-open-must-fix judgment; the SOW | — (judgment-heavy; no offload) |
 
 **Keep in the orchestrator (never delegate):** assessment synthesis, plan authoring/reconciliation,
-`rtr` severity + stop-and-ask, and the `final` merge-readiness call. These are the decisions a lossy
+`listen` severity + stop-and-ask, and the `final` merge-readiness call. These are the decisions a lossy
 summary would corrupt.
 
 ### review-response (sub-agent → orchestrator)
 
 The three delegated phases above consume contracts already defined in their own bodies
-(`exploration-summary`, `check-result`, `drift-report`). The `rtr` fetch-and-fix churn is offloaded
+(`exploration-summary`, `check-result`, `drift-report`). The `listen` fetch-and-fix churn is offloaded
 the same way but its contract is defined here, so every delegated phase has one:
 
 ```
@@ -82,14 +82,14 @@ Run the phases in order, following each phase's canonical body for its steps and
 1. **Assess** — follow [`assess`](../../skills/assess/SKILL.md), delegating the codebase exploration
    and folding the returned `exploration-summary` into the assessment you synthesize. Post the
    assessment to the issue.
-2. **Plan** — follow [`cplan`](../../skills/cplan/SKILL.md) **in the orchestrator** (no offload). Post
+2. **Plan** — follow [`devise`](../../skills/devise/SKILL.md) **in the orchestrator** (no offload). Post
    the plan to the issue. **→ Human gate 1 (plan approval).**
-3. **Implement** — follow [`impl`](../../skills/impl/SKILL.md): the orchestrator owns branch setup and
+3. **Implement** — follow [`invoke`](../../skills/invoke/SKILL.md): the orchestrator owns branch setup and
    all lifecycle-host I/O; the code + check + fix loop is delegated, returning a `check-result`.
    Reconcile git state, gate on `verdict`, then commit → push → open the PR.
 4. **Verify** — follow [`verify`](../../skills/verify/SKILL.md): delegate the full-diff review, consume
    the `drift-report`, classify findings by severity, post the self-review on the PR.
-5. **Review response** — follow [`rtr`](../../skills/rtr/SKILL.md): delegate the fetch-and-fix churn
+5. **Review response** — follow [`listen`](../../skills/listen/SKILL.md): delegate the fetch-and-fix churn
    (`review-response` contract), but make the severity and stop-and-ask calls in the orchestrator and
    summarize for the HC before any change is applied.
 6. **Deliver** — follow [`final`](../../skills/final/SKILL.md) **in the orchestrator**: re-verify the
@@ -101,7 +101,7 @@ Run the phases in order, following each phase's canonical body for its steps and
 `ship` replaces every per-stage "wait for the HC" pause with exactly **two** mandatory human gates,
 per the [development lifecycle](../../docs/standards/development-lifecycle.md):
 
-1. **Plan approval** — after `cplan` (and any Reviewer plan review), before any code. `ship` does not
+1. **Plan approval** — after `devise` (and any Reviewer plan review), before any code. `ship` does not
    write code without an approved plan.
 2. **Merge** — after `final` posts the SOW with a green gate and no open must-fix findings. **`ship`
    never merges** — merge is the HC's.
@@ -123,7 +123,7 @@ To keep the orchestrator lean through the delegated heavy ops, treat the gates a
 boundaries** and **externalize state** to the issue / PR / git rather than carrying it in context:
 
 - Run **assess + plan in one clean session**; the plan gate is a natural boundary.
-- Run **build (`impl` → `final`) in a fresh session** so the orchestrator starts lean before the
+- Run **build (`invoke` → `final`) in a fresh session** so the orchestrator starts lean before the
   delegated code/verify/review churn.
 - A **pre-`final` context check** offers another reset before the merge-readiness judgment.
 - On resume, a fresh phase **re-reads its durable artifacts** (the issue, the plan comment, the PR)
@@ -142,8 +142,8 @@ reachable**, the backstop **degrades to "stop and ask the HC"** — it is never 
 <quality-gate>
 
 `ship` changes **no quality bar** — every phase's gate runs at full strength, in order:
-`assess`'s option rigor, `cplan`'s testing strategy, `impl`'s green *Quality Checks* +
-[`rules/self-review.md`](../../rules/self-review.md), `verify`'s drift/test-quality review, `rtr`'s
+`assess`'s option rigor, `devise`'s testing strategy, `invoke`'s green *Quality Checks* +
+[`rules/self-review.md`](../../rules/self-review.md), `verify`'s drift/test-quality review, `listen`'s
 severity discipline, and `final`'s merge-readiness. A weaker tool degrades the delegation *mechanism*
 (inline + compact between phases), never a gate.
 

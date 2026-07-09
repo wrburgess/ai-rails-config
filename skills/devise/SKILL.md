@@ -1,5 +1,5 @@
 ---
-name: cplan
+name: devise
 description: Stage 2 of the development lifecycle. Turn the HC's chosen option into a right-sized plan — a concrete, ordered implementation plan with its testing strategy decided up front for well-understood work, or an HC-elected exploratory spike/re-plan plan (a plan to learn) whose production test strategy is decided in the post-spike re-plan. Use after the HC picks an option and before writing any code.
 ---
 
@@ -32,7 +32,7 @@ them here.
    guessing, with the files it creates or modifies named. (For an exploratory plan, the ordered tasks
    are the spike itself, run to *learn*; its exit is the re-plan checkpoint. The spike is a Plan-stage
    activity — it opens **no** PR. The production tasks, and the PR that delivers them, are authored and
-   opened by `impl` only after the post-spike re-plan is re-approved, never straight from the spike.)
+   opened by `invoke` only after the post-spike re-plan is re-approved, never straight from the spike.)
 4. **Define the testing strategy — decided now, not during implementation.** This is the load-bearing
    part of the plan. Following [`rules/testing.md`](../../rules/testing.md), decide:
    - Which test types the change needs (unit, integration, end-to-end, and whatever tiers the Host
@@ -99,7 +99,7 @@ post-spike re-plan; here, state only what the spike must *learn*.)
 - [Migration, authorization, search/index, or breaking-change concerns]
 
 ### Next Step
-HC: send this plan to the Reviewer, then approve to proceed with the implement skill (`impl`) for the
+HC: send this plan to the Reviewer, then approve to proceed with the implement skill (`invoke`) for the
 same issue.
 ```
 
@@ -109,9 +109,9 @@ Declaration*, using your runtime-actual model.
 **Terminal artifact:** the plan posted on the issue. **This is the first mandatory human gate (plan
 approval)** — the AC does not write code without an approved plan.
 
-An approved plan is **revisable direction, not a frozen contract.** Discovering mid-`impl` that the
+An approved plan is **revisable direction, not a frozen contract.** Discovering mid-`invoke` that the
 plan was wrong — an assumption broke, the spike taught something the plan didn't foresee — is an
-**expected, valid outcome** that loops back to re-plan (re-run `cplan` → plan approval), not a
+**expected, valid outcome** that loops back to re-plan (re-run `devise` → plan approval), not a
 deviation or a failure. This **does not weaken the plan-approval gate**: the gate's job is a human
 checkpoint against confidently building the wrong thing at scale, which a re-plan *serves* rather than
 bypasses ([ADR 0020](../../docs/adr/0020-right-size-plan-revisable-direction.md)).

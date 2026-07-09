@@ -1,5 +1,7 @@
 # Repo layout: Project Config at root, canonical skills in a tool-neutral `skills/`
 
+> Note (#73): the names and counts below predate later changes — the baseline has since grown to **twelve** canonical bodies (was eight) and six skills were renamed (grill-with-docs→distill, cplan→devise, impl→invoke, rtr→listen, drop→clip, voice→follow). This ADR records the original layout decision as of its date; see `AGENTS.md` / `REQUIRED_SKILLS` for the current set.
+
 **Status:** accepted
 
 The Generic Baseline layout is a direct consequence of ADRs 0001–0009. Two placement choices are worth recording because a contributor would otherwise question them:

@@ -66,7 +66,7 @@ the actual if they differ. Use human-readable names, never API ids.
 
 ## Review Severity Framework
 
-Generic starter severities for `verify`/`rtr`/`final` and human review. A Host App tunes the
+Generic starter severities for `verify`/`listen`/`final` and human review. A Host App tunes the
 definitions.
 
 | Severity | Meaning | Disposition |

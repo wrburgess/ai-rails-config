@@ -1,14 +1,14 @@
 ---
-name: drop
+name: clip
 description: Capture field output a human hands you in any session — a screenshot, a link, or a quote — enforce a real-URL gate, write a well-formed stance-less drop into the manual-drop inbox, then delegate to scout to draft the Learnings-Log entry and open the review PR. Use as the intake pipeline's push front door when a person wants a specific item ingested now, rather than waiting for the next sweep.
 ---
 
 <what-to-do>
 
 Turn one piece of **human-handed field output** — a screenshot, a link, or a pasted quote — into a
-reviewable intake proposal. `drop` is the intake pipeline's **push front door**: where
+reviewable intake proposal. `clip` is the intake pipeline's **push front door**: where
 [`scout`](../scout/SKILL.md) is the **pull** sweep that goes looking for new output on a schedule,
-`drop` is the **push** lane a person reaches for the moment they have something specific in hand and
+`clip` is the **push** lane a person reaches for the moment they have something specific in hand and
 want it ingested now. It captures the item, enforces a hard **real-URL gate**, writes a well-formed
 **stance-less** drop into the **manual-drop inbox**, then **delegates the rest of the pipeline to
 `scout`** — the compare/contrast, the drafted Learnings-Log entry (its `stance` and `touches`), the
@@ -16,9 +16,9 @@ clearing of the processed drop, and the review PR. One invocation → a reviewab
 PR is the **happy path**; a human **disposes** exactly as with any sweep finding — on the single
 finding interactively when a human is present, otherwise on the PR.
 
-`drop` **adds no ingestion procedure of its own**. The compare/contrast, the stance call, the
-drop-clear, and the PR all live once in `scout`'s canonical body, which `drop` references and never
-restates. What `drop` owns is the front door: the capture, the URL gate, the well-formed drop, and
+`clip` **adds no ingestion procedure of its own**. The compare/contrast, the stance call, the
+drop-clear, and the PR all live once in `scout`'s canonical body, which `clip` references and never
+restates. What `clip` owns is the front door: the capture, the URL gate, the well-formed drop, and
 the hand-off.
 
 Read host-specific values from [`PROJECT.md`](../../PROJECT.md): the **manual-drop inbox** location
@@ -104,7 +104,7 @@ an item that cannot earn a stance, the **reported no-PR outcome** with the drop 
 **never a direct commit** to a protected branch. Sign any lifecycle-host comment with the footer from
 [`PROJECT.md`](../../PROJECT.md) → *Attribution & Model Declaration*, using your runtime-actual model.
 
-**The gate that never degrades:** `drop` **proposes** — it captures, gates the URL, and hands `scout`
+**The gate that never degrades:** `clip` **proposes** — it captures, gates the URL, and hands `scout`
 a clean drop; a **human disposes** — on the single finding interactively when present, otherwise on the
 PR. The front door never accepts a learning on its own.
 

@@ -1,5 +1,7 @@
 # Right-size the plan to the task, and treat an approved plan as revisable direction — the two gates unchanged
 
+> Note (#73): the `/cplan` skill was renamed to `/devise`.
+
 **Status:** accepted
 
 ## Context

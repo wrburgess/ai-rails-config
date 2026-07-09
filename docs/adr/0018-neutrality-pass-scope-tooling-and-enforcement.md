@@ -1,5 +1,7 @@
 # The stack-neutrality pass leaves the repo's own Ruby tooling and neutrality enforcement out of scope
 
+> Note (#73): skill names below predate the six-skill rename (grill-with-docs→distill, cplan→devise, impl→invoke, rtr→listen, drop→clip, voice→follow). This ADR records the decision as of its date; the names here are historical.
+
 **Status:** accepted
 
 Abstracting the bundle to stack-neutral ([ADR 0017](0017-stack-neutral-baseline-with-stack-overlays.md),

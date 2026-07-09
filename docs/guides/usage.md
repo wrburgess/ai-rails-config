@@ -60,7 +60,7 @@ split is what keeps future updates mergeable.
    - **Branch & PR Policy** — protected branches, branch-naming prefixes, issue-linking rules. After
      editing the protected-branch list, re-run `bin/install-git-hooks` to regenerate the sidecar.
    - **Review Severity Framework** — tune the Critical/High/Medium/Low definitions the
-     `verify`/`rtr`/`final` skills classify against.
+     `verify`/`listen`/`final` skills classify against.
    - **Lifecycle Host** — the platform hosting issues/PRs and the artifact map (GitHub by default,
      remappable — [ADR 0006](../adr/0006-baseline-skill-set-and-github-default-lifecycle-host.md)).
 2. **Add your domain rules** to the [Rules Layer](../../rules/) as Customization — host-specific
@@ -78,18 +78,18 @@ and reached through a thin, tool-specific **Invocation Shim** — so the procedu
 identical on every tool, and only tool-specific execution enhancements degrade gracefully
 ([ADR 0003](../adr/0003-skills-canonical-body-thin-shims-graceful-degradation.md)):
 
-- `grill-with-docs` — the plan-grilling / glossary + ADR capture session.
-- The six **lifecycle** skills — `assess`, `cplan`, `impl`, `verify`, `rtr`, `final`.
+- `distill` — the plan-grilling / glossary + ADR capture session.
+- The six **lifecycle** skills — `assess`, `devise`, `invoke`, `verify`, `listen`, `final`.
 - `ship` — the orchestrator that sequences those six end to end.
-- `scout` — the intake sweep; `drop` — the intake push front door.
+- `scout` — the intake sweep; `clip` — the intake push front door.
 - `create-skill` — the authoring front door (scaffolds a new, conforming skill from full repo context).
-- `voice` — the roster front door (adds/updates a Watchlist voice from a handle or link).
+- `follow` — the roster front door (adds/updates a Watchlist voice from a handle or link).
 
 **How each configured agent invokes a Skill:**
 
 | Tool | Invocation |
 |------|------------|
-| **Claude Code** | A slash command from the thin shim at `.claude/commands/<name>.md` — e.g. `/assess 11`, `/cplan 11`, `/impl 11`, `/ship 11`, `/scout`, `/drop`, `/create-skill`. The shim points at the canonical body. |
+| **Claude Code** | A slash command from the thin shim at `.claude/commands/<name>.md` — e.g. `/assess 11`, `/devise 11`, `/invoke 11`, `/ship 11`, `/scout`, `/clip`, `/create-skill`. The shim points at the canonical body. |
 | **Codex** | Reads `AGENTS.md` natively, so **the documented procedure is the shim**: to run a Skill, read `skills/<name>/SKILL.md` and follow it. |
 | **Copilot** | Same — its PR surfaces read `AGENTS.md` natively; read `skills/<name>/SKILL.md` and follow it. |
 | **Gemini** | Same — `GEMINI.md` imports `AGENTS.md`; read `skills/<name>/SKILL.md` and follow it. |
@@ -99,21 +99,21 @@ shim, and the native-discovery tools reach the same body by the documented "read
 ([ADR 0010](../adr/0010-repo-layout-canonical-skills-at-root.md)).
 
 **The lifecycle** runs **Assess → Plan → Implement → Verify → Deliver**, plus a review-response step:
-`assess` → `cplan` → `impl` → `verify` → `rtr` → `final`.
+`assess` → `devise` → `invoke` → `verify` → `listen` → `final`.
 
-- Issue-scoped stages (`assess`, `cplan`, `impl`) take the **issue** id; PR-scoped stages (`verify`,
-  `rtr`, `final`) take the **PR** id that `impl` opens.
-- Two human gates are mandatory and never bypassed — **plan approval** (after `cplan`) and **merge**
+- Issue-scoped stages (`assess`, `devise`, `invoke`) take the **issue** id; PR-scoped stages (`verify`,
+  `listen`, `final`) take the **PR** id that `invoke` opens.
+- Two human gates are mandatory and never bypassed — **plan approval** (after `devise`) and **merge**
   (after `final`).
 - Full stage spec, terminal artifacts, and when to compress stages →
   [`development-lifecycle.md`](../standards/development-lifecycle.md).
 - To run the whole lifecycle hands-off, the [`ship`](../../skills/ship/SKILL.md) orchestrator sequences
   all six while protecting exactly those two gates.
 
-### The intake pipeline (`scout` + `drop`)
+### The intake pipeline (`scout` + `clip`)
 
 Two Skills run **outside** the issue/PR lifecycle, keeping the bundle's reference material current —
-`scout` is the **pull** sweep, `drop` is the **push** front door.
+`scout` is the **pull** sweep, `clip` is the **push** front door.
 
 [`scout`](../../skills/scout/SKILL.md) polls a **Watchlist**, drafts dated entries into an append-only
 **Learnings Log**, and opens a PR for a human to accept, edit, or reject — the sweep proposes, a human
@@ -132,14 +132,14 @@ Either way the discovery-and-drafting procedure and its quality bar are identica
 the disposition differ — an interactive run walks findings one at a time, a scheduled run opens the PR
 for asynchronous disposition ([ADR 0016](../adr/0016-interactive-sequential-disposition-scout.md)).
 
-The [`drop`](../../skills/drop/SKILL.md) skill is the pipeline's **push front door**: when a human
+The [`clip`](../../skills/clip/SKILL.md) skill is the pipeline's **push front door**: when a human
 already has a specific item — a screenshot, a link, or a quote — and wants it ingested now rather than at
-the next sweep, `drop` captures it, enforces a hard **real-URL gate**, writes a **stance-less** drop into
+the next sweep, `clip` captures it, enforces a hard **real-URL gate**, writes a **stance-less** drop into
 the manual-drop inbox, then delegates to `scout` (scoped to that one drop) to draft the entry and open
 the review PR ([ADR 0015](../adr/0015-intake-front-door-drop-skill.md)). One invocation → a reviewable PR
 is the happy path; a human disposes (on the single finding interactively when present, otherwise on the
-PR). Invoke it like any Skill — Claude: `/drop`; the native-discovery tools: read and follow
-`skills/drop/SKILL.md`.
+PR). Invoke it like any Skill — Claude: `/clip`; the native-discovery tools: read and follow
+`skills/clip/SKILL.md`.
 
 ## 5. Keep the bundle green in-host
 

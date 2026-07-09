@@ -1,10 +1,10 @@
 ---
-description: Stage 2 (Plan) — turn the chosen assessment option into an ordered plan with an up-front testing strategy, posted on the issue.
+description: Review-response — fetch every review thread on the PR, classify by severity, and (after HC chooses) fix, re-check, and reply.
 ---
 
 Read and follow the canonical skill body at
-[`skills/cplan/SKILL.md`](../../skills/cplan/SKILL.md), then execute its procedure for the issue named
-in the invocation.
+[`skills/listen/SKILL.md`](../../skills/listen/SKILL.md), then execute its procedure for the PR named in the
+invocation.
 
 This file is a thin **Invocation Shim** ([ADR 0003](../../docs/adr/0003-skills-canonical-body-thin-shims-graceful-degradation.md),
 [ADR 0010](../../docs/adr/0010-repo-layout-canonical-skills-at-root.md)) — it carries **no procedure

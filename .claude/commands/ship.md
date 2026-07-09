@@ -1,5 +1,5 @@
 ---
-description: The hands-off orchestrator — sequence the six lifecycle skills (assess → cplan → impl → verify → rtr → final) for one issue, delegating output-heavy work and protecting the two human gates.
+description: The hands-off orchestrator — sequence the six lifecycle skills (assess → devise → invoke → verify → listen → final) for one issue, delegating output-heavy work and protecting the two human gates.
 ---
 
 Read and follow the canonical skill body at

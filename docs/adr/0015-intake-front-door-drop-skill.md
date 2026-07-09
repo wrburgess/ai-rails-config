@@ -1,5 +1,7 @@
 # Intake front door: a `drop` skill that pushes a human-handed item into the sweep
 
+> Note (#73): the `/drop` skill was renamed to `/clip`.
+
 **Status:** accepted
 
 ## Context

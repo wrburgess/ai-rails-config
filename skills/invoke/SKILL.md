@@ -1,5 +1,5 @@
 ---
-name: impl
+name: invoke
 description: Stage 3 of the development lifecycle. Execute the approved plan on a feature branch, run the host's quality checks to green, and open the PR. Use after the HC approves the plan. This is the only stage that creates a PR; commit is not done — the open PR is.
 ---
 
@@ -13,11 +13,11 @@ Read host-specific values — the **quality-check commands** from [`PROJECT.md`]
 from *Attribution & Model Declaration*, and the lifecycle host / artifact map from *Lifecycle Host*.
 Never hardcode a stack's commands, branch names, or platform verbs here.
 
-**Terminal artifact: the open PR.** `impl` creates the PR here and nowhere else — commit ≠ done.
+**Terminal artifact: the open PR.** `invoke` creates the PR here and nowhere else — commit ≠ done.
 
-`impl` executes a **final approved** plan. An **exploratory spike-then-plan** issue is not yet at
-Implement: the spike is a Plan-stage activity ([`cplan`](../../skills/cplan/SKILL.md)) that opens **no**
-PR and exits at the re-plan checkpoint — `impl` runs only once the post-spike production plan is
+`invoke` executes a **final approved** plan. An **exploratory spike-then-plan** issue is not yet at
+Implement: the spike is a Plan-stage activity ([`devise`](../../skills/devise/SKILL.md)) that opens **no**
+PR and exits at the re-plan checkpoint — `invoke` runs only once the post-spike production plan is
 re-approved, then opens the single production PR as usual.
 
 </what-to-do>

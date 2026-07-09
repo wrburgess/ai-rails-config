@@ -3,7 +3,7 @@ description: The intake pipeline's push front door — capture human-handed fiel
 ---
 
 Read and follow the canonical skill body at
-[`skills/drop/SKILL.md`](../../skills/drop/SKILL.md), then execute its procedure — capturing the
+[`skills/clip/SKILL.md`](../../skills/clip/SKILL.md), then execute its procedure — capturing the
 handed-over item, enforcing the real-URL gate, writing a stance-less inbox drop, and delegating to
 `scout` to draft the entry and open the review PR.
 

@@ -419,17 +419,17 @@ class ParityCheckTest < Minitest::Test
   def test_skill_missing_body_fails
     with_bundle do |dir|
       add_skills(dir)
-      File.delete(File.join(dir, "skills/grill-with-docs/SKILL.md")) # dir present, body gone
+      File.delete(File.join(dir, "skills/distill/SKILL.md")) # dir present, body gone
       code, out = run_check(dir)
       assert_equal 1, code
-      assert_match(%r{missing its canonical body: skills/grill-with-docs/SKILL\.md}, out)
+      assert_match(%r{missing its canonical body: skills/distill/SKILL\.md}, out)
     end
   end
 
   def test_skill_missing_claude_shim_fails
     with_bundle do |dir|
       add_skills(dir)
-      File.delete(File.join(dir, ".claude/commands/grill-with-docs.md"))
+      File.delete(File.join(dir, ".claude/commands/distill.md"))
       code, out = run_check(dir)
       assert_equal 1, code
       assert_match(/missing its Claude Invocation Shim/, out)
@@ -440,7 +440,7 @@ class ParityCheckTest < Minitest::Test
     # A shim that exists but doesn't point at the canonical body is a hollow stub — must redden.
     with_bundle do |dir|
       add_skills(dir)
-      File.write(File.join(dir, ".claude/commands/grill-with-docs.md"), "No pointer here.\n")
+      File.write(File.join(dir, ".claude/commands/distill.md"), "No pointer here.\n")
       code, out = run_check(dir)
       assert_equal 1, code
       assert_match(/does not reference its canonical body/, out)
@@ -450,7 +450,7 @@ class ParityCheckTest < Minitest::Test
   def test_skill_body_missing_frontmatter_name_fails
     with_bundle do |dir|
       add_skills(dir)
-      File.write(File.join(dir, "skills/grill-with-docs/SKILL.md"), "# No frontmatter\n\nBody.\n")
+      File.write(File.join(dir, "skills/distill/SKILL.md"), "# No frontmatter\n\nBody.\n")
       code, out = run_check(dir)
       assert_equal 1, code
       assert_match(/lacks YAML frontmatter with a `name:` key/, out)
@@ -461,21 +461,21 @@ class ParityCheckTest < Minitest::Test
     # A valid skills tree missing one required skill -> the floor reddens.
     with_bundle do |dir|
       add_skills(dir)
-      FileUtils.rm_rf(File.join(dir, "skills/grill-with-docs")) # required skill dir removed
+      FileUtils.rm_rf(File.join(dir, "skills/distill")) # required skill dir removed
       code, out = run_check(dir)
       assert_equal 1, code
-      assert_match(%r{Required skill missing: skills/grill-with-docs/SKILL\.md}, out)
+      assert_match(%r{Required skill missing: skills/distill/SKILL\.md}, out)
     end
   end
 
   def test_required_lifecycle_skill_absent_fails
-    # Dropping a lifecycle skill (e.g. impl) also reddens the floor.
+    # Dropping a lifecycle skill (e.g. invoke) also reddens the floor.
     with_bundle do |dir|
       add_skills(dir)
-      FileUtils.rm_rf(File.join(dir, "skills/impl"))
+      FileUtils.rm_rf(File.join(dir, "skills/invoke"))
       code, out = run_check(dir)
       assert_equal 1, code
-      assert_match(%r{Required skill missing: skills/impl/SKILL\.md}, out)
+      assert_match(%r{Required skill missing: skills/invoke/SKILL\.md}, out)
     end
   end
 
@@ -503,15 +503,15 @@ class ParityCheckTest < Minitest::Test
     end
   end
 
-  def test_required_voice_skill_absent_fails
-    # `voice` is the intake-pipeline roster front door (ADR 0021) and part of the floor: dropping it
-    # reddens too. This pins voice into REQUIRED_SKILLS so a future edit can't silently drop it.
+  def test_required_follow_skill_absent_fails
+    # `follow` is the intake-pipeline roster front door (ADR 0021) and part of the floor: dropping it
+    # reddens too. This pins follow into REQUIRED_SKILLS so a future edit can't silently drop it.
     with_bundle do |dir|
       add_skills(dir)
-      FileUtils.rm_rf(File.join(dir, "skills/voice"))
+      FileUtils.rm_rf(File.join(dir, "skills/follow"))
       code, out = run_check(dir)
       assert_equal 1, code
-      assert_match(%r{Required skill missing: skills/voice/SKILL\.md}, out)
+      assert_match(%r{Required skill missing: skills/follow/SKILL\.md}, out)
     end
   end
 
@@ -533,7 +533,7 @@ class ParityCheckTest < Minitest::Test
     # A body that still references PROJECT.md but names a host stack -> the denylist reddens.
     with_bundle do |dir|
       add_skills(dir)
-      write_skill(dir, "impl", body: "---\nname: impl\ndescription: x\n---\n\nRun the checks from PROJECT.md. Reindex with Searchkick.\n")
+      write_skill(dir, "invoke", body: "---\nname: invoke\ndescription: x\n---\n\nRun the checks from PROJECT.md. Reindex with Searchkick.\n")
       code, out = run_check(dir)
       assert_equal 1, code
       assert_match(/contains host-specific token `Searchkick`/, out)
