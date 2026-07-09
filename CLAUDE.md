@@ -9,19 +9,19 @@ file holds only Claude-specific configuration notes that have no place in the to
 - **Invocation Shims** — Claude reaches each Skill through a thin `.claude/commands/<name>.md`
   slash-command file that points at the canonical body in `skills/<name>/SKILL.md`
   ([ADR 0010](docs/adr/0010-repo-layout-canonical-skills-at-root.md)). The first is
-  [`.claude/commands/grill-with-docs.md`](.claude/commands/grill-with-docs.md) → `/grill-with-docs`
-  (canonical body: `skills/grill-with-docs/SKILL.md`). The six lifecycle shims — `/assess`, `/cplan`,
-  `/impl`, `/verify`, `/rtr`, `/final` — ship alongside it, the orchestrator shim
+  [`.claude/commands/distill.md`](.claude/commands/distill.md) → `/distill`
+  (canonical body: `skills/distill/SKILL.md`). The six lifecycle shims — `/assess`, `/devise`,
+  `/invoke`, `/verify`, `/listen`, `/final` — ship alongside it, the orchestrator shim
   [`.claude/commands/ship.md`](.claude/commands/ship.md) → `/ship` (canonical body:
   `skills/ship/SKILL.md`), the intake-pipeline sweep shim
   [`.claude/commands/scout.md`](.claude/commands/scout.md) → `/scout` (canonical body:
   `skills/scout/SKILL.md`), the intake front-door shim
-  [`.claude/commands/drop.md`](.claude/commands/drop.md) → `/drop` (canonical body:
-  `skills/drop/SKILL.md`), the authoring front-door shim
+  [`.claude/commands/clip.md`](.claude/commands/clip.md) → `/clip` (canonical body:
+  `skills/clip/SKILL.md`), the authoring front-door shim
   [`.claude/commands/create-skill.md`](.claude/commands/create-skill.md) → `/create-skill` (canonical
   body: `skills/create-skill/SKILL.md`), and the roster front-door shim
-  [`.claude/commands/voice.md`](.claude/commands/voice.md) → `/voice` (canonical body:
-  `skills/voice/SKILL.md`) complete the set of twelve.
+  [`.claude/commands/follow.md`](.claude/commands/follow.md) → `/follow` (canonical body:
+  `skills/follow/SKILL.md`) complete the set of twelve.
 - **Settings & hooks** — `.claude/settings.json` wires the branch-protection fast-fail
   ([`.claude/hooks/enforce-branch-creation.sh`](.claude/hooks/enforce-branch-creation.sh)) as a
   PreToolUse hook — Layer 3 over the portable git hooks in `.githooks/`

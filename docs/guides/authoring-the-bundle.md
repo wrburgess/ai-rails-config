@@ -59,7 +59,7 @@ host/domain coupling, that de-coupling is real work: call it out in the assessme
 a visible, reviewed edit — never fold it silently into a "port."
 
 **Worked example — a non-byte-neutral port.** The six lifecycle skills (`assess` … `final`, issue #9)
-were the opposite of `grill-with-docs`: their source bodies carried heavy host/domain coupling —
+were the opposite of `distill`: their source bodies carried heavy host/domain coupling —
 hardcoded quality-check commands, `Searchkick`/`Pundit`, model names, `admin_root_path`, `P0`/`P1`
 severities. The de-coupling was done as visible, reviewed edits (each value re-routed to `PROJECT.md`)
 and, crucially, made **enforceable** rather than merely reviewed: the content-neutrality check above

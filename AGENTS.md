@@ -64,7 +64,7 @@ specific phase sub-issue instead.
 ## Development lifecycle
 
 The lifecycle is issue/PR-shaped: **Assess → Plan → Implement → Verify → Deliver**, plus a
-review-response step. `assess`/`cplan` post to an issue; `impl` opens a PR; `verify`/`rtr`/`final`
+review-response step. `assess`/`devise` post to an issue; `invoke` opens a PR; `verify`/`listen`/`final`
 operate on that PR. Two human gates are mandatory — **plan approval** and **merge** — and are never
 bypassed. GitHub is the default lifecycle host, set in `PROJECT.md` and remappable
 ([ADR 0006](docs/adr/0006-baseline-skill-set-and-github-default-lifecycle-host.md)). The full stage
@@ -73,8 +73,8 @@ spec — stages, roles, gates, and terminal artifacts — is
 
 ## Skills
 
-The Generic Baseline ships twelve Skills — `grill-with-docs`, `assess`, `cplan`, `impl`, `verify`,
-`rtr`, `final`, `ship`, `scout`, `drop`, `create-skill`, `voice` ([ADR 0006](docs/adr/0006-baseline-skill-set-and-github-default-lifecycle-host.md),
+The Generic Baseline ships twelve Skills — `distill`, `assess`, `devise`, `invoke`, `verify`,
+`listen`, `final`, `ship`, `scout`, `clip`, `create-skill`, `follow` ([ADR 0006](docs/adr/0006-baseline-skill-set-and-github-default-lifecycle-host.md),
 [ADR 0012](docs/adr/0012-intake-pipeline-placement.md),
 [ADR 0015](docs/adr/0015-intake-front-door-drop-skill.md),
 [ADR 0019](docs/adr/0019-create-skill-authoring-front-door.md),
@@ -90,7 +90,7 @@ frontmatter + markdown body + optional bundled files). How each tool invokes it
 ([ADR 0003](docs/adr/0003-skills-canonical-body-thin-shims-graceful-degradation.md)):
 
 - **Claude Code** — a slash command from the thin shim at `.claude/commands/<name>.md` (e.g.
-  `/grill-with-docs`), which points at the canonical body.
+  `/distill`), which points at the canonical body.
 - **Codex / Copilot / Gemini** — no slash command; these tools read `AGENTS.md` natively, so **the
   documented procedure is the shim**: to run a Skill, read and follow its canonical body at
   `skills/<name>/SKILL.md`. (A tool may additionally define a native prompt/command file where it
@@ -98,15 +98,15 @@ frontmatter + markdown body + optional bundled files). How each tool invokes it
 
 **Shipped (12 of 12):**
 
-- [`grill-with-docs`](skills/grill-with-docs/SKILL.md) — a plan-grilling / brainstorming session that
+- [`distill`](skills/distill/SKILL.md) — a plan-grilling / brainstorming session that
   stress-tests a plan against the project's domain language and captures decisions inline as a
   `CONTEXT.md` glossary and `docs/adr/` ADRs (with sibling format specs `CONTEXT-FORMAT.md` and
   `ADR-FORMAT.md`).
 - The six lifecycle Skills, each reading its host values from [`PROJECT.md`](PROJECT.md) and posting
   to the host named in [`PROJECT.md`](PROJECT.md) → *Lifecycle Host*, never hardcoding a stack or
-  platform: [`assess`](skills/assess/SKILL.md) → [`cplan`](skills/cplan/SKILL.md) →
-  [`impl`](skills/impl/SKILL.md) → [`verify`](skills/verify/SKILL.md) →
-  [`rtr`](skills/rtr/SKILL.md) → [`final`](skills/final/SKILL.md). Their five-stage spec is
+  platform: [`assess`](skills/assess/SKILL.md) → [`devise`](skills/devise/SKILL.md) →
+  [`invoke`](skills/invoke/SKILL.md) → [`verify`](skills/verify/SKILL.md) →
+  [`listen`](skills/listen/SKILL.md) → [`final`](skills/final/SKILL.md). Their five-stage spec is
   [`docs/standards/development-lifecycle.md`](docs/standards/development-lifecycle.md).
 - [`ship`](skills/ship/SKILL.md) — the hands-off orchestrator that sequences the six lifecycle Skills
   end to end, delegating output-heavy work to discardable sub-agents while protecting the two human
@@ -123,7 +123,7 @@ frontmatter + markdown body + optional bundled files). How each tool invokes it
   empty-sweep (no-PR, log-only) behavior — is covered in the
   [intake-sweep scheduling guide](docs/guides/intake-sweep-scheduling.md)
   ([ADR 0013](docs/adr/0013-scheduled-intake-sweep-and-empty-sweep-policy.md)).
-- [`drop`](skills/drop/SKILL.md) — the intake pipeline's **push front door**, complementing `scout`'s
+- [`clip`](skills/clip/SKILL.md) — the intake pipeline's **push front door**, complementing `scout`'s
   **pull** sweep: a human hands it field output (a screenshot, a link, or a quote) in any session; it
   enforces a hard real-URL gate, writes a well-formed **stance-less** drop into the manual-drop inbox,
   then delegates to [`scout`](skills/scout/SKILL.md) (scoped to that one drop) to draft the
@@ -137,13 +137,13 @@ frontmatter + markdown body + optional bundled files). How each tool invokes it
   Anthropic's `skill-creator` and credited as such, it **references** [`rules/skills.md`](rules/skills.md)
   and the [authoring-the-bundle guide](docs/guides/authoring-the-bundle.md) rather than restating them
   ([ADR 0019](docs/adr/0019-create-skill-authoring-front-door.md)).
-- [`voice`](skills/voice/SKILL.md) — the intake pipeline's **roster front door**: it turns a bare
+- [`follow`](skills/follow/SKILL.md) — the intake pipeline's **roster front door**: it turns a bare
   handle or a link into the correct add-or-update on the **Watchlist roster** (the roster + its prose
   companion), deduping the normalized input against the existing entries first — so an already-tracked
   account is *refreshed*, never duplicated — while honoring the roster's real-URL discipline (no invented
   handle or feed) and keeping its prose parity green, then opens a review PR for a human to dispose. It
   maintains *who* the sweep watches — a different artifact and schema from the `stance`-bearing Learnings
-  Log that [`drop`](skills/drop/SKILL.md) and [`scout`](skills/scout/SKILL.md) feed — and reads the
+  Log that [`clip`](skills/clip/SKILL.md) and [`scout`](skills/scout/SKILL.md) feed — and reads the
   Watchlist location from [`PROJECT.md`](PROJECT.md) → *Intake Pipeline*
   ([ADR 0021](docs/adr/0021-voice-watchlist-front-door.md)).
 

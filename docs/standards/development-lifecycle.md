@@ -35,8 +35,8 @@ lifecycle *verb* ("post the assessment to the issue", "open a PR"), not a platfo
 ## The stages
 
 The lifecycle is **Assess → Plan → Implement → Verify → Deliver**, plus a review-response step. The
-**issue-scoped** stages take the issue id — `assess`, `cplan`, `impl`; the **PR-scoped** stages take
-the PR id that `impl` opens — `verify`, `final`, and review-response `rtr` (the PR id differs from the
+**issue-scoped** stages take the issue id — `assess`, `devise`, `invoke`; the **PR-scoped** stages take
+the PR id that `invoke` opens — `verify`, `final`, and review-response `listen` (the PR id differs from the
 issue id).
 
 **Stage exit-criteria (terminal artifacts) are load-bearing invariants.** A stage is *not done* until
@@ -61,7 +61,7 @@ assumptions, requirements gaps, architectural concerns).
 **Terminal artifact:** the assessment posted on the issue. **Exit:** HC picks an option; the AC does
 not proceed without a chosen option.
 
-### Stage 2: Plan (`cplan`)
+### Stage 2: Plan (`devise`)
 
 **Trigger:** HC picks an option.
 
@@ -80,11 +80,11 @@ patterns that don't match the codebase, unaddressed requirements).
 
 **Terminal artifact:** the plan posted on the issue. **This is the first mandatory human gate.**
 **Exit:** HC approves the plan (or asks for revisions). The AC does not write code without an approved
-plan. An approved plan is **revisable direction, not a frozen contract** — a mid-`impl` discovery that
+plan. An approved plan is **revisable direction, not a frozen contract** — a mid-`invoke` discovery that
 it was wrong loops back through this gate to re-plan, an expected outcome rather than a failure
 ([ADR 0020](../adr/0020-right-size-plan-revisable-direction.md)).
 
-### Stage 3: Implement (`impl`)
+### Stage 3: Implement (`invoke`)
 
 **Trigger:** HC approves the plan.
 
@@ -100,7 +100,7 @@ I/O (commit, push, open PR).
 requesting any review — every plan item implemented and tested, meaningful assertions, edge cases
 covered, no debug/TODO residue, all *Quality Checks* green.
 
-**Terminal artifact:** the open PR. **`impl` creates the PR here and nowhere else; commit ≠ done.**
+**Terminal artifact:** the open PR. **`invoke` creates the PR here and nowhere else; commit ≠ done.**
 Implement always executes a **final approved** plan; an exploratory spike is a Plan-stage activity that
 opens no PR (its exit is the re-plan), so Stage 3 is reached only once the production plan is approved —
 the invariant is unconditional. **Exit:** checks pass, self-review complete, PR opened and linked to the
@@ -122,11 +122,11 @@ adversarial ones) are classified by the [`PROJECT.md`](../../PROJECT.md) → *Re
 **Operates on the existing PR — it never opens one.** **Terminal artifact:** the self-review comment
 on the PR. **Exit:** self-review passes; HC is notified the PR is ready for the Reviewer.
 
-### Stage 5: Deliver (`final`) + review-response (`rtr`)
+### Stage 5: Deliver (`final`) + review-response (`listen`)
 
 **Trigger:** HC sends the PR to the Reviewer.
 
-**AC responds to Reviewer feedback (`rtr`):** fetches all review threads via the lifecycle host,
+**AC responds to Reviewer feedback (`listen`):** fetches all review threads via the lifecycle host,
 classifies each by the *Review Severity Framework*, summarizes for the HC, and — **after the HC
 chooses** which findings to address — fixes them, re-runs the *Quality Checks*, and replies on each
 thread. The fetch-and-fix churn may be offloaded; the severity and stop-and-ask judgment stays with
@@ -145,7 +145,7 @@ gate.** **Exit:** no open must-fix findings, SOW posted; **HC merges.**
 
 Two gates are mandatory and never bypassed, on any tool or track:
 
-1. **Plan approval** — after `cplan` (and any Reviewer plan review), before any code.
+1. **Plan approval** — after `devise` (and any Reviewer plan review), before any code.
 2. **Merge** — after `final` posts the SOW with a green gate and no open must-fix findings. The AC
    never merges.
 
@@ -171,16 +171,16 @@ past it. Re-planning *upholds* the gate, it does not weaken or bypass it
 
 A Host App can run the whole lifecycle hands-off with the [`ship`](../../skills/ship/SKILL.md)
 orchestrator skill that sequences
-`assess → cplan → impl → verify → rtr → final`, replacing the per-stage "wait for HC" pauses with
+`assess → devise → invoke → verify → listen → final`, replacing the per-stage "wait for HC" pauses with
 exactly the **two human gates** above, plus unconditional emergency stops (a check that can't be
 auto-resolved; a discovery that the change touches core logic the plan didn't anticipate; an
 architectural or ambiguous review comment).
 
 Its design **offloads output-heavy work and protects judgment**
 ([ADR 0005](../adr/0005-ship-hybrid-delegation-offload-retrieval-protect-judgment.md)): the `assess`
-exploration, the `impl` code+check+fix loop, the `verify` full-diff review, and the `rtr` fetch-and-fix
+exploration, the `invoke` code+check+fix loop, the `verify` full-diff review, and the `listen` fetch-and-fix
 churn are delegated to sub-agents whose context is discarded (each returns a compact handoff contract —
-`exploration-summary`, `check-result`, `drift-report`); assessment synthesis, plan authoring, `rtr`
+`exploration-summary`, `check-result`, `drift-report`); assessment synthesis, plan authoring, `listen`
 severity calls, and the `final` merge-readiness call stay in a clean orchestrator context. The plan
 gate doubles as a session boundary; state is externalized to the issue/PR so a fresh phase re-reads it.
 On tools without sub-agent fan-out the same phases run inline with a "compact between phases" fallback
@@ -188,17 +188,17 @@ On tools without sub-agent fan-out the same phases run inline with a "compact be
 
 > The `ship` skill is the eighth baseline skill (ADR 0006). It sequences the six lifecycle skills and
 > is where the delegation policy and the two gates concretely live. The six lifecycle skills emit the
-> handoff contracts it consumes; `ship` defines the one for the `rtr` fetch-and-fix phase inline.
+> handoff contracts it consumes; `ship` defines the one for the `listen` fetch-and-fix phase inline.
 
 ## Skill mapping
 
 | Stage | Skill | Terminal artifact |
 |-------|-------|-------------------|
 | Assess | `assess` | Assessment on the issue |
-| Plan | `cplan` | Plan on the issue (gate 1: plan approval) |
-| Implement | `impl` | Open PR |
+| Plan | `devise` | Plan on the issue (gate 1: plan approval) |
+| Implement | `invoke` | Open PR |
 | Verify | `verify` | Self-review comment on the PR |
-| Review response | `rtr` | Replies on the PR review threads |
+| Review response | `listen` | Replies on the PR review threads |
 | Deliver | `final` | SOW on the PR + reference on the issue (gate 2: merge) |
 | Full hands-off run | `ship` | Sequences all stages with the two human gates |
 

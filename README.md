@@ -43,11 +43,11 @@ deterministic check** — so four different AI tools stay in lockstep with no hu
   a thin per-tool shim (Claude `.claude/commands/<name>.md`; other tools via native `AGENTS.md`
   discovery); only tool-specific execution enhancements degrade gracefully, never the procedure or the
   gates ([ADR 0003](docs/adr/0003-skills-canonical-body-thin-shims-graceful-degradation.md)). The set:
-  `grill-with-docs`; the six **lifecycle** skills `assess` → `cplan` → `impl` → `verify` → `rtr` →
+  `distill`; the six **lifecycle** skills `assess` → `devise` → `invoke` → `verify` → `listen` →
   `final` (an issue/PR workflow with two mandatory human gates — plan approval, merge; spec in
   `docs/standards/development-lifecycle.md`); the `ship` orchestrator (Epic #1); the `scout` intake
-  sweep (Epic #28); the `drop` intake front door (Issue #46); the `create-skill` authoring front door
-  (Issue #67); and the `voice` roster front door that adds/updates a Watchlist voice from a handle or
+  sweep (Epic #28); the `clip` intake front door (Issue #46); the `create-skill` authoring front door
+  (Issue #67); and the `follow` roster front door that adds/updates a Watchlist voice from a handle or
   link (Issue #66).
 - **`ship` — delegation by output-weight.** The orchestrator runs the six lifecycle skills end to end
   while keeping a lean main context: it **offloads output-heavy** work (exploration, the code+check+fix
@@ -58,7 +58,7 @@ deterministic check** — so four different AI tools stay in lockstep with no hu
   **Watchlist** (`docs/reference/voices.yml`), drafts dated **Learnings Log** entries
   (`docs/reference/learnings/`), and opens a review PR ([ADR 0012](docs/adr/0012-intake-pipeline-placement.md),
   [ADR 0013](docs/adr/0013-scheduled-intake-sweep-and-empty-sweep-policy.md)).
-  [`drop`](skills/drop/SKILL.md) is its **push front door**: hand it a screenshot, link, or quote and it
+  [`clip`](skills/clip/SKILL.md) is its **push front door**: hand it a screenshot, link, or quote and it
   enforces a real-URL gate, writes a stance-less drop, and delegates to `scout`
   ([ADR 0015](docs/adr/0015-intake-front-door-drop-skill.md)). Ships as an illustrative reference seed;
   repoint per host via `PROJECT.md` → *Intake Pipeline*.

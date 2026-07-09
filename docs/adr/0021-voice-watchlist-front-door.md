@@ -1,5 +1,7 @@
 # Roster front door: a `voice` skill that adds or updates a Watchlist voice from a handle or link
 
+> Note (#73): the `/voice` skill was renamed to `/follow`.
+
 **Status:** accepted
 
 ## Context

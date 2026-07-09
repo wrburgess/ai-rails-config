@@ -10,7 +10,7 @@ findings as a **bulk list** on that PR. Both the `scout` body and the
 [scheduling guide](../guides/intake-sweep-scheduling.md) asserted the sweep "runs the identical
 procedure either way" — by hand or on a schedule.
 
-Issue #57 asked for the [`grill-with-docs`](../../skills/grill-with-docs/SKILL.md) interaction model
+Issue #57 asked for the [`grill-with-docs`](../../skills/distill/SKILL.md) interaction model
 instead: findings presented **one at a time**, each with a recommended disposition, waiting for the
 human's decision before the next ("Ask the questions one at a time, waiting for feedback on each
 question before continuing"). The 2026-07-07 backfill sweep already practiced this by hand ("12
@@ -39,7 +39,7 @@ diverge **without lowering the human-disposes gate**.
 - **Empty sweeps are unaffected.** The walk runs only when at least one entry survived the stance rule,
   so [ADR 0013](0013-scheduled-intake-sweep-and-empty-sweep-policy.md)'s no-PR/log-only path
   short-circuits first — there is nothing to walk on an empty sweep.
-- **The single-finding case stays identical.** A [`drop`](../../skills/drop/SKILL.md) hand-off walks its
+- **The single-finding case stays identical.** A [`drop`](../../skills/clip/SKILL.md) hand-off walks its
   one finding, then still opens the PR — the degenerate case feels the same as any sweep.
 
 ## Considered options

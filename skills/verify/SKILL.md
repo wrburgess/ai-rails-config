@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Stage 4 of the development lifecycle. Self-review an existing PR against its approved plan for drift, test quality, cleanliness, and description completeness before the Reviewer sees it. Use on the PR that impl opened. It operates on the existing PR and never creates one.
+description: Stage 4 of the development lifecycle. Self-review an existing PR against its approved plan for drift, test quality, cleanliness, and description completeness before the Reviewer sees it. Use on the PR that invoke opened. It operates on the existing PR and never creates one.
 ---
 
 <what-to-do>
@@ -13,7 +13,7 @@ Read host-specific values — the review severities from [`PROJECT.md`](../../PR
 Severity Framework*, the quality-check commands from *Quality Checks*, the lifecycle host from
 *Lifecycle Host*, the attribution/model from *Attribution & Model Declaration*. Never hardcode them.
 
-**This stage operates on the PR `impl` already opened — it never opens one.** If there is no PR, a
+**This stage operates on the PR `invoke` already opened — it never opens one.** If there is no PR, a
 prior stage's terminal artifact was skipped: stop and recheck, don't reinterpret the lifecycle.
 
 </what-to-do>
@@ -23,7 +23,7 @@ prior stage's terminal artifact was skipped: stop and recheck, don't reinterpret
 To keep the orchestrator's context lean, `verify` may be **offloaded to a read-only sub-agent** that
 reads the whole PR diff and the plan in its discarded context and returns a compact **drift-report**;
 the orchestrator supplies only pointers (the PR id, the linked issue id, and — when available —
-`impl`'s returned check-result so the checks aren't re-run) and consumes the report.
+`invoke`'s returned check-result so the checks aren't re-run) and consumes the report.
 
 *Graceful degradation ([ADR 0003](../../docs/adr/0003-skills-canonical-body-thin-shims-graceful-degradation.md),
 [ADR 0005](../../docs/adr/0005-ship-hybrid-delegation-offload-retrieval-protect-judgment.md)):* on a
@@ -36,7 +36,7 @@ lifecycle host — the orchestrator owns that I/O and the attribution.
   test_quality:     { meaningful: bool, false_greens: [str], gaps: [str] },
   test_coverage_summary: { by_type: str, edge_cases: str },
   quality_checks:   [ { purpose, status: "pass"|"fail"|"not_run" } ],
-  quality_checks_source: "impl_check_result" | "ran_here",
+  quality_checks_source: "invoke_check_result" | "ran_here",
   cleanliness:      { debug_code: [str], commented_code: [str], todos: [str] },
   pr_description:   { complete: bool, missing_sections: [str] },
   findings:         [ { severity, file, line, summary } ],   # severity per PROJECT.md → Review Severity Framework
@@ -44,7 +44,7 @@ lifecycle host — the orchestrator owns that I/O and the attribution.
   verdict:          "ready" | "needs_fixes" }
 ```
 `quality_checks` carries one entry per [`PROJECT.md`](../../PROJECT.md) → *Quality Checks* row. When
-`impl` already ran them, copy its check-result (`quality_checks_source: impl_check_result`) rather than
+`invoke` already ran them, copy its check-result (`quality_checks_source: invoke_check_result`) rather than
 re-running; standalone, run them here (`ran_here`). `not_run` = ran-but-nothing-applicable, not
 skipped. `findings[]` is where the **adversarial pass** (procedure Step 4) records the defects it
 surfaces, each with a *Review Severity Framework* severity; the schema is unchanged, so the report
@@ -58,7 +58,7 @@ still composes with `ship`'s verify handoff.
 2. **Read the approved plan** from the linked issue — find the linked issue via the PR's closing
    references, falling back to the bare issue number in the PR body (`Closes #N` leaf preferred, then
    `Part of #N`), and fetch the plan comment specifically. If the plan was revised through a
-   **sanctioned re-plan** — a Reviewer plan review, or a mid-`impl` loop-back that re-entered plan
+   **sanctioned re-plan** — a Reviewer plan review, or a mid-`invoke` loop-back that re-entered plan
    approval (e.g. a spike's re-plan checkpoint) — check against the *final, approved* plan.
 3. **Check plan alignment** — every plan task has a corresponding change in the diff; no plan item
    missing. Divergence from the plan splits two ways: a **sanctioned re-plan** (it went back through
@@ -126,7 +126,7 @@ PR is ready for the Reviewer.
 
 Sign with the attribution footer from [`PROJECT.md`](../../PROJECT.md) → *Attribution & Model
 Declaration*. Then notify the HC the PR is ready to send to the Reviewer; after Reviewer feedback the
-HC runs the review-response skill (`rtr`) then the deliver skill (`final`).
+HC runs the review-response skill (`listen`) then the deliver skill (`final`).
 
 **Terminal artifact:** the self-review comment on the PR.
 

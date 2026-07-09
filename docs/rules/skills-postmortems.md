@@ -9,7 +9,7 @@ produced it.
 ## A scoped invocation must not advance a shared progress marker (Reference: #46)
 
 **The case.** `scout` runs an intake **sweep** and records a **last-swept marker** — a high-water
-mark that defines the next run's incremental window. Issue #46 added the `drop` front door, which
+mark that defines the next run's incremental window. Issue #46 added the `clip` front door, which
 invokes `scout` in a new **inbox-only / specific-drop scope**: it processes only the handed-over drop
 and skips the Watchlist feed/handle sweep entirely.
 

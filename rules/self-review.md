@@ -19,7 +19,7 @@
 - [ ] Edge cases handled: invalid input, `nil`, duplicates, boundary values.
 - [ ] No `TODO` / "needs manual testing" left behind — the test is written, not deferred.
 - [ ] The full quality gate passes locally.
-- [ ] If this is a lifecycle stage, its terminal artifact actually exists (e.g. `impl` is not done until the PR exists — a commit is not the artifact).
+- [ ] If this is a lifecycle stage, its terminal artifact actually exists (e.g. `invoke` is not done until the PR exists — a commit is not the artifact).
 - [ ] Any `<placeholder>`-style token in text posted to the lifecycle host (issue/PR/comment body) is written host-safe (`{name}` / `NAME`) — GitHub strips angle-bracket tokens.
 
 ## Anti-Patterns

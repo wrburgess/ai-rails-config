@@ -1,9 +1,9 @@
 ---
-description: Stage 3 (Implement) — execute the approved plan on a feature branch, run the host's checks to green, and open the PR (the only stage that creates one).
+description: Stage 2 (Plan) — turn the chosen assessment option into an ordered plan with an up-front testing strategy, posted on the issue.
 ---
 
 Read and follow the canonical skill body at
-[`skills/impl/SKILL.md`](../../skills/impl/SKILL.md), then execute its procedure for the issue named
+[`skills/devise/SKILL.md`](../../skills/devise/SKILL.md), then execute its procedure for the issue named
 in the invocation.
 
 This file is a thin **Invocation Shim** ([ADR 0003](../../docs/adr/0003-skills-canonical-body-thin-shims-graceful-degradation.md),

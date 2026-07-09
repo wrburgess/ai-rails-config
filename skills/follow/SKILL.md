@@ -1,5 +1,5 @@
 ---
-name: voice
+name: follow
 description: Turn a bare handle or a link into the correct add-or-update on the Watchlist roster — normalize the input, dedup against the existing entries before proposing anything, assemble a schema-valid entry that honors the real-URL discipline, keep the roster's prose companion in parity, and open a review PR. Use as the intake pipeline's roster front door when a person wants someone put on — or refreshed on — the Watchlist, rather than feeding the Learnings Log.
 ---
 
@@ -7,17 +7,17 @@ description: Turn a bare handle or a link into the correct add-or-update on the 
 
 Turn one **handle or link a human hands you** — an at-handle, a profile URL, a site, a channel, a
 code-forge or newsletter link — into the correct, deterministic action on the **Watchlist roster**:
-**add a new voice, or update the existing one.** `voice` is the intake pipeline's **roster front
-door**. Where [`drop`](../drop/SKILL.md) (push) and [`scout`](../scout/SKILL.md) (pull) feed the
-**Learnings Log** — *field output*, each earning a `stance` — `voice` maintains **who the sweep
+**add a new voice, or update the existing one.** `follow` is the intake pipeline's **roster front
+door**. Where [`clip`](../clip/SKILL.md) (push) and [`scout`](../scout/SKILL.md) (pull) feed the
+**Learnings Log** — *field output*, each earning a `stance` — `follow` maintains **who the sweep
 watches**: the roster itself. That is a different artifact, with a different schema, and **no
 `stance`**. Its defining move is **dedup-first**: resolve the input against the entries that already
 exist *before* proposing anything, so an account already tracked yields an **update**, never a
 duplicate.
 
-`voice` **adds no learnings-intake procedure of its own** and never touches the Learnings Log or the
-manual-drop inbox — those live once in `scout`'s and `drop`'s bodies, which `voice` neither restates
-nor invokes. What `voice` owns is the roster front door: read the input, normalize it, dedup, assemble
+`follow` **adds no learnings-intake procedure of its own** and never touches the Learnings Log or the
+manual-drop inbox — those live once in `scout`'s and `clip`'s bodies, which `follow` neither restates
+nor invokes. What `follow` owns is the roster front door: read the input, normalize it, dedup, assemble
 a schema-valid add-or-update, keep the roster's prose companion in parity, and hand a human a
 reviewable proposal.
 
@@ -107,7 +107,7 @@ is a **reviewable PR** (or the reported "already tracked" outcome), **never a di
 protected branch. Sign any lifecycle-host comment with the footer from [`PROJECT.md`](../../PROJECT.md)
 → *Attribution & Model Declaration*, using your runtime-actual model.
 
-**The gate that never degrades:** `voice` **proposes** — it normalizes, dedups, and assembles a
+**The gate that never degrades:** `follow` **proposes** — it normalizes, dedups, and assembles a
 schema-valid add-or-update; a **human disposes** on the PR. The roster front door never edits the
 Watchlist on its own.
 

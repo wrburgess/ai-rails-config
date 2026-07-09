@@ -3,7 +3,7 @@ description: The intake pipeline's roster front door — turn a bare handle or a
 ---
 
 Read and follow the canonical skill body at
-[`skills/voice/SKILL.md`](../../skills/voice/SKILL.md), then execute its procedure — normalizing the
+[`skills/follow/SKILL.md`](../../skills/follow/SKILL.md), then execute its procedure — normalizing the
 handed-over handle or link, deduping it against the existing roster before proposing, assembling a
 schema-valid add-or-update that honors the real-URL discipline, keeping the roster's prose companion in
 parity, and opening the review PR.

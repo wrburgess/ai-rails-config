@@ -1,5 +1,5 @@
 ---
-name: rtr
+name: listen
 description: Review-response step of the Deliver stage. Fetch every review thread on an existing PR, classify findings by severity, summarize for the HC, and — after the HC chooses which to address — fix, re-check, and reply. Use when a Reviewer (human or AI) has left feedback on the PR.
 ---
 

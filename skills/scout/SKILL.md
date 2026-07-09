@@ -38,7 +38,7 @@ an **inbox-only** run:
 - **Full sweep (default — manual or scheduled).** Everything below applies: sweep the Watchlist
   feeds/handles **and** the manual-drop inbox, and advance the last-swept marker. This is the mode a
   person or a schedule invokes with no specific item in mind.
-- **Inbox-only / specific-drop.** When the [`drop`](../drop/SKILL.md) front door hands off a single
+- **Inbox-only / specific-drop.** When the [`clip`](../clip/SKILL.md) front door hands off a single
   item (or a run is otherwise scoped to the inbox), process **only** the manual-drop inbox — the
   handed-over drop. In this mode: **(a)** skip the Watchlist feed/handle sweep entirely (step 3's
   feed poll and step 4's search); **(b)** do **not** advance the last-swept marker (step 8) — no feed
@@ -106,10 +106,10 @@ an **inbox-only** run:
    time**: for each, present its `claim`, `stance`, `touches`, and a **recommended disposition** (accept
    as drafted / edit / drop) with a one-line rationale, then **wait for the human's accept, edit, or
    reject before presenting the next** — the same one-at-a-time discipline
-   [`grill-with-docs`](../grill-with-docs/SKILL.md) uses for questions. Apply each decision as it is
+   [`distill`](../distill/SKILL.md) uses for questions. Apply each decision as it is
    made: an accepted entry stands, an edited one is revised in place, a rejected one is dropped and
    never appended. This step runs **only when at least one entry survived step 6** — an empty sweep has
-   nothing to walk. A single-finding run (a [`drop`](../drop/SKILL.md) hand-off) walks that one finding,
+   nothing to walk. A single-finding run (a [`clip`](../clip/SKILL.md) hand-off) walks that one finding,
    then continues to the PR, so the degenerate case feels identical.
 
    *Graceful degradation ([ADR 0003](../../docs/adr/0003-skills-canonical-body-thin-shims-graceful-degradation.md)):*
