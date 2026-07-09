@@ -1,5 +1,7 @@
 # Baseline skill set is eight; GitHub is the default (pluggable) lifecycle host
 
+> Note (#73): the names and counts below predate later changes — the baseline has since grown to **twelve** skills and six were renamed (grill-with-docs→distill, cplan→devise, impl→invoke, rtr→listen, drop→clip, voice→follow). This ADR records the original decision as of its date; see `AGENTS.md` / `REQUIRED_SKILLS` for the current set.
+
 **Status:** accepted
 
 ## Skill set

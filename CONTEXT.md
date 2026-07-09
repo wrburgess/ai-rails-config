@@ -86,7 +86,7 @@ _Avoid_: "the notes", "changelog"
 The human-fed lane where a person drops a raw pointer (a URL + who + one line of why) to field output the `scout` sweep can't fetch on its own — X posts, paywalled or feed-less sources — for the next sweep to turn into a Learnings-Log entry. A drop is raw input and carries no stance; scout assigns it.
 _Avoid_: "the queue", "the dropbox"
 
-**Drop skill**:
+**Clip skill**:
 The intake pipeline's **push front door** (the `clip` Skill): it turns field output a human hands over in any session — a screenshot, a link, or a quote — into a well-formed, stance-less Manual-drop inbox drop, enforcing a real-URL gate, then delegates to `scout` to draft the Learnings-Log entry and open the review PR. Complements the `scout` **pull** sweep; a human still disposes on the PR.
 _Avoid_: "the uploader", "the importer"
 

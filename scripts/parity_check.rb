@@ -90,7 +90,7 @@ class ParityCheck
   # through a thin Invocation Shim. Checked only for a bundle that ships a skills/ tree (the
   # SKILLS_DIR gate) so a minimal fixture bundle is unaffected — the same "only for a bundle that
   # ships them" stance as check_rules / check_guardrails. REQUIRED_SKILLS is a floor (the baseline
-  # ships all 10 today); it grows as later issues add skills. The per-present-skill invariants apply
+  # ships all 12 today); it grows as later issues add skills. The per-present-skill invariants apply
   # to EVERY skills/<name>/ dir, so those later skills are covered by construction — no rewrite.
   SKILLS_DIR = "skills"
   CLAUDE_COMMANDS_DIR = ".claude/commands"
