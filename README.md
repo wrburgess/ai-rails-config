@@ -18,56 +18,70 @@ project, edit one file, and every AI coding assistant follows the same reviewabl
 
 ## What it is & how it works
 
-The design intent throughout: **author once, resolve everywhere, and guard the resolution with a
-deterministic check** — so four different AI tools stay in lockstep with no human hand-syncing.
+Seven pillars — each a **benefit**, then the mechanism that proves it. The throughline is **author
+once, resolve everywhere, and guard the resolution with a deterministic check**, so four different AI
+tools stay in lockstep with no human hand-syncing. **Secure** leads the list; **Efficient** is on the
+roadmap.
 
-- **One Canonical Source → thin Adapters (projection, not duplication).** All instructions are authored
-  once in [`AGENTS.md`](AGENTS.md). Each tool reaches it through an **Adapter** that *resolves back*
-  rather than copying: Claude and Gemini import it (`@AGENTS.md` in [`CLAUDE.md`](CLAUDE.md) /
-  [`GEMINI.md`](GEMINI.md)); Codex and Copilot read `AGENTS.md` natively (`.github/copilot-instructions.md`
-  is just a discovery marker). No tool follows a free-text pointer, so none receives drifted
-  instructions ([ADR 0002](docs/adr/0002-agents-md-canonical-pointer-projection.md)).
-- **[`PROJECT.md`](PROJECT.md) — the one Customization surface.** A Host App declares its quality-check
-  commands, attribution/model, branch policy, review-severity framework, and lifecycle host here; the
-  baseline files stay generic. A re-sync preserves it (and an existing `bin/setup`).
-- **A structural parity gate, not a model in the loop.** `scripts/parity_check.rb` is a dependency-free
-  check that asserts every Adapter still resolves, the `PROJECT.md` contract sections are intact, and
-  every documented link resolves — making drift mechanically impossible to merge
-  ([ADR 0008](docs/adr/0008-structural-parity-check-not-model-in-the-loop.md)).
-- **A two-tier Rules Layer for progressive context** ([ADR 0004](docs/adr/0004-two-tier-rules-layer-progressive-context.md)).
-  Tier-1 **Lean Core** = seven always-resident `rules/*.md` files (`backend`, `frontend`, `testing`,
-  `security`, `self-review`, `scripting`, `skills`), each with Patterns + Anti-Patterns; Tier-2 **Deep
-  Docs** (`docs/rules/`) are pulled in on demand via a trigger table. Stack-neutral starters — extend
-  per host, or vendor a matching **Stack Overlay** (e.g. `ai-config-rails`) alongside.
-- **Single-sourced Skills (12).** Each is authored once as `skills/<name>/SKILL.md` and invoked through
-  a thin per-tool shim (Claude `.claude/commands/<name>.md`; other tools via native `AGENTS.md`
-  discovery); only tool-specific execution enhancements degrade gracefully, never the procedure or the
-  gates ([ADR 0003](docs/adr/0003-skills-canonical-body-thin-shims-graceful-degradation.md)). The set:
-  `distill`; the six **lifecycle** skills `assess` → `devise` → `invoke` → `verify` → `listen` →
-  `final` (an issue/PR workflow with two mandatory human gates — plan approval, merge; spec in
-  `docs/standards/development-lifecycle.md`); the `ship` orchestrator (Epic #1); the `scout` intake
-  sweep (Epic #28); the `clip` intake front door (Issue #46); the `create-skill` authoring front door
-  (Issue #67); and the `follow` roster front door that adds/updates a Watchlist voice from a handle or
-  link (Issue #66).
-- **`ship` — delegation by output-weight.** The orchestrator runs the six lifecycle skills end to end
-  while keeping a lean main context: it **offloads output-heavy** work (exploration, the code+check+fix
-  loop, full-diff review) to discardable sub-agents, and **keeps judgment-heavy** work (plan authoring,
-  severity calls, merge-readiness) in the clean orchestrator — so a lossy summary can't silently steer
-  the outcome ([ADR 0005](docs/adr/0005-ship-hybrid-delegation-offload-retrieval-protect-judgment.md)).
-- **An intake pipeline — propose, then a human disposes.** [`scout`](skills/scout/SKILL.md) polls a
-  **Watchlist** (`docs/reference/voices.yml`), drafts dated **Learnings Log** entries
-  (`docs/reference/learnings/`), and opens a review PR ([ADR 0012](docs/adr/0012-intake-pipeline-placement.md),
-  [ADR 0013](docs/adr/0013-scheduled-intake-sweep-and-empty-sweep-policy.md)).
-  [`clip`](skills/clip/SKILL.md) is its **push front door**: hand it a screenshot, link, or quote and it
-  enforces a real-URL gate, writes a stance-less drop, and delegates to `scout`
-  ([ADR 0015](docs/adr/0015-intake-front-door-drop-skill.md)). Ships as an illustrative reference seed;
-  repoint per host via `PROJECT.md` → *Intake Pipeline*.
-- **Defense-in-depth branch protection.** `.githooks/` + `bin/guard-protected-branch` +
-  `bin/install-git-hooks` + the Claude `.claude/hooks/enforce-branch-creation.sh` fast-fail stop any
-  agent — or accidental human — from committing/pushing to a protected branch. The list is authored in
-  `PROJECT.md`, not hardcoded ([ADR 0009](docs/adr/0009-defense-in-depth-branch-protection-all-agents.md)).
-- **[`CONTEXT.md`](CONTEXT.md) + [`docs/adr/`](docs/adr)** — the domain glossary and the Architecture
-  Decision Records behind every choice above.
+1. **Secure — stops any agent (or human) from committing to a protected branch, and keeps secrets out
+   of the repo.** Defense-in-depth branch protection — portable git hooks (`.githooks/` +
+   `bin/guard-protected-branch` + `bin/install-git-hooks`) *and* a per-tool fast-fail
+   (`.claude/hooks/enforce-branch-creation.sh`) — blocks the write before it happens; the protected
+   list is authored in [`PROJECT.md`](PROJECT.md), never hardcoded. Secret hygiene lives in
+   [`rules/security.md`](rules/security.md)
+   ([ADR 0009](docs/adr/0009-defense-in-depth-branch-protection-all-agents.md)).
+
+2. **Portable — write the house rules once; Claude, Codex, Copilot & Gemini all read the same copy.**
+   Every instruction is authored once in the Canonical Source [`AGENTS.md`](AGENTS.md); each tool reaches
+   it through a thin **Adapter** that *resolves back* rather than copying (Claude and Gemini import it
+   via `@AGENTS.md`; Codex and Copilot read `AGENTS.md` natively). No tool follows a free-text pointer,
+   so none receives drifted instructions — and `scripts/parity_check.rb` enforces zero drift as a merge
+   gate ([ADR 0002](docs/adr/0002-agents-md-canonical-pointer-projection.md),
+   [ADR 0008](docs/adr/0008-structural-parity-check-not-model-in-the-loop.md)).
+
+3. **Methodical — a repeatable, human-gated path from idea to merge.** Six lifecycle Skills —
+   `/assess → /devise → /invoke → /verify → /listen → /final` — carry an issue to a merged PR, with
+   `/distill` to sharpen the plan first and `/ship` to run the whole sequence hands-off. **Plan
+   approval** and **merge** are mandatory human gates that are never bypassed
+   ([ADR 0006](docs/adr/0006-baseline-skill-set-and-github-default-lifecycle-host.md)); `/ship` stays
+   lean by offloading output-heavy work to discardable sub-agents while keeping the judgment calls in a
+   clean orchestrator ([ADR 0005](docs/adr/0005-ship-hybrid-delegation-offload-retrieval-protect-judgment.md)).
+
+4. **Customizable — tailor it to any project without forking the baseline.** One Customization surface,
+   [`PROJECT.md`](PROJECT.md), is where a Host App declares its quality checks, attribution/model, branch
+   policy, review severities, and lifecycle host; a two-tier **Rules Layer** (an always-resident Lean
+   Core of `rules/*.md` plus Deferred Deep Docs pulled in on demand) carries the domain guidance. The
+   baseline stays stack-neutral — extend it per host, or vendor a matching **Stack Overlay** (e.g.
+   `ai-config-rails`) alongside ([ADR 0004](docs/adr/0004-two-tier-rules-layer-progressive-context.md)).
+
+5. **Transparent — see *who/what* made each change and *why* each decision was made.** Two mechanisms,
+   answering two questions:
+   - **Attribution → *who/what*.** Every commit carries a `Co-Authored-By: <tool> <model>` trailer and
+     every PR/review/comment a `— <tool> (<model>)` footer, all sourced from one declaration in
+     [`PROJECT.md`](PROJECT.md) — so provenance is never ambiguous
+     ([ADR 0007](docs/adr/0007-attribution-includes-model-version-for-audits.md)).
+   - **ADRs → *why*.** Every non-trivial choice is a numbered, append-only Architecture Decision Record
+     in [`docs/adr/`](docs/adr) — context, options weighed, decision + consequences — so the config
+     never decays into unexplained conventions.
+
+   *Methodical vs. Transparent:* Methodical means the process is disciplined **up front** (gates,
+   stages); Transparent means you can **audit it after the fact** (who/what/why).
+
+6. **Evolving — watches the field and proposes updates for you to approve.** An intake pipeline keeps the
+   bundle's reference material current: `/scout` **pulls** — polling a **Watchlist**
+   (`docs/reference/voices.yml`) and drafting dated **Learnings Log** entries
+   (`docs/reference/learnings/`) — while `/clip` **pushes** a screenshot, link, or quote you hand it, and
+   `/follow` curates the Watchlist roster. Every path opens a review PR; **a human always disposes**
+   ([ADR 0012](docs/adr/0012-intake-pipeline-placement.md),
+   [ADR 0015](docs/adr/0015-intake-front-door-drop-skill.md)).
+
+7. **Efficient — the right model for each job: cheap work on cheap models, judgment on the frontier.**
+   Cost-aware model routing. *Roadmap — [#77](https://github.com/wrburgess/ai-config/issues/77): today
+   only the per-agent model **declaration** in [`PROJECT.md`](PROJECT.md) exists, not yet the routing
+   that spends it wisely.*
+
+Every pillar above traces to a numbered ADR in [`docs/adr/`](docs/adr); the domain vocabulary (Config
+Bundle, Adapter, Skill, Rules Layer…) is defined in [`CONTEXT.md`](CONTEXT.md).
 
 ## Get started
 
