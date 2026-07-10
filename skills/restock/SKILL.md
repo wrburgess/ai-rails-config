@@ -40,13 +40,16 @@ all**. `restock` never commits directly to a protected branch, and never opens a
    papered over with a placeholder.
 
 3. **Reconcile — apply only real, field-level deltas (reconfirm-or-age).** For each entry:
-   - A **fact that changed** (a new stable version, a moved price, an added effort tier, a status change)
-     is updated in place, and that entry's `verified` is set to today — its facts were re-confirmed.
-   - A **fact confirmed unchanged** leaves the entry **untouched**, `verified` included, so the eventual
-     diff carries *changed entries only*, never a rehash of the whole board.
-   - A **fact that can no longer be confirmed** is **left at its last value to age** (its `verified` falls
-     behind) — surfaced as staleness, never fabricated or blanked. This is the `voices.yml` unresolved-feed
-     discipline applied to facts.
+   - **Write in the facts that changed** (a new stable version, a moved price, an added effort tier, a
+     status change), so the eventual diff carries *changed entries only*, never a rehash of the board.
+   - **Advance `verified` to today only when *every* retained fact on the entry was reconfirmed this
+     run** — whether it was unchanged or updated to a freshly-sourced value. `verified` means "as of this
+     date, every fact in this entry was confirmed against its `sources:`" — never "some of it was."
+   - **If *any* fact on the entry could not be reconfirmed** (a dead source, an unresolvable value),
+     **leave `verified` untouched so it ages — even when another fact on the same entry changed** — and
+     surface the unconfirmable fact as staleness (step 6). The changed value is still written in; the
+     `verified` stamp is what does not move, so an unconfirmed fact is never implicitly refreshed. This is
+     the `voices.yml` unresolved-feed discipline applied to facts.
    - A subjective `dumb_zone` estimate is **never machine-authored**; preserve it verbatim. **When an
      entry's `stable_version` changes and it carries a `dumb_zone`, flag that estimate as possibly-stale**
      in the digest — the guess predates the new version and wants a human re-estimate.
@@ -57,12 +60,14 @@ all**. `restock` never commits directly to a protected branch, and never opens a
    changes are a human's call: surface them in the PR for disposition rather than adding or dropping
    silently. Never fabricate an entry for a tool whose facts can't be sourced.
 
-5. **Empty refresh → no PR, no commit.** If **no** entry's facts changed — every tracked value
-   re-confirmed unchanged, or only aged — the refresh is *empty*: open **no** pull request and commit
-   nothing (a scheduled session logs "refreshed, nothing changed" and exits clean). The board is left
-   exactly as it was so the next run re-checks it. An empty refresh is a valid, expected result — never a
-   reason to open an empty PR, to bump a date for its own sake, or to invent a change. Steps 6–7 apply
-   **only when at least one fact changed.**
+5. **Empty refresh → no PR, no commit.** A refresh is *empty* **only when every `sources:` URL still
+   resolved and no tracked value changed**. In that case open **no** pull request and commit nothing (a
+   scheduled session logs "refreshed, nothing changed" and exits clean); the board is left exactly as it
+   was so the next run re-checks it. **A source that fails to resolve is itself a reportable delta** —
+   surface it (step 6) and open the PR even when no value changed, because a newly-dead source is a blind
+   spot, not silence. An empty refresh is never a reason to open an empty PR, bump a date for its own
+   sake, or invent a change. Steps 6–7 apply whenever a value changed **or** a `sources:` URL failed to
+   resolve.
 
 6. **Render the deltas-only digest.** Summarize **only what moved** since the last state — new entries,
    retired entries, version bumps, price changes, and any `dumb_zone` flagged stale by a version bump —
@@ -90,11 +95,14 @@ human-disposes gate never do.
 <quality-gate>
 
 Before opening the PR: every **changed** value traces to a real `sources:` URL (no invented fact); every
-**unconfirmable** value was left to age (never fabricated or blanked); no unchanged entry was rewritten
-(the diff is deltas-only, not a rehash); a `dumb_zone` outdated by a version bump is flagged; and roster
-add/retire proposals are surfaced for the human, not applied silently. On an **empty refresh** — no fact
-changed — the correct output is **no PR and no commit**, never an empty PR. Whenever at least one fact
-changed, the output is a reviewable PR, **never a direct commit** to a protected branch. Sign the PR and
+**unconfirmable** value was left to age (never fabricated or blanked); **`verified` advanced only on
+entries where *every* fact was reconfirmed** — an entry with any unconfirmable fact kept its aging
+`verified` even when another fact on it changed; no unchanged entry was rewritten (the diff is
+deltas-only, not a rehash); a `dumb_zone` outdated by a version bump is flagged; and roster add/retire
+proposals are surfaced for the human, not applied silently. On an **empty refresh** — every source
+resolved and no value changed — the correct output is **no PR and no commit**; a source that **failed to
+resolve** is surfaced in a PR, never swallowed as "empty." Whenever a value changed or a source failed to
+resolve, the output is a reviewable PR, **never a direct commit** to a protected branch. Sign the PR and
 any lifecycle-host comment with the footer from [`PROJECT.md`](../../PROJECT.md) → *Attribution & Model
 Declaration*, using your runtime-actual model.
 
@@ -103,4 +111,3 @@ PR. It re-checks facts and stamps provenance; it does not decide, on its own, th
 the board.
 
 </quality-gate>
-</output>

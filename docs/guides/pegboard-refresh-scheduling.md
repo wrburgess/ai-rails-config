@@ -62,15 +62,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # Run the agent your host uses, with the prompt "/restock".
+      # Run the agent your host uses with a tool-neutral instruction — "read and follow
+      # skills/restock/SKILL.md and run one refresh". On Claude that is the /restock shim;
+      # Codex/Copilot/Gemini reach the same body via native AGENTS.md discovery.
       # Supply the agent's credential as a repository secret (e.g. an API key);
       # the Generic Baseline names no specific tool or secret here.
       # The step must open a REVIEW PR — never merge. Branch protection (Layers 1-3)
       # is the backstop that keeps a direct push to a protected branch from landing.
 ```
 
-Whatever agent the step invokes, two invariants hold: it runs `/restock` (the same skill), and it opens
-a **review PR** — never an auto-merge.
+Whatever agent the step invokes, two invariants hold: it runs the **same skill** — via the `/restock`
+shim on Claude, or by reading and following `skills/restock/SKILL.md` on the native-discovery tools
+(Codex, Copilot, Gemini) — and it opens a **review PR**, never an auto-merge.
 
 ## Notifying the maintainer — the push transport
 

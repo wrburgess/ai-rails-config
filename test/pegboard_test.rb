@@ -19,6 +19,7 @@ class PegboardTest < Minitest::Test
   STATUSES        = %w[active in-flux dormant].freeze
   EFFORT_TIERS    = %w[low medium high xhigh max].freeze
   CONFIG_FEATURES = %w[hooks skill-shims mcp subagents plugins agents-md].freeze
+  MATURITIES      = %w[ga preview].freeze
   URL_RE          = %r{\Ahttps?://\S+\z}.freeze
 
   def setup
@@ -139,6 +140,11 @@ class PegboardTest < Minitest::Test
     assert(errs.any? { |m| m.include?("config_features") }, errs.inspect)
   end
 
+  def test_rejects_unknown_maturity
+    errs = entry_errors(valid_model.merge("maturity" => "beta"), kind: :model)
+    assert(errs.any? { |m| m.include?("maturity") }, errs.inspect)
+  end
+
   private
 
   # Returns the list of invariant violations for one entry (empty == valid).
@@ -161,6 +167,9 @@ class PegboardTest < Minitest::Test
 
     if entry.key?("version_date") && !entry["version_date"].is_a?(Date)
       errs << "`version_date` must be a YYYY-MM-DD date when present"
+    end
+    if entry.key?("maturity") && !MATURITIES.include?(entry["maturity"])
+      errs << "`maturity` #{entry['maturity'].inspect} out of set (ga | preview)"
     end
 
     kind == :harness ? harness_errors(entry, errs) : model_errors(entry, errs)

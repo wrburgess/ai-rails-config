@@ -84,6 +84,9 @@ the roadmap.
 
 7. **Efficient — the right model for each job: cheap work on cheap models, judgment on the frontier.**
    - Cost-aware model routing.
+   - `/restock` maintains the **Tooling Pegboard** (`docs/reference/pegboard.yml`) — a current-state
+     snapshot of coding harnesses & models (versions, cost, effort tiers) that informs those choices
+     ([ADR 0022](docs/adr/0022-pegboard-facts-tracker-sibling-to-intake.md)).
    - *Roadmap ([#77](https://github.com/wrburgess/ai-config/issues/77)):* today only the per-agent
      model **declaration** in [`PROJECT.md`](PROJECT.md) exists — not yet the routing that spends it
      wisely.
