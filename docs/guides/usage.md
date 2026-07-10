@@ -84,7 +84,7 @@ identical on every tool, and only tool-specific execution enhancements degrade g
 - `scout` — the intake sweep; `clip` — the intake push front door.
 - `create-skill` — the authoring front door (scaffolds a new, conforming skill from full repo context).
 - `follow` — the roster front door (adds/updates a Watchlist voice from a handle or link).
-- `restock` — the Tooling Pegboard refresh (re-verifies the harness/model snapshot's facts, opens a deltas-only PR).
+- `restock` — the Tool Roster refresh (re-verifies the harness/model snapshot's facts, opens a deltas-only PR).
 
 **How each configured agent invokes a Skill:**
 

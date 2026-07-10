@@ -1,14 +1,14 @@
 ---
 name: restock
-description: Refresh the Tooling Pegboard — re-verify each tracked harness/model entry's facts against its own sources, apply only the real field-level deltas (reconfirm-or-age, never fabricate), flag estimates a version bump has outdated, and open a deltas-only PR — staying quiet when nothing changed. Use to keep the current-best-tools snapshot current without babysitting the release firehose.
+description: Refresh the Tool Roster — re-verify each tracked harness/model entry's facts against its own sources, apply only the real field-level deltas (reconfirm-or-age, never fabricate), flag estimates a version bump has outdated, and open a deltas-only PR — staying quiet when nothing changed. Use to keep the current-best-tools snapshot current without babysitting the release firehose.
 ---
 
 <what-to-do>
 
-Run one **Pegboard refresh**: read the [Tooling Pegboard](../../CONTEXT.md) — the current-state snapshot
+Run one **Tool Roster refresh**: read the [Tool Roster](../../CONTEXT.md) — the current-state snapshot
 of the coding harnesses and models worth weighing for software development — re-verify each entry's facts
 against its own `sources:`, and open a pull request carrying **only what changed** for a human to review.
-This is the mechanism that keeps the Pegboard current; `restock` **proposes** the deltas, a human
+This is the mechanism that keeps the Tool Roster current; `restock` **proposes** the deltas, a human
 **disposes** on the PR.
 
 `restock` is the **sibling** of [`scout`](../scout/SKILL.md): where `scout` drafts stance-bearing
@@ -17,10 +17,10 @@ is not a judgment to be argued — it is a fact to be **verified**, so `restock`
 discipline is provenance (every changed value traced to a real source; an unconfirmable value ages rather
 than being invented).
 
-Read host-specific values from [`PROJECT.md`](../../PROJECT.md): the **Pegboard location** from *Tooling
-Pegboard*, the branch/PR/issue-linking policy from *Branch & PR Policy*, and the attribution/model from
+Read host-specific values from [`PROJECT.md`](../../PROJECT.md): the **Tool Roster location** from *Tool
+Roster*, the branch/PR/issue-linking policy from *Branch & PR Policy*, and the attribution/model from
 *Attribution & Model Declaration*. Never hardcode a path, a branch name, a platform verb, or any product
-name here — the body stays business-neutral and a Host App repoints its Pegboard in Project Config.
+name here — the body stays business-neutral and a Host App repoints its Tool Roster in Project Config.
 
 **Terminal artifact: an open PR** carrying the field-level deltas — or, when nothing changed, **no PR at
 all**. `restock` never commits directly to a protected branch, and never opens an empty PR.
@@ -29,11 +29,11 @@ all**. `restock` never commits directly to a protected branch, and never opens a
 
 <procedure>
 
-1. **Resolve the Pegboard location from Project Config.** Read [`PROJECT.md`](../../PROJECT.md) →
-   *Tooling Pegboard* for the artifact's path. Everything below refers to it by role, never by a
+1. **Resolve the Tool Roster location from Project Config.** Read [`PROJECT.md`](../../PROJECT.md) →
+   *Tool Roster* for the artifact's path. Everything below refers to it by role, never by a
    hardcoded path.
 
-2. **Load the Pegboard and re-verify each entry against its own `sources:`.** For every harness and model
+2. **Load the Tool Roster and re-verify each entry against its own `sources:`.** For every harness and model
    entry, poll its `sources:` URLs (with `WebFetch` / `WebSearch`) for the current value of each tracked
    fact — version, release date, price, effort tiers, benchmark, config features. **Never invent a source
    or a value.** A `sources:` list that no longer resolves is *staleness to surface* (step 6), never
@@ -55,7 +55,7 @@ all**. `restock` never commits directly to a protected branch, and never opens a
      in the digest — the guess predates the new version and wants a human re-estimate.
 
 4. **Weigh roster changes against the inclusion test — propose, don't decide.** A tool that has newly
-   cleared, or newly fails, the Pegboard's inclusion test (does it plausibly enter a rotation decision for
+   cleared, or newly fails, the Tool Roster's inclusion test (does it plausibly enter a rotation decision for
    software development?) may be proposed as an **add** or a **retire** (`status: dormant`) — but roster
    changes are a human's call: surface them in the PR for disposition rather than adding or dropping
    silently. Never fabricate an entry for a tool whose facts can't be sourced.

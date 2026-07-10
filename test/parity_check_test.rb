@@ -516,7 +516,7 @@ class ParityCheckTest < Minitest::Test
   end
 
   def test_required_restock_skill_absent_fails
-    # `restock` is the Tooling Pegboard refresh (ADR 0022), a baseline member of the floor: dropping it
+    # `restock` is the Tool Roster refresh (ADR 0023), a baseline member of the floor: dropping it
     # reddens too. This pins restock into REQUIRED_SKILLS so a future edit can't silently drop it.
     with_bundle do |dir|
       add_skills(dir)

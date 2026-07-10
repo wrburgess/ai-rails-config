@@ -1,20 +1,20 @@
 # frozen_string_literal: true
 
-# Data-contract self-test for docs/reference/pegboard.yml — the Tooling Pegboard (issue #83, ADR 0022).
-# The Pegboard is a structured YAML snapshot of AI coding harnesses & models; nothing else lints it, so a
+# Data-contract self-test for docs/reference/tool-roster.yml — the Tool Roster (issue #83, ADR 0023).
+# The Tool Roster is a structured YAML snapshot of AI coding harnesses & models; nothing else lints it, so a
 # malformed or dishonestly-shaped entry would otherwise ship green. This test asserts the schema
 # invariants documented in the file's own header — NOT *which* products are listed: it stays business-
 # neutral (structure & provenance discipline only, never identity). Stdlib only (minitest, yaml, date),
 # mirroring test/voices_watchlist_test.rb and ADR 0008.
 #
-# Run: ruby test/pegboard_test.rb
+# Run: ruby test/tool_roster_test.rb
 
 require "minitest/autorun"
 require "yaml"
 require "date"
 
-class PegboardTest < Minitest::Test
-  PEGBOARD = File.expand_path("../docs/reference/pegboard.yml", __dir__)
+class ToolRosterTest < Minitest::Test
+  TOOL_ROSTER = File.expand_path("../docs/reference/tool-roster.yml", __dir__)
 
   STATUSES        = %w[active in-flux dormant].freeze
   EFFORT_TIERS    = %w[low medium high xhigh max].freeze
@@ -24,7 +24,7 @@ class PegboardTest < Minitest::Test
 
   def setup
     # `verified:`/`as_of:` are ISO dates, so a plain safe_load would raise Psych::DisallowedClass.
-    @doc = YAML.safe_load(File.read(PEGBOARD), permitted_classes: [Date])
+    @doc = YAML.safe_load(File.read(TOOL_ROSTER), permitted_classes: [Date])
   end
 
   def harnesses
@@ -42,11 +42,11 @@ class PegboardTest < Minitest::Test
   # --- shape ---
 
   def test_parses_with_nonempty_harness_and_model_lists
-    assert_kind_of Hash, @doc, "pegboard.yml must parse to a mapping"
+    assert_kind_of Hash, @doc, "tool-roster.yml must parse to a mapping"
     assert_kind_of Array, harnesses, "top-level `harnesses:` must be a list"
     assert_kind_of Array, models, "top-level `models:` must be a list"
-    refute_empty harnesses, "the Pegboard must carry at least one harness"
-    refute_empty models, "the Pegboard must carry at least one model"
+    refute_empty harnesses, "the Tool Roster must carry at least one harness"
+    refute_empty models, "the Tool Roster must carry at least one model"
   end
 
   # --- the real seed obeys every invariant (happy path) ---
@@ -68,7 +68,7 @@ class PegboardTest < Minitest::Test
   def test_names_are_unique_within_each_category
     { harness: harnesses, model: models }.each do |kind, list|
       names = list.map { |e| e["name"] }
-      assert_equal names.uniq, names, "duplicate #{kind} name in the Pegboard"
+      assert_equal names.uniq, names, "duplicate #{kind} name in the Tool Roster"
     end
   end
 

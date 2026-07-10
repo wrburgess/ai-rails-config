@@ -1,11 +1,11 @@
-# pegboard.yml — the Tooling Pegboard: a current-state snapshot of the AI coding harnesses and models
-# worth weighing for software development (issue #83, ADR 0022).
+# tool-roster.yml — the Tool Roster: a current-state snapshot of the AI coding harnesses and models
+# worth weighing for software development (issue #83, ADR 0023).
 #
 # ILLUSTRATIVE REFERENCE — NOT part of the Generic Baseline guarantee. This is curated content a Host
 # App is expected to replace or extend during Customization; only the *schema* (the legend below) is
 # business-neutral mechanism. Placement mirrors the Watchlist (ADR 0012); see docs/reference/README.md.
 #
-# The Pegboard is a SNAPSHOT, not a log: entries are overwritten in place, and git history is the record
+# The Tool Roster is a SNAPSHOT, not a log: entries are overwritten in place, and git history is the record
 # of what changed. It is a SIBLING to the Learnings Log (voices/opinions); this tracks tools/facts. The
 # `restock` refresh skill (issue #83, later phase) maintains it; a human disposes on the refresh PR.
 #
@@ -36,7 +36,7 @@
 #   swe_bench_verified : { score: <0-100>, source: <URL>, as_of: <YYYY-MM-DD> }  # benchmark — dated + sourced
 #   dumb_zone          : { value: "<free text>", estimated: true }             # SUBJECTIVE estimate — HC-authored, always flagged
 #
-# Provenance discipline (the honesty rule, enforced by test/pegboard_test.rb):
+# Provenance discipline (the honesty rule, enforced by test/tool_roster_test.rb):
 #   - vendor-facts (version, price) come from a real `sources:` URL; an unconfirmable value AGES (its
 #     `verified` date falls behind) rather than being fabricated — the voices.yml `feeds: []` philosophy.
 #   - a `dumb_zone` is a guess and ALWAYS carries `estimated: true`; it can never render as a vendor fact.

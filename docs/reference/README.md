@@ -24,8 +24,8 @@ content lives here, is recorded in [ADR 0012](../adr/0012-intake-pipeline-placem
   AI-engineering voices (issue #27): the human-readable sibling of `voices.yml`. It owns the narrative
   (per-person **Focus**, tier rationale, and the non-person *balance* documents + *master resource*);
   `voices.yml` owns the machine fields (`feeds`, `cadence`, `verified`, `status`) the sweep polls.
-- [`pegboard.yml`](pegboard.yml) — the **Tooling Pegboard** (issue #83,
-  [ADR 0022](../adr/0022-pegboard-facts-tracker-sibling-to-intake.md)): a current-state snapshot of the
+- [`tool-roster.yml`](tool-roster.yml) — the **Tool Roster** (issue #83,
+  [ADR 0023](../adr/0023-tool-roster-facts-tracker-sibling-to-intake.md)): a current-state snapshot of the
   AI coding **harnesses** and **models** worth weighing for software development. Its schema is
   business-neutral mechanism; its entries are illustrative. A **sibling** to the Learnings Log —
   tools/facts, not voices/opinions — a *snapshot* (overwritten in place; git history is the log),

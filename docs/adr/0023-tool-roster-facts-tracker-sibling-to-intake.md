@@ -1,4 +1,4 @@
-# Pegboard: a facts-and-products tracker as a sibling to the voices intake pipeline
+# Tool Roster: a facts-and-products tracker as a sibling to the voices intake pipeline
 
 **Status:** accepted
 
@@ -31,7 +31,7 @@ changed**, pushed, because they won't pull.
 
 ## Decision
 
-Stand up **the Pegboard** — a curated, version-controlled, current-state snapshot of the
+Stand up **the Tool Roster** — a curated, version-controlled, current-state snapshot of the
 harnesses and models worth weighing for software development — as a **sibling** to the intake
 pipeline, not an extension of it. Design:
 
@@ -52,7 +52,7 @@ pipeline, not an extension of it. Design:
   flag** on estimates written before it.
 - **Placement and delivery mirror [ADR 0012](0012-intake-pipeline-placement.md) /
   [ADR 0013](0013-scheduled-intake-sweep-and-empty-sweep-policy.md).** The *mechanism* (schema
-  + refresh) is Generic Baseline and name-free; the *populated* Pegboard is illustrative
+  + refresh) is Generic Baseline and name-free; the *populated* Tool Roster is illustrative
   reference under `docs/reference/`. The refresh runs weekday mornings, is **quiet when nothing
   changed**, and pushes **deltas only** (never a rehash); its scheduler and transport (email is
   one option) are **documented, not shipped** — no secret, no live workflow, host-configured.
@@ -81,8 +81,8 @@ pipeline, not an extension of it. Design:
 ## Consequences
 
 - Two field-monitoring loops now exist as **siblings**: *voices → Learnings Log* (qualitative,
-  stance-bearing, append-only) and *tools → Pegboard* (quantitative, current-state). `CONTEXT.md`
-  gains the **Pegboard** term.
+  stance-bearing, append-only) and *tools → Tool Roster* (quantitative, current-state). `CONTEXT.md`
+  gains the **Tool Roster** term.
 - The refresh ships as a new baseline Skill — **`restock`**, a sibling to `scout` — joining the
   `REQUIRED_SKILLS` floor with its self-test (the baseline grows to thirteen Skills), mirroring how
   [ADR 0015](0015-intake-front-door-drop-skill.md) / [ADR 0021](0021-voice-watchlist-front-door.md)
@@ -92,7 +92,7 @@ pipeline, not an extension of it. Design:
   backticked until they exist; a scheduling guide (à la
   [`intake-sweep-scheduling.md`](../guides/intake-sweep-scheduling.md)) documents the
   weekday-morning trigger, the deltas-only / quiet-when-empty policy, and the host-config
-  transport without shipping a workflow or secret. `PROJECT.md` gains a Pegboard artifact location
+  transport without shipping a workflow or secret. `PROJECT.md` gains a Tool Roster artifact location
   during the build, alongside the intake locations.
 - The pairing view and off-house support enum are deliberately deferred; the Efficient pillar
   derives them from the normalized lists rather than reading a stored grid.

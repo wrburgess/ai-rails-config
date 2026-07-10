@@ -21,7 +21,7 @@ file holds only Claude-specific configuration notes that have no place in the to
   [`.claude/commands/create-skill.md`](.claude/commands/create-skill.md) → `/create-skill` (canonical
   body: `skills/create-skill/SKILL.md`), and the roster front-door shim
   [`.claude/commands/follow.md`](.claude/commands/follow.md) → `/follow` (canonical body:
-  `skills/follow/SKILL.md`), and the Pegboard refresh shim
+  `skills/follow/SKILL.md`), and the Tool Roster refresh shim
   [`.claude/commands/restock.md`](.claude/commands/restock.md) → `/restock` (canonical body:
   `skills/restock/SKILL.md`) complete the set of thirteen.
 - **Settings & hooks** — `.claude/settings.json` wires the branch-protection fast-fail

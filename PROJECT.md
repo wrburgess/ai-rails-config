@@ -105,17 +105,17 @@ The *schemas* for these artifacts (the Watchlist fields, the Learnings-Log entry
 required `stance` and `touches`, the drop shape in the manual-drop inbox) are business-neutral mechanism
 and live with the artifacts; only the locations are host-configurable and belong here.
 
-## Tooling Pegboard
+## Tool Roster
 
-The location of the [Tooling Pegboard](docs/reference/pegboard.yml) artifact the `restock` refresh skill
+The location of the [Tool Roster](docs/reference/tool-roster.yml) artifact the `restock` refresh skill
 reads and writes, declared here so the generic Skill body names no path
-([ADR 0022](docs/adr/0022-pegboard-facts-tracker-sibling-to-intake.md), mirroring
+([ADR 0023](docs/adr/0023-tool-roster-facts-tracker-sibling-to-intake.md), mirroring
 [ADR 0012](docs/adr/0012-intake-pipeline-placement.md)). Ships as a **business-neutral placeholder**
 pointing at the illustrative seed; a Host App repoints it during Customization.
 
 | Artifact | Location |
 |----------|----------|
-| **Pegboard** — the current-state harness/model snapshot | [`docs/reference/pegboard.yml`](docs/reference/pegboard.yml) |
+| **Tool Roster** — the current-state harness/model snapshot | [`docs/reference/tool-roster.yml`](docs/reference/tool-roster.yml) |
 
-The Pegboard *schema* (the fields, the provenance typing, the inclusion test) is business-neutral
+The Tool Roster *schema* (the fields, the provenance typing, the inclusion test) is business-neutral
 mechanism and lives with the artifact; only the location is host-configurable and belongs here.

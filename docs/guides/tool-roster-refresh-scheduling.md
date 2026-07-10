@@ -1,11 +1,11 @@
-# Scheduling the Pegboard refresh
+# Scheduling the Tool Roster refresh
 
-The [`restock`](../../skills/restock/SKILL.md) skill runs one **Pegboard refresh**: it re-verifies each
+The [`restock`](../../skills/restock/SKILL.md) skill runs one **Tool Roster refresh**: it re-verifies each
 tracked harness/model entry's facts against that entry's own `sources:`, applies only the real
 field-level deltas (reconfirm-or-age, never fabricate), and opens a **deltas-only pull request** for a
 human to review. This guide covers running that refresh **on a cadence, without a babysitter** — the
 sibling of the [intake-sweep scheduling](intake-sweep-scheduling.md) guide, and the same
-documented-not-shipped stance ([ADR 0022](../adr/0022-pegboard-facts-tracker-sibling-to-intake.md),
+documented-not-shipped stance ([ADR 0023](../adr/0023-tool-roster-facts-tracker-sibling-to-intake.md),
 [ADR 0013](../adr/0013-scheduled-intake-sweep-and-empty-sweep-policy.md)).
 
 Everything here is **host-configured**. The `restock` skill body is business-neutral and names no
@@ -47,7 +47,7 @@ specific tool and need a host secret, which the Generic Baseline does not assume
 `.github/workflows/`, supply your own credentials, and tune the cadence:
 
 ```yaml
-name: pegboard-refresh
+name: tool-roster-refresh
 on:
   schedule:
     - cron: "0 13 * * 1-5"   # weekday mornings (13:00 UTC ~ 9am US-Eastern) — tune to your timezone
@@ -90,12 +90,12 @@ gate — the review PR remains the source of truth and the merge still happens t
 ## Cadence rationale
 
 **Default: weekday mornings (Mon–Fri).** Harness versions move fast (roughly daily) and model versions
-more slowly (roughly bi-monthly), but the Pegboard is a **condensed current-state snapshot**, not a
+more slowly (roughly bi-monthly), but the Tool Roster is a **condensed current-state snapshot**, not a
 changelog — so the goal is a prompt, digestible "here's what moved" on business mornings, not capturing
 every intermediate bump. Paired with [quiet-when-empty](#empty-refresh-behavior), most mornings are
 silent; you hear from it only when a fact actually changed.
 
-A Host App tunes this against its own Pegboard: a board weighted toward fast-moving harnesses can justify
+A Host App tunes this against its own Tool Roster: a board weighted toward fast-moving harnesses can justify
 every weekday; one that tracks only slow-moving models can drop to weekly. Weekends are skipped by
 default (`1-5`) because releases rarely land then.
 
