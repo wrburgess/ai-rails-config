@@ -36,18 +36,21 @@ Bump the model here — in one place — when the host switches models. Skills s
 **runtime-actual** model when determinable, reconciling against these declared defaults and recording
 the actual if they differ. Use human-readable names, never API ids.
 
-| Agent | Declared model | Identity email |
-|-------|----------------|----------------|
+| Agent (harness) | Declared model | Identity email |
+|-----------------|----------------|----------------|
 | Claude Code | `Claude Opus 4.8` | `noreply@anthropic.com` |
-| Codex | `Codex (host sets model)` | `<host sets>` |
-| Copilot | `Copilot (model varies)` | `<host sets>` |
-| Gemini | `Gemini (host sets model)` | `<host sets>` |
+| Codex | `GPT (host sets model)` | `<host sets>` |
+| Copilot | `model varies (GPT / Claude / Gemini)` | `<host sets>` |
+| Antigravity | `Gemini Flash (host sets model)` | `<host sets>` |
 
 - **Commit trailer:** `Co-Authored-By: <Tool Model> <email>` — e.g.
   `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`.
 - **PR / review / comment footer:** `— <Tool> (<Model>)` — e.g. `— Claude Code (Opus 4.8)`.
-- Attribution shows **per-agent identity** so provenance reflects which agent did the work. Copilot's
-  backing model is variable/unknown, so its declaration reads `Copilot (model varies)`.
+- Attribution shows **per-agent identity** so provenance reflects which agent did the work. The
+  *Agent* column names the **harness** (Claude Code · Codex · Copilot · Antigravity); the *Declared
+  model* column names the **model** it runs — never the harness — per the naming convention in
+  [ADR 0024](docs/adr/0024-harness-model-naming-convention.md). Copilot's backing model is
+  variable/unknown, so its declared model reads `model varies (GPT / Claude / Gemini)`.
 
 ## Branch & PR Policy
 

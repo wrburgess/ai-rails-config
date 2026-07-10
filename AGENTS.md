@@ -1,7 +1,7 @@
 # AGENTS.md — Canonical Source
 
 This is the **Canonical Source**: the one authored, model-neutral set of instructions every
-configured AI coding agent (Claude, Codex, Copilot, Gemini) reads. Author instructions **here,
+configured AI coding agent (Claude, Codex, Copilot, Antigravity) reads. Author instructions **here,
 once**; each tool's own config file is a thin **Adapter** that resolves back to this file, so the
 agents never receive drifted instructions. See [`CONTEXT.md`](CONTEXT.md) for the vocabulary used
 throughout (Config Bundle, Adapter, Skill, Rules Layer, Project Config, …).
@@ -12,15 +12,15 @@ throughout (Config Bundle, Adapter, Skill, Rules Layer, Project Config, …).
 ## How each tool consumes this file
 
 Verified per-tool (issue #3 → [`docs/research/tool-config-discovery.md`](docs/research/tool-config-discovery.md),
-Gemini re-verified #56); decision in [ADR 0002](docs/adr/0002-agents-md-canonical-pointer-projection.md):
+Antigravity re-verified #56); decision in [ADR 0002](docs/adr/0002-agents-md-canonical-pointer-projection.md):
 
 - **Claude Code** — reads `CLAUDE.md`, which imports this file via `@AGENTS.md` (expanded at launch).
 - **Codex** — reads `AGENTS.md` **natively** by filename. No Adapter needed.
 - **Copilot** — its PR-relevant surfaces read `AGENTS.md` **natively**; `.github/copilot-instructions.md`
   is only a discovery marker, not a copy.
-- **Gemini** — reads `GEMINI.md`, which imports this file via `@AGENTS.md` (or names it via
-  `context.fileName`); Google's Antigravity CLI also reads `AGENTS.md` natively. (CLI-transition history
-  lives in the [research doc](docs/research/tool-config-discovery.md).)
+- **Antigravity** (Google; succeeded Gemini CLI) — reads `GEMINI.md`, which imports this file via
+  `@AGENTS.md` (or names it via `context.fileName`), and also reads `AGENTS.md` natively.
+  (CLI-transition history lives in the [research doc](docs/research/tool-config-discovery.md).)
 
 Resolution is always **import-expansion** (`@AGENTS.md`) or **native discovery**, never a free-text
 pointer; the parity check ([ADR 0008](docs/adr/0008-structural-parity-check-not-model-in-the-loop.md))
@@ -79,7 +79,7 @@ gates are identical on every tool, and only tool-specific execution enhancements
 
 - **Claude Code** — a slash command from the thin shim at `.claude/commands/<name>.md` (e.g.
   `/distill`), which points at the canonical body.
-- **Codex / Copilot / Gemini** — no slash command; these tools read `AGENTS.md` natively, so **the
+- **Codex / Copilot / Antigravity** — no slash command; these tools read `AGENTS.md` natively, so **the
   documented procedure is the shim**: read and follow the canonical body at `skills/<name>/SKILL.md`.
 
 | Skill | Purpose | Body | ADR(s) |

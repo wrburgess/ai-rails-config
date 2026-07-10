@@ -9,7 +9,7 @@ its artifact map — from [`PROJECT.md`](../../PROJECT.md), never from this file
 
 Defines how an AI Contributor (AC) works from problem definition through delivery. It is
 **model-agnostic** and **tool-agnostic**: the stages and quality gates stay the same as AC
-capabilities improve and across every configured agent (Claude, Codex, Copilot, Gemini). What changes
+capabilities improve and across every configured agent (Claude, Codex, Copilot, Antigravity). What changes
 over time is which gates require external review vs. self-review; what changes across tools is only the
 *mechanism* of a stage's optional execution enhancement, never the *bar*
 ([ADR 0003](../adr/0003-skills-canonical-body-thin-shims-graceful-degradation.md)).

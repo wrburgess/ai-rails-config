@@ -1,6 +1,6 @@
 # ai-config
 
-A generic, model-agnostic AI-agent configuration layer for software projects. It ships as a portable, business-neutral baseline that is vendored into a host application and then customized. It drives multiple AI coding agents (Claude, Codex, Copilot, Gemini) from a single source of truth.
+A generic, model-agnostic AI-agent configuration layer for software projects. It ships as a portable, business-neutral baseline that is vendored into a host application and then customized. It drives multiple AI coding agents (Claude, Codex, Copilot, Antigravity) from a single source of truth.
 
 ## Language
 
@@ -32,12 +32,20 @@ _Avoid_: "master file", "the docs"
 A per-tool projection of the Canonical Source onto a specific agent's native config surface (e.g. `CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`, `GEMINI.md`).
 _Avoid_: "wrapper", "integration"
 
+**Harness**:
+The tool that carries the Config Bundle and runs the agent loop — **Claude Code**, **Codex**, **Copilot**, or **Antigravity** (the CLI/IDE, *not* the model inside it). One of the two axes the repo turns on ([ADR 0023](docs/adr/0023-tool-roster-facts-tracker-sibling-to-intake.md)). Named by its own name in prose and attribution, never substituted by the model it runs — the fourth harness is **Antigravity** (Gemini CLI's successor), whose model is Gemini ([ADR 0024](docs/adr/0024-harness-model-naming-convention.md)).
+_Avoid_: naming a harness by its model ("Gemini" for Antigravity)
+
+**Model**:
+The LLM a Harness runs, and the thing attribution declares — **Opus** / **Fable** (Claude Code), **GPT** (Codex), **Gemini** / **Gemini Flash** (Antigravity); Copilot's varies. The second axis alongside Harness; the *Declared model* column of Project Config names this, never the harness.
+_Avoid_: naming a model by its harness ("Codex" for GPT); API ids (use human-readable names)
+
 **Skill**:
 A portable, model-agnostic capability the Config Bundle provides (e.g. `distill`, `assess`, `devise`, `verify`, `listen`, `final`, `ship`). Authored once as a canonical body; invokable by any configured agent through an Invocation Shim.
 _Avoid_: "command", "workflow" (both are tool-specific invocation mechanisms, not the skill itself)
 
 **Invocation Shim**:
-The thin, tool-specific entry point that routes a tool's native invocation (a Claude slash command, a Codex/Copilot/Gemini prompt or documented procedure) to a Skill's canonical body. Carries no procedure of its own.
+The thin, tool-specific entry point that routes a tool's native invocation (a Claude slash command, a Codex/Copilot/Antigravity prompt or documented procedure) to a Skill's canonical body. Carries no procedure of its own.
 _Avoid_: "wrapper", "stub"
 
 **Graceful Degradation**:

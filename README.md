@@ -6,7 +6,7 @@ project, edit one file, and every AI coding assistant follows the same reviewabl
 ## TL;DR
 
 - **What it is** — one **Canonical Source** of instructions ([`AGENTS.md`](AGENTS.md)) that drives four
-  AI coding agents (Claude, Codex, Copilot, Gemini) in lockstep.
+  AI coding agents (Claude, Codex, Copilot, Antigravity) in lockstep.
 - **Why it exists** — each AI tool normally needs its own instructions, so they drift and give
   inconsistent advice. Here you write the house rules **once**; every agent reads the same copy and
   behaves the same way — with built-in guardrails that stop risky actions like committing to a
@@ -32,11 +32,11 @@ the roadmap.
    - Secret hygiene lives in [`rules/security.md`](rules/security.md)
      ([ADR 0009](docs/adr/0009-defense-in-depth-branch-protection-all-agents.md)).
 
-2. **Portable — write the house rules once, and Claude, Codex, Copilot & Gemini all read the same
+2. **Portable — write the house rules once, and Claude, Codex, Copilot & Antigravity all read the same
    copy.**
    - Every instruction is authored once in the Canonical Source [`AGENTS.md`](AGENTS.md).
    - Each tool reaches it through a thin **Adapter** that *resolves back* rather than copying: Claude
-     and Gemini import it via `@AGENTS.md`, while Codex and Copilot read `AGENTS.md` natively. No tool
+     and Antigravity import it via `@AGENTS.md`, while Codex and Copilot read `AGENTS.md` natively. No tool
      follows a free-text pointer, so none receives drifted instructions.
    - `scripts/parity_check.rb` enforces zero drift as a merge gate
      ([ADR 0002](docs/adr/0002-agents-md-canonical-pointer-projection.md),

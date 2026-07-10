@@ -2,7 +2,7 @@
 
 How a **Host App** adopts this Config Bundle end to end: **vendor** the Generic Baseline in,
 **activate** the guardrails, **customize** through the Project Config, and **run** the development
-lifecycle from any of the four configured agents (Claude, Codex, Copilot, Gemini).
+lifecycle from any of the four configured agents (Claude, Codex, Copilot, Antigravity).
 
 - Vocabulary (Config Bundle, Generic Baseline, Adapter, Skill, Project Config, Customization…) →
   [`CONTEXT.md`](../../CONTEXT.md).
@@ -93,7 +93,7 @@ identical on every tool, and only tool-specific execution enhancements degrade g
 | **Claude Code** | A slash command from the thin shim at `.claude/commands/<name>.md` — e.g. `/assess 11`, `/devise 11`, `/invoke 11`, `/ship 11`, `/scout`, `/clip`, `/create-skill`. The shim points at the canonical body. |
 | **Codex** | Reads `AGENTS.md` natively, so **the documented procedure is the shim**: to run a Skill, read `skills/<name>/SKILL.md` and follow it. |
 | **Copilot** | Same — its PR surfaces read `AGENTS.md` natively; read `skills/<name>/SKILL.md` and follow it. |
-| **Gemini** | Same — `GEMINI.md` imports `AGENTS.md`; read `skills/<name>/SKILL.md` and follow it. |
+| **Antigravity** | Same — `GEMINI.md` imports `AGENTS.md`; read `skills/<name>/SKILL.md` and follow it. |
 
 No tool needs a per-tool copy of a procedure: Claude reaches the one canonical body through its slash
 shim, and the native-discovery tools reach the same body by the documented "read and follow it" path
@@ -122,7 +122,7 @@ disposes ([ADR 0012](../adr/0012-intake-pipeline-placement.md)). The artifact lo
 writes are host-configurable in [`PROJECT.md`](../../PROJECT.md) → *Intake Pipeline* (they ship pointing
 at an illustrative reference seed; repoint them per host). Run it two ways:
 
-- **By hand** — Claude: `/scout`; the native-discovery tools (Codex, Copilot, Gemini): read and follow
+- **By hand** — Claude: `/scout`; the native-discovery tools (Codex, Copilot, Antigravity): read and follow
   `skills/scout/SKILL.md`. Use for a one-off sweep or to try it before scheduling.
 - **On a schedule** — wire it to run automatically (e.g. nightly). Cadence, enable/disable, and the
   empty-sweep behavior (when nothing new is found, it logs and opens **no** PR) →
