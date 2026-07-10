@@ -133,6 +133,10 @@ keyed by product *line* with the current version, cost, effort tiers, and a prov
 on every value (vendor-fact / benchmark / flagged estimate). It is a **snapshot**, not a log: the git diff
 is the history.
 
+**📋 Read the board → [`docs/reference/tool-roster.md`](docs/reference/tool-roster.md)** — a committed,
+human-readable table regenerated from the YAML on every `/restock` refresh (a drift-guard test keeps the
+two in sync). The [`tool-roster.yml`](docs/reference/tool-roster.yml) beside it is the source of truth.
+
 - **`/restock`** refreshes it: re-verifies each entry's facts against that entry's own `sources:`
   (reconfirm-or-age, **never fabricate**), writes only the real deltas, and opens a review PR — staying
   quiet when nothing changed.

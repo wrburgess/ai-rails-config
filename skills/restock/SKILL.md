@@ -75,11 +75,14 @@ all**. `restock` never commits directly to a protected branch, and never opens a
    `verified` is now aging. Never restate unchanged rows. This digest is the PR body and the payload a
    host's push transport delivers.
 
-7. **Open the PR — never commit directly.** Create the feature branch per
-   [`PROJECT.md`](../../PROJECT.md) → *Branch & PR Policy*, commit the changed entries with the
-   attribution trailer from *Attribution & Model Declaration*, push, and open a pull request whose body is
-   the deltas-only digest. Link the issue per policy. The PR is a **proposal**: the human accepts, edits,
-   or rejects the deltas — and any roster add/retire — before anything merges.
+7. **Regenerate the committed table, then open the PR — never commit directly.** Regenerate the
+   human-readable table from the roster with the repo's deterministic render script (the table is a
+   *generated* artifact — **never hand-edited** — and a drift-guard test reddens if it is stale against
+   the roster). Create the feature branch per [`PROJECT.md`](../../PROJECT.md) → *Branch & PR Policy*,
+   commit the changed entries **and the regenerated table** with the attribution trailer from
+   *Attribution & Model Declaration*, push, and open a pull request whose body is the deltas-only digest.
+   Link the issue per policy. The PR is a **proposal**: the human accepts, edits, or rejects the deltas —
+   and any roster add/retire — before anything merges.
 
 *Graceful degradation ([ADR 0003](../../docs/adr/0003-skills-canonical-body-thin-shims-graceful-degradation.md)):*
 the poll-and-reconcile churn (steps 2–3) is output-heavy and **may be offloaded to a sub-agent** that
@@ -102,7 +105,8 @@ deltas-only, not a rehash); a `dumb_zone` outdated by a version bump is flagged;
 proposals are surfaced for the human, not applied silently. On an **empty refresh** — every source
 resolved and no value changed — the correct output is **no PR and no commit**; a source that **failed to
 resolve** is surfaced in a PR, never swallowed as "empty." Whenever a value changed or a source failed to
-resolve, the output is a reviewable PR, **never a direct commit** to a protected branch. Sign the PR and
+resolve, the output is a reviewable PR, **never a direct commit** to a protected branch. The committed
+table view was **regenerated from the roster** (never hand-edited) and its drift-guard test is green. Sign the PR and
 any lifecycle-host comment with the footer from [`PROJECT.md`](../../PROJECT.md) → *Attribution & Model
 Declaration*, using your runtime-actual model.
 

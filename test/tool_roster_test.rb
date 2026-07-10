@@ -65,6 +65,13 @@ class ToolRosterTest < Minitest::Test
     end
   end
 
+  def test_committed_markdown_is_in_sync_with_yaml
+    require_relative "../scripts/render_tool_roster"
+    committed = File.read(File.expand_path("../docs/reference/tool-roster.md", __dir__))
+    assert_equal committed, ToolRosterRender.render(@doc),
+                 "docs/reference/tool-roster.md is stale — regenerate it with `ruby scripts/render_tool_roster.rb`"
+  end
+
   def test_names_are_unique_within_each_category
     { harness: harnesses, model: models }.each do |kind, list|
       names = list.map { |e| e["name"] }

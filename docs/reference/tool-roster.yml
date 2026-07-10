@@ -62,7 +62,7 @@ harnesses:
     vendor: OpenAI
     stable_version: "0.144.1"
     version_date: 2026-07-09
-    house_model: GPT
+    house_model: GPT Sol
     config_features: [mcp, plugins, agents-md]
     sources: [https://github.com/openai/codex/releases, https://developers.openai.com/codex/changelog]
     verified: 2026-07-10
@@ -87,6 +87,16 @@ harnesses:
     status: active
 
 models:
+  - name: Claude Fable
+    vendor: Anthropic
+    stable_version: "5"
+    version_date: 2026-06-09
+    effort_tiers: [low, medium, high, xhigh, max]
+    api_cost: { input: 10, output: 50 }
+    swe_bench_verified: { score: 95.0, source: https://www.benchlm.ai/benchmarks/sweVerified, as_of: 2026-07-08 }
+    sources: [https://platform.claude.com/docs/en/about-claude/pricing]
+    verified: 2026-07-10
+    status: active
   - name: Claude Opus
     vendor: Anthropic
     stable_version: "4.8"
@@ -112,11 +122,28 @@ models:
     sources: [https://platform.claude.com/docs/en/about-claude/pricing]
     verified: 2026-07-10
     status: active
-  - name: GPT
+  - name: GPT Sol
     vendor: OpenAI
-    stable_version: "5.5"
+    stable_version: "5.6"
+    version_date: 2026-07-09
     effort_tiers: [low, medium, high]
-    api_cost: { input: 5, output: 30 }
+    api_cost: { input: 5, output: 30 }   # flagship tier of the GPT-5.6 family
+    sources: [https://developers.openai.com/api/docs/pricing]
+    verified: 2026-07-10
+    status: active
+  - name: GPT Terra
+    vendor: OpenAI
+    stable_version: "5.6"
+    version_date: 2026-07-09
+    api_cost: { input: 2.5, output: 15 }   # balanced tier (~GPT-5.5 performance at ~half the cost)
+    sources: [https://developers.openai.com/api/docs/pricing]
+    verified: 2026-07-10
+    status: active
+  - name: GPT Luna
+    vendor: OpenAI
+    stable_version: "5.6"
+    version_date: 2026-07-09
+    api_cost: { input: 1, output: 6 }   # economy tier (high-volume, latency-sensitive)
     sources: [https://developers.openai.com/api/docs/pricing]
     verified: 2026-07-10
     status: active
@@ -125,6 +152,14 @@ models:
     stable_version: "3.1"
     maturity: preview                    # 3.1 Pro is Preview, not GA (GA-stable Gemini is 3.5 Flash) — see sources
     api_cost: { input: 2, output: 12 }   # base tier (<=200K context); tiered above — see source
+    sources: [https://ai.google.dev/gemini-api/docs/pricing, https://ai.google.dev/gemini-api/docs/models]
+    verified: 2026-07-10
+    status: active
+  - name: Gemini Flash
+    vendor: Google
+    stable_version: "3.5"
+    version_date: 2026-05-19
+    api_cost: { input: 1.5, output: 9 }
     sources: [https://ai.google.dev/gemini-api/docs/pricing, https://ai.google.dev/gemini-api/docs/models]
     verified: 2026-07-10
     status: active

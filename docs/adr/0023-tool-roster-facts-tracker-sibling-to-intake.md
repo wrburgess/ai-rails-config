@@ -1,6 +1,6 @@
 # Tool Roster: a facts-and-products tracker as a sibling to the voices intake pipeline
 
-**Status:** accepted
+**Status:** accepted — amended 2026-07-10 (a committed rendered table was added; see *Amendment* at end)
 
 ## Context
 
@@ -98,3 +98,13 @@ pipeline, not an extension of it. Design:
   derives them from the normalized lists rather than reading a stored grid.
 - As with the intake pipeline, the parity check does not police any of this (ADRs, `CONTEXT.md`,
   and `docs/reference/` content are unchecked) — the placement holds by convention and review.
+
+## Amendment (2026-07-10): a committed rendered table
+
+The format decision above chose **A2** — the YAML is canonical and the human view is rendered on the fly,
+with **no committed table** — specifically to avoid a generated file drifting from the YAML. The HC later
+elected the "plain A" variant: a committed, human-readable table (`docs/reference/tool-roster.md`) rendered
+from the YAML by a deterministic script (`scripts/render_tool_roster.rb`) that `restock` runs on every
+refresh, **plus a drift-guard test** that reddens if the committed table is stale against the YAML. That
+drift guard is what makes a committed table safe — it removes the single reason A2 was chosen. The YAML
+remains the sole source of truth; the table is a generated projection, never hand-edited.

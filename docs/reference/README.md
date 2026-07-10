@@ -30,3 +30,7 @@ content lives here, is recorded in [ADR 0012](../adr/0012-intake-pipeline-placem
   business-neutral mechanism; its entries are illustrative. A **sibling** to the Learnings Log —
   tools/facts, not voices/opinions — a *snapshot* (overwritten in place; git history is the log),
   refreshed by the `restock` skill.
+- [`tool-roster.md`](tool-roster.md) — the human-readable **table** rendered from `tool-roster.yml` by
+  [`scripts/render_tool_roster.rb`](../../scripts/render_tool_roster.rb). A **generated** file — never
+  hand-edited; a drift-guard test in `test/tool_roster_test.rb` reddens if it is stale, and `restock`
+  regenerates it on every refresh.
