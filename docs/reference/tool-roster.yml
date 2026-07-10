@@ -87,11 +87,12 @@ harnesses:
     status: active
   - name: Grok Build
     vendor: xAI
-    stable_version: "beta"          # early beta — no numbered CLI release yet
-    maturity: preview
+    stable_version: "0.2.94"
+    version_date: 2026-07-09
+    maturity: preview                # pre-1.0 (0.2.x) line, ships ~daily
     house_model: Grok
     config_features: [hooks, mcp, plugins, agents-md]
-    sources: [https://x.ai/cli, https://x.ai/news/grok-build-cli]
+    sources: [https://x.ai/cli, https://x.ai/news/grok-build-cli, https://x.ai/build/changelog]
     verified: 2026-07-10
     status: active
 
@@ -140,6 +141,7 @@ models:
   - name: Grok
     vendor: xAI
     stable_version: "4.5"
-    sources: [https://x.ai/cli]
+    version_date: 2026-07-08
+    sources: [https://x.ai/cli, https://x.ai/news/grok-4-5]
     verified: 2026-07-10
     status: active

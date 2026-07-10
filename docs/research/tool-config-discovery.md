@@ -199,9 +199,9 @@ This is the highest-uncertainty tool and the one that amends ADR 0002; verdicts 
   `@import` to configure.
 - **`AGENTS.md` support.** Native since launch (early beta, 2026-05-25). It slots in exactly like
   Codex and Copilot: **native-canonical — no Adapter, no parity-check change.**
-- **Model.** Grok Build is *"now powered by Grok 4.5 — our new model"* (`x.ai/cli`). Note: the model
-  id circulating in secondary write-ups is **unverified on any primary xAI page** and is not adopted
-  here; the primary-sourced model is **Grok 4.5**.
+- **Model.** Grok Build is *"now powered by Grok 4.5 — our new model"* (`x.ai/cli`). Grok 4.5 became
+  the CLI's default model on 2026-07-08 (`x.ai/news/grok-4-5`), superseding the earlier Grok coding
+  model the CLI launched on; living docs name the current model family **Grok / Grok 4.5**.
 - **Verdict:** **NATIVE-CANONICAL** — the Canonical Source *is* Grok Build's native file; no Adapter,
   no pointer, no inlining.
 
@@ -209,7 +209,9 @@ This is the highest-uncertainty tool and the one that amends ADR 0002; verdicts 
 - <https://x.ai/news/grok-build-cli> — (2026-05-25) "Grok Build is a new coding agent that runs right from your terminal."
 - <https://x.ai/news/grok-build-cli> — (2026-05-25) "Your AGENTS.md, plugins, hooks, skills, and MCP servers all work out of the box."
 - <https://x.ai/cli> — "A powerful coding agent and CLI for complex coding work, now powered by Grok 4.5 — our new model."
-- *Method note:* WebFetch was HTTP 403-blocked on both `x.ai` URLs (they load only via a browser session); the `byteiota.com` Grok Build review (WebFetch OK) plus multiple independent searches corroborate existence + native-`AGENTS.md`. Secondary sources disagree on the model id and on launch-date/context-window specifics, so only primary `x.ai` quotes are cited.
+- <https://x.ai/news/grok-4-5> — (2026-07-08) "Grok 4.5 is now the default model in Grok Build."
+- <https://x.ai/build/changelog> — CLI version 0.2.94 (2026-07-09); the pre-1.0 (0.2.x) line ships ~daily.
+- *Method note:* WebFetch is HTTP 403-blocked on `x.ai` (pages load only via a live browser session), and the changelog's latest release needs a live-DOM read — a single page-text fetch mis-selects a stale entry — so re-verify it against the DOM or an independent release tracker. Facts here are from live primary `x.ai` pages, corroborated by `byteiota.com` and independent trackers.
 
 ---
 

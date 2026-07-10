@@ -94,6 +94,7 @@ identical on every tool, and only tool-specific execution enhancements degrade g
 | **Codex** | Reads `AGENTS.md` natively, so **the documented procedure is the shim**: to run a Skill, read `skills/<name>/SKILL.md` and follow it. |
 | **Copilot** | Same — its PR surfaces read `AGENTS.md` natively; read `skills/<name>/SKILL.md` and follow it. |
 | **Antigravity** | Same — `GEMINI.md` imports `AGENTS.md`; read `skills/<name>/SKILL.md` and follow it. |
+| **Grok Build** | Same — reads `AGENTS.md` natively (like Codex); read `skills/<name>/SKILL.md` and follow it. |
 
 No tool needs a per-tool copy of a procedure: Claude reaches the one canonical body through its slash
 shim, and the native-discovery tools reach the same body by the documented "read and follow it" path
