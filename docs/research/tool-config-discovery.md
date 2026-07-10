@@ -194,8 +194,7 @@ This is the highest-uncertainty tool and the one that amends ADR 0002; verdicts 
 ## Grok Build (xAI) — NATIVE-CANONICAL
 
 - **Native files.** Grok Build reads `AGENTS.md` **natively, by filename** — no adapter, no pointer.
-  Its launch post: *"Your AGENTS.md, plugins, hooks, skills, and MCP servers all work out of the box.
-  Start Grok Build in your repo and it picks up your conventions instantly."*
+  Its launch post: *"Your AGENTS.md, plugins, hooks, skills, and MCP servers all work out of the box."*
 - **Import/pointer.** n/a — like Codex, it reads the Canonical Source directly; there is no in-file
   `@import` to configure.
 - **`AGENTS.md` support.** Native since launch (early beta, 2026-05-25). It slots in exactly like

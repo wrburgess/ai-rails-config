@@ -80,7 +80,7 @@ gates are identical on every tool, and only tool-specific execution enhancements
 
 - **Claude Code** — a slash command from the thin shim at `.claude/commands/<name>.md` (e.g.
   `/distill`), which points at the canonical body.
-- **Codex / Copilot / Antigravity** — no slash command; these tools read `AGENTS.md` natively, so **the
+- **Codex / Copilot / Antigravity / Grok Build** — no slash command; these tools read `AGENTS.md` natively, so **the
   documented procedure is the shim**: read and follow the canonical body at `skills/<name>/SKILL.md`.
 
 | Skill | Purpose | Body | ADR(s) |

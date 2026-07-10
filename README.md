@@ -5,7 +5,7 @@ project, edit one file, and every AI coding assistant follows the same reviewabl
 
 ## TL;DR
 
-- **What it is** — one **Canonical Source** of instructions ([`AGENTS.md`](AGENTS.md)) that drives four
+- **What it is** — one **Canonical Source** of instructions ([`AGENTS.md`](AGENTS.md)) that drives five
   AI coding agents (Claude, Codex, Copilot, Antigravity, Grok Build) in lockstep.
 - **Why it exists** — each AI tool normally needs its own instructions, so they drift and give
   inconsistent advice. Here you write the house rules **once**; every agent reads the same copy and
@@ -36,7 +36,7 @@ the roadmap.
    copy.**
    - Every instruction is authored once in the Canonical Source [`AGENTS.md`](AGENTS.md).
    - Each tool reaches it through a thin **Adapter** that *resolves back* rather than copying: Claude
-     and Antigravity import it via `@AGENTS.md`, while Codex and Copilot read `AGENTS.md` natively. No tool
+     and Antigravity import it via `@AGENTS.md`, while Codex, Copilot, and Grok Build read `AGENTS.md` natively. No tool
      follows a free-text pointer, so none receives drifted instructions.
    - `scripts/parity_check.rb` enforces zero drift as a merge gate
      ([ADR 0002](docs/adr/0002-agents-md-canonical-pointer-projection.md),
