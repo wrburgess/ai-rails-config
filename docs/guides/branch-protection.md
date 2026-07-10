@@ -1,6 +1,6 @@
 # Branch protection — defense in depth
 
-This bundle prevents any of the four agents (Claude, Codex, Copilot, Gemini) — and an accidental
+This bundle prevents any of the four agents (Claude, Codex, Copilot, Antigravity) — and an accidental
 human — from committing or pushing to a protected branch. Enforcement is layered so that no single
 missing piece leaves a gap ([ADR 0009](../adr/0009-defense-in-depth-branch-protection-all-agents.md)).
 
@@ -39,7 +39,7 @@ git config --get core.hooksPath   # => .githooks
 
 Only **AI Contributors** are blocked; **Human Contributors** with an interactive terminal pass. An AC
 is detected by an env var (`CLAUDE_CODE`, `CODEX`, `GITHUB_COPILOT_AGENT`) or, as a catch-all for any
-other agent (e.g. Gemini), a non-interactive shell.
+other agent (e.g. Antigravity), a non-interactive shell.
 
 ## Layer 1 — GitHub server-side branch protection
 
