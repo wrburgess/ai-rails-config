@@ -14,6 +14,13 @@ reconciled recommendation is on issue #80. Vendor anchors: Claude ~200 lines (th
 32 KiB (`project_doc_max_bytes`), Copilot ~1,000 lines; Gemini publishes no count (its concern is
 attention dilution, not a byte budget).
 
+Sources (as of 2026-07-09):
+
+- Claude — <https://code.claude.com/docs/en/memory> (loaded in full; >200 lines consumes more context; imports don't reduce it)
+- Codex — <https://developers.openai.com/codex/guides/agents-md> (`project_doc_max_bytes`, 32 KiB default)
+- Copilot — <https://docs.github.com/en/copilot/tutorials/customize-code-review> (~1,000-line practical max) and <https://github.blog/ai-and-ml/github-copilot/unlocking-the-full-power-of-copilot-code-review-master-your-instructions-files/> (does not follow external links)
+- Gemini — <https://geminicli.com/docs/cli/gemini-md/> (hierarchical context files, `@file.md` imports)
+
 ## Considered Options
 
 - **Self-set number with no external anchor** — rejected: the four-tool review surfaced real vendor
