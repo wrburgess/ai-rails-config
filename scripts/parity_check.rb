@@ -104,7 +104,7 @@ class ParityCheck
   # front door (ADR 0019): all belong in the floor but NOT in LIFECYCLE_SKILLS — none is a lifecycle
   # stage, so none is forced through the PROJECT.md-reference check (each body references PROJECT.md by
   # choice, not by that mandate).
-  REQUIRED_SKILLS = (["distill"] + LIFECYCLE_SKILLS + ["ship", "scout", "clip", "create-skill", "follow"]).freeze
+  REQUIRED_SKILLS = (["distill"] + LIFECYCLE_SKILLS + ["ship", "scout", "clip", "create-skill", "follow", "restock"]).freeze
 
   # Content-neutrality (ADR 0003): a generic Skill body reads host values from PROJECT.md, so a
   # stack/domain proper noun in a body is leftover coupling the purely-structural checks cannot see.

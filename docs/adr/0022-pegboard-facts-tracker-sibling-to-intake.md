@@ -83,6 +83,10 @@ pipeline, not an extension of it. Design:
 - Two field-monitoring loops now exist as **siblings**: *voices → Learnings Log* (qualitative,
   stance-bearing, append-only) and *tools → Pegboard* (quantitative, current-state). `CONTEXT.md`
   gains the **Pegboard** term.
+- The refresh ships as a new baseline Skill — **`restock`**, a sibling to `scout` — joining the
+  `REQUIRED_SKILLS` floor with its self-test (the baseline grows to thirteen Skills), mirroring how
+  [ADR 0015](0015-intake-front-door-drop-skill.md) / [ADR 0021](0021-voice-watchlist-front-door.md)
+  grew the floor.
 - The build inherits guardrails already paid for: the refresh/skill body must avoid the parity
   denylist tokens (`docs/rules/`, `.claude/rules/`); links to not-yet-created targets stay
   backticked until they exist; a scheduling guide (à la

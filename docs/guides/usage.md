@@ -73,7 +73,7 @@ split is what keeps future updates mergeable.
 
 ## 4. Run each skill per tool
 
-The bundle ships **twelve Skills**, each authored **once** as a canonical body at `skills/<name>/SKILL.md`
+The bundle ships **thirteen Skills**, each authored **once** as a canonical body at `skills/<name>/SKILL.md`
 and reached through a thin, tool-specific **Invocation Shim** — so the procedure and quality gates are
 identical on every tool, and only tool-specific execution enhancements degrade gracefully
 ([ADR 0003](../adr/0003-skills-canonical-body-thin-shims-graceful-degradation.md)):
@@ -84,6 +84,7 @@ identical on every tool, and only tool-specific execution enhancements degrade g
 - `scout` — the intake sweep; `clip` — the intake push front door.
 - `create-skill` — the authoring front door (scaffolds a new, conforming skill from full repo context).
 - `follow` — the roster front door (adds/updates a Watchlist voice from a handle or link).
+- `restock` — the Tooling Pegboard refresh (re-verifies the harness/model snapshot's facts, opens a deltas-only PR).
 
 **How each configured agent invokes a Skill:**
 

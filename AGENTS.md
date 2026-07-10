@@ -73,12 +73,13 @@ spec — stages, roles, gates, and terminal artifacts — is
 
 ## Skills
 
-The Generic Baseline ships twelve Skills — `distill`, `assess`, `devise`, `invoke`, `verify`,
-`listen`, `final`, `ship`, `scout`, `clip`, `create-skill`, `follow` ([ADR 0006](docs/adr/0006-baseline-skill-set-and-github-default-lifecycle-host.md),
+The Generic Baseline ships thirteen Skills — `distill`, `assess`, `devise`, `invoke`, `verify`,
+`listen`, `final`, `ship`, `scout`, `clip`, `create-skill`, `follow`, `restock` ([ADR 0006](docs/adr/0006-baseline-skill-set-and-github-default-lifecycle-host.md),
 [ADR 0012](docs/adr/0012-intake-pipeline-placement.md),
 [ADR 0015](docs/adr/0015-intake-front-door-drop-skill.md),
 [ADR 0019](docs/adr/0019-create-skill-authoring-front-door.md),
-[ADR 0021](docs/adr/0021-voice-watchlist-front-door.md)). Each is authored once as a canonical body
+[ADR 0021](docs/adr/0021-voice-watchlist-front-door.md),
+[ADR 0022](docs/adr/0022-pegboard-facts-tracker-sibling-to-intake.md)). Each is authored once as a canonical body
 (`skills/<name>/SKILL.md`) and reached through a thin, tool-specific Invocation Shim; the procedure and
 quality gates are identical on every tool, and only tool-specific execution enhancements degrade
 gracefully.
@@ -96,7 +97,7 @@ frontmatter + markdown body + optional bundled files). How each tool invokes it
   `skills/<name>/SKILL.md`. (A tool may additionally define a native prompt/command file where it
   supports one; the Generic Baseline ships none yet.)
 
-**Shipped (12 of 12):**
+**Shipped (13 of 13):**
 
 - [`distill`](skills/distill/SKILL.md) — a plan-grilling / brainstorming session that
   stress-tests a plan against the project's domain language and captures decisions inline as a
@@ -146,6 +147,16 @@ frontmatter + markdown body + optional bundled files). How each tool invokes it
   Log that [`clip`](skills/clip/SKILL.md) and [`scout`](skills/scout/SKILL.md) feed — and reads the
   Watchlist location from [`PROJECT.md`](PROJECT.md) → *Intake Pipeline*
   ([ADR 0021](docs/adr/0021-voice-watchlist-front-door.md)).
+- [`restock`](skills/restock/SKILL.md) — the **Tooling Pegboard** refresh, a **sibling** to `scout`'s
+  intake sweep ([ADR 0022](docs/adr/0022-pegboard-facts-tracker-sibling-to-intake.md)): it re-verifies
+  each tracked harness/model entry's facts against that entry's own `sources:` (reconfirm-or-age, never
+  fabricate), flags a `dumb_zone` estimate a version bump has outdated, and opens a **deltas-only** PR —
+  staying quiet when nothing changed. Where `scout` drafts stance-bearing *learnings* from voices,
+  `restock` maintains *facts* about tools; it reads the Pegboard location from
+  [`PROJECT.md`](PROJECT.md) → *Tooling Pegboard*. Its weekday-morning schedule and host-config push
+  transport are documented, not shipped
+  ([`docs/guides/pegboard-refresh-scheduling.md`](docs/guides/pegboard-refresh-scheduling.md),
+  [ADR 0013](docs/adr/0013-scheduled-intake-sweep-and-empty-sweep-policy.md)).
 
 ## Rules Layer
 
