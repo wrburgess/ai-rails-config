@@ -16,7 +16,7 @@ which is documented for the host to enable, not applied for it.
 ## Two ways to drive it
 
 - **Manually** — invoke `/scout` (Claude) or follow the skill's documented procedure (Codex, Copilot,
-  Antigravity) whenever you want a sweep. This needs no setup.
+  Antigravity, Grok Build) whenever you want a sweep. This needs no setup.
 - **On a schedule** — a recurring job invokes the *same* skill on a cadence and files the review PR
   for you. That is what this guide sets up. The sweep runs the identical **discovery-and-drafting**
   procedure either way — there is no scheduled-only fast path. The one legitimate difference is

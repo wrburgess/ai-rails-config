@@ -1,6 +1,6 @@
 # ai-config
 
-A generic, model-agnostic AI-agent configuration layer for software projects. It ships as a portable, business-neutral baseline that is vendored into a host application and then customized. It drives multiple AI coding agents (Claude, Codex, Copilot, Antigravity) from a single source of truth.
+A generic, model-agnostic AI-agent configuration layer for software projects. It ships as a portable, business-neutral baseline that is vendored into a host application and then customized. It drives multiple AI coding agents (Claude, Codex, Copilot, Antigravity, Grok Build) from a single source of truth.
 
 ## Language
 
