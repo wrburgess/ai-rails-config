@@ -78,8 +78,8 @@ harnesses:
     status: active
   - name: Cursor
     vendor: Anysphere
-    stable_version: "3.10"
-    version_date: 2026-06-30
+    stable_version: "3.11"
+    version_date: 2026-07-10
     house_model: varies
     config_features: [mcp]
     sources: [https://cursor.com/changelog]
@@ -100,7 +100,8 @@ models:
     vendor: Anthropic
     stable_version: "5"
     effort_tiers: [low, medium, high, xhigh, max]
-    sources: [https://platform.claude.com/docs/en/about-claude/pricing]   # price is introductory/in-flux through 2026-08-31 — left for restock
+    api_cost: { input: 2, output: 10 }   # introductory through 2026-08-31; rises to 3/15 on 2026-09-01
+    sources: [https://platform.claude.com/docs/en/about-claude/pricing]
     verified: 2026-07-10
     status: active
   - name: Claude Haiku
