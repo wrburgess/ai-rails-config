@@ -70,7 +70,7 @@ _Avoid_: "gotcha", "warning"
 
 ### Intake pipeline
 
-**Intake Pipeline**:
+**Intake Pipeline** (a.k.a. the **Research Roster** — its field-facing feature name):
 The feedback loop that monitors the AI-engineering field and folds durable learnings back into the Config Bundle's Rules Layer, Skills, and ADRs.
 _Avoid_: "the monitor", "the tracker"
 
@@ -90,6 +90,18 @@ _Avoid_: "the queue", "the dropbox"
 The intake pipeline's **push front door** (the `clip` Skill): it turns field output a human hands over in any session — a screenshot, a link, or a quote — into a well-formed, stance-less Manual-drop inbox drop, enforcing a real-URL gate, then delegates to `scout` to draft the Learnings-Log entry and open the review PR. Complements the `scout` **pull** sweep; a human still disposes on the PR.
 _Avoid_: "the uploader", "the importer"
 
+### Tool Roster
+
+**Tool Roster**:
+The curated, version-controlled **current-state snapshot** of the AI coding **harnesses** and
+**models** worth weighing for software development — the reference the "right tool / right price"
+decision reads. A **sibling** to the Learnings Log, split by *kind of thing*: the Learnings Log
+records field *learnings* (qualitative, stance-bearing, append-only); the Tool Roster records tool
+*facts* (quantitative, current-state). A roster of *tools*, paired with the **Research Roster**'s
+roster of *voices*. Its mechanism is Generic Baseline; the populated roster is illustrative reference.
+_Avoid_: "the pegboard" (its former name), "the tracker", "the grid", "the matrix" (it is two
+normalized lists, not a harness×model pairing grid)
+
 ## Relationships
 
 - The **Config Bundle** contains one **Canonical Source**, many **Adapters**, many **Skills**, one **Rules Layer**, and one **Project Config**.
@@ -98,6 +110,11 @@ _Avoid_: "the uploader", "the importer"
 - A **Host App** may also vendor one or more **Stack Overlays** (e.g. `ai-config-rails`) alongside the **Generic Baseline**: the baseline states each rule as a neutral, stack-agnostic principle; the overlay supplies that stack's concrete patterns and anti-patterns.
 - Each **Adapter** is derived from the **Canonical Source**; every **Skill** reads the **Project Config** for host-specific values.
 - The **Intake Pipeline** reads a **Watchlist**, accepts human drops through the **Clip skill** (`clip`) into the **Manual-drop inbox** for sources it can't fetch, and records findings in a **Learnings Log** via the `scout` **Skill** — proposing changes to the **Rules Layer**, **Skills**, or ADRs. `scout` pulls on a sweep; `clip` pushes on demand.
+- The **Tool Roster** is a **sibling** feedback loop to the **Intake Pipeline** (a.k.a. the **Research
+  Roster**): where the Research Roster turns *voices* into stance-bearing **Learnings Log** entries, the
+  Tool Roster tracks *tools* (**harnesses** and **models**) as a current-state snapshot that feeds
+  tool-selection. Both keep the **Config Bundle** current; they differ by *kind of thing* — opinions vs.
+  facts. Two rosters: one of voices to learn from, one of tools to pick from.
 
 ## Example dialogue
 

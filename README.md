@@ -84,12 +84,63 @@ the roadmap.
 
 7. **Efficient — the right model for each job: cheap work on cheap models, judgment on the frontier.**
    - Cost-aware model routing.
+   - `/restock` maintains the **Tool Roster** (`docs/reference/tool-roster.yml`) — a current-state
+     snapshot of coding harnesses & models (versions, cost, effort tiers) that informs those choices
+     ([ADR 0023](docs/adr/0023-tool-roster-facts-tracker-sibling-to-intake.md)).
    - *Roadmap ([#77](https://github.com/wrburgess/ai-config/issues/77)):* today only the per-agent
      model **declaration** in [`PROJECT.md`](PROJECT.md) exists — not yet the routing that spends it
      wisely.
 
 Every pillar above traces to a numbered ADR in [`docs/adr/`](docs/adr). The domain vocabulary (Config
 Bundle, Adapter, Skill, Rules Layer…) is defined in [`CONTEXT.md`](CONTEXT.md).
+
+## The Research Roster — how the config keeps up with the field
+
+**Why.** The practice of AI-assisted engineering moves weekly; a config bundle frozen on the day it was
+written would rot. The **Research Roster** is the intake pipeline that keeps this repo's own guidance
+current — it watches a curated roster of field *voices* and proposes durable learnings back into the
+Rules Layer, Skills, and ADRs. It **proposes; a human always disposes** on a review PR.
+
+**How.** Three skills feed one append-only **Learnings Log**, reading their source list from a
+version-controlled **Watchlist** ([ADR 0012](docs/adr/0012-intake-pipeline-placement.md)):
+
+- **`/scout`** — the **pull** sweep: polls the Watchlist (and the manual-drop inbox), drafts dated
+  Learnings-Log entries that each carry a `stance` (*confirms / challenges / extends / orthogonal*) and a
+  `touches` target, and opens a review PR. A stance-less finding is dropped — that discipline is what
+  keeps the log from decaying into a link dump.
+- **`/clip`** — the **push** front door: hand it a screenshot, link, or quote in any session and it writes
+  a well-formed, stance-less drop for the next sweep to turn into a learning
+  ([ADR 0015](docs/adr/0015-intake-front-door-drop-skill.md)).
+- **`/follow`** — the **roster** front door: turns a bare handle or link into the right add-or-update on
+  the Watchlist, deduping so an already-tracked voice is refreshed, not duplicated
+  ([ADR 0021](docs/adr/0021-voice-watchlist-front-door.md)).
+
+The sweep runs by hand or on a schedule; only disposition differs (interactive one-at-a-time vs.
+asynchronous-on-PR). Nothing merges without a human.
+
+## The Tool Roster — knowing your options at a glance
+
+**Why.** Choosing *which* agent and model to run for a task — the **Efficient** pillar's "right tool at
+the right price" — needs a current, trustworthy map of the options. Harness versions move almost daily and
+models every few weeks, and the changelog firehose is unreadable. The **Tool Roster** is the condensed
+answer: a current-state snapshot of the harnesses and models worth weighing for software development, so
+the choice reads off one board instead of a dozen vendor pages
+([ADR 0023](docs/adr/0023-tool-roster-facts-tracker-sibling-to-intake.md)).
+
+**How.** A version-controlled artifact ([`docs/reference/tool-roster.yml`](docs/reference/tool-roster.yml))
+holds two normalized lists — **harnesses** (which carry config) and **models** (which are declared) — each
+keyed by product *line* with the current version, cost, effort tiers, and a provenance-typed trust marker
+on every value (vendor-fact / benchmark / flagged estimate). It is a **snapshot**, not a log: the git diff
+is the history.
+
+- **`/restock`** refreshes it: re-verifies each entry's facts against that entry's own `sources:`
+  (reconfirm-or-age, **never fabricate**), writes only the real deltas, and opens a review PR — staying
+  quiet when nothing changed.
+- It runs on a **weekday-morning** cadence and pushes only *what changed* — host-configured and documented,
+  not shipped ([scheduling guide](docs/guides/tool-roster-refresh-scheduling.md)).
+
+The **Tool Roster** (tools to pick from) is the sibling of the **Research Roster** (voices to learn from) —
+one tracks *facts*, the other *opinions*.
 
 ## Get started
 

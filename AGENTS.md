@@ -67,7 +67,7 @@ spec — stages, roles, gates, and terminal artifacts — is
 
 ## Skills
 
-The Generic Baseline ships **twelve Skills**. Each is authored once as a canonical body
+The Generic Baseline ships **thirteen Skills**. Each is authored once as a canonical body
 (`skills/<name>/SKILL.md`, Anthropic's portable Skill format: YAML frontmatter + markdown + optional
 bundled files) and reached through a thin, tool-specific Invocation Shim; the procedure and quality
 gates are identical on every tool, and only tool-specific execution enhancements degrade gracefully
@@ -96,6 +96,7 @@ gates are identical on every tool, and only tool-specific execution enhancements
 | **clip** | Intake **push** front door — turn handed-over field output into a stance-less inbox drop, then delegate to `scout`. | [SKILL.md](skills/clip/SKILL.md) | [0015](docs/adr/0015-intake-front-door-drop-skill.md) |
 | **create-skill** | Authoring front door — scaffold a conforming new Skill (body + shim) and open a review PR. | [SKILL.md](skills/create-skill/SKILL.md) | [0019](docs/adr/0019-create-skill-authoring-front-door.md) |
 | **follow** | Intake **roster** front door — add/update a Watchlist voice from a handle or link, deduping first. | [SKILL.md](skills/follow/SKILL.md) | [0021](docs/adr/0021-voice-watchlist-front-door.md) |
+| **restock** | Tool Roster refresh — re-verify each entry's facts against its `sources:`, write only real deltas, open a review PR (quiet when unchanged). | [SKILL.md](skills/restock/SKILL.md) | [0023](docs/adr/0023-tool-roster-facts-tracker-sibling-to-intake.md) |
 
 The six lifecycle Skills (`assess`→`devise`→`invoke`→`verify`→`listen`→`final`) each read host values
 from [`PROJECT.md`](PROJECT.md) and post to its *Lifecycle Host*; their five-stage spec is

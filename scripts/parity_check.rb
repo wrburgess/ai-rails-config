@@ -90,7 +90,7 @@ class ParityCheck
   # through a thin Invocation Shim. Checked only for a bundle that ships a skills/ tree (the
   # SKILLS_DIR gate) so a minimal fixture bundle is unaffected — the same "only for a bundle that
   # ships them" stance as check_rules / check_guardrails. REQUIRED_SKILLS is a floor (the baseline
-  # ships all 12 today); it grows as later issues add skills. The per-present-skill invariants apply
+  # ships all 13 today); it grows as later issues add skills. The per-present-skill invariants apply
   # to EVERY skills/<name>/ dir, so those later skills are covered by construction — no rewrite.
   SKILLS_DIR = "skills"
   CLAUDE_COMMANDS_DIR = ".claude/commands"
@@ -104,7 +104,7 @@ class ParityCheck
   # front door (ADR 0019): all belong in the floor but NOT in LIFECYCLE_SKILLS — none is a lifecycle
   # stage, so none is forced through the PROJECT.md-reference check (each body references PROJECT.md by
   # choice, not by that mandate).
-  REQUIRED_SKILLS = (["distill"] + LIFECYCLE_SKILLS + ["ship", "scout", "clip", "create-skill", "follow"]).freeze
+  REQUIRED_SKILLS = (["distill"] + LIFECYCLE_SKILLS + ["ship", "scout", "clip", "create-skill", "follow", "restock"]).freeze
 
   # Content-neutrality (ADR 0003): a generic Skill body reads host values from PROJECT.md, so a
   # stack/domain proper noun in a body is leftover coupling the purely-structural checks cannot see.
