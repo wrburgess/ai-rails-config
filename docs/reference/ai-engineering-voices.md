@@ -227,12 +227,32 @@ Worth reading alongside the enthusiasts.
 - **Latent Space — The AI Engineer Podcast** (swyx / Shawn Wang + Alessio Fanelli) — named the "AI
   Engineer" movement; the connective tissue that surfaces most voices above in one feed.
   Site: https://www.latent.space/ · swyx X: https://x.com/swyx
+- **Seth Hobson** (`wshobson/agents`) — maintainer of a large (~38k-star) multi-harness agentic
+  plugin/agent marketplace: specialist agent prompts (frontend, backend, security, debugger) for Claude
+  Code, Codex, Cursor, Copilot, and Gemini CLI. Agent *definitions* rather than skills proper, but an
+  adjacent primary source for how the ecosystem structures agents. Swept via the repo's commit feed.
+  GitHub: https://github.com/wshobson/agents
 
 ## Master resource
+
+Ecosystem maps — curators, not authors — kept here as reference and **out of the person-sweep**
+(they map the landscape rather than produce field output). Anyone who wants live updates can subscribe
+to each repo's commit feed directly.
 
 **EthicalML/awesome-agentic-engineering-resources** — curates most of the above with quality tiers and
 free/paid tags. The best single map of the landscape.
 - https://github.com/EthicalML/awesome-agentic-engineering-resources
+
+**hesreallyhim/awesome-claude-code** — a large (~50k-star) hand-picked index of the Claude Code
+ecosystem (skills, agents, plugins, tooling). Curator/map, not original authorship; its commit feed is
+mostly automated ticker/SVG updates, so it's tracked here rather than swept.
+- https://github.com/hesreallyhim/awesome-claude-code
+  (feed: https://github.com/hesreallyhim/awesome-claude-code/commits.atom)
+
+**ComposioHQ/awesome-claude-skills** — a curated index of 1000+ Claude Skills/plugins (Composio).
+Another ecosystem map rather than an author; slower-moving feed, tracked here as reference.
+- https://github.com/ComposioHQ/awesome-claude-skills
+  (feed: https://github.com/ComposioHQ/awesome-claude-skills/commits.atom)
 
 ## Diversity note
 
