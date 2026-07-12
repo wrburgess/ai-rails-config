@@ -48,6 +48,7 @@ The tiers below match `voices.yml`'s `tier` buckets: **core** (Tier 1) · **tren
   thing to a living best-practices text.
 - **Site:** https://simonwillison.net/
 - **X:** https://x.com/simonw
+- **Bluesky:** https://bsky.app/profile/simonwillison.net (active daily — swept via its RSS feed)
 - **YouTube:** No dedicated channel (talks appear on event/conference channels)
 
 ### Thorsten Ball
@@ -193,7 +194,8 @@ directly since primary-source practice ships here first.
 - **Philipp Schmid** — Staff DevRel/DevX, Google DeepMind (ex-Hugging Face); very hands-on
   agentic-Gemini guides. Site: https://www.philschmid.de/ · GitHub: https://github.com/philschmid
 - **Paige Bailey** — AI DevRel Engineering Lead, Google DeepMind (ex-GitHub/Copilot). GitHub/handle:
-  `dynamicwebpaige` (https://github.com/dynamicwebpaige)
+  `dynamicwebpaige` (https://github.com/dynamicwebpaige) · Bluesky:
+  https://bsky.app/profile/dynamicwebpaige.bsky.social (active — swept via its RSS feed)
 - **Org:** Google AI for Developers — https://ai.google.dev/ (+ the Gemini CLI project)
 
 ## For balance (contrarian / primary sources)
@@ -208,7 +210,8 @@ Worth reading alongside the enthusiasts.
 - **Rachel Thomas** — Data ethics and a skeptical lens on AI hype; co-founder of fast.ai, now R&D at
   Answer.AI. Site: https://rachel.fast.ai/
 - **Emily Bender** — The critical-linguistics counterweight ("stochastic parrots"; *The AI Con*). Read
-  to pressure-test enthusiast claims. _(Verify current handle before citing — active on Bluesky, not X.)_
+  to pressure-test enthusiast claims. Active on Bluesky, not X:
+  https://bsky.app/profile/emilymbender.bsky.social (swept via its RSS feed).
 
 **Primary-source documents** (tracked here as documents, not people — kept out of the person-sweep):
 

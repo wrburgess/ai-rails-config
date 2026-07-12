@@ -32,7 +32,7 @@ voices:
   # --- Tier: core practical ---
   - { name: Simon Willison, tier: core, focus: "Applied LLM/agent work; llm CLI, Datasette; daily model-behavior notes",
       handles: { site: https://simonwillison.net/, x: https://x.com/simonw, youtube: null, github: https://github.com/simonw },
-      feeds: [ https://simonwillison.net/atom/everything/ ], cadence: high, verified: 2026-07-06, status: active }
+      feeds: [ https://simonwillison.net/atom/everything/, https://bsky.app/profile/simonwillison.net/rss ], cadence: high, verified: 2026-07-12, status: active }   # 2026-07-12: added Bluesky RSS (active daily; @simonwillison.net) alongside the blog Atom feed
   - { name: Thorsten Ball, tier: core, focus: "Agent fundamentals; 'How to build an agent'; Register Spill; Amp",
       handles: { site: https://registerspill.thorstenball.com/, x: null, youtube: null, github: null },
       feeds: [ https://registerspill.thorstenball.com/feed ], cadence: medium, verified: 2026-07-07, status: active }
@@ -62,7 +62,7 @@ voices:
       feeds: [ https://addyosmani.com/feed.xml, https://addyo.substack.com/feed ], cadence: high, verified: 2026-07-07, status: active }   # Elevate newsletter = addyo.substack.com
   - { name: Jesse Vincent, tier: core, focus: "Superpowers — the most-used Claude Code skills plugin; skill-authoring methodology, TDD-with-agents, subagent-driven development — directly parallel to this repo's Skills",
       handles: { site: https://blog.fsck.com/, x: null, youtube: null, github: https://github.com/obra },
-      feeds: [ https://blog.fsck.com/feed/feed.xml ], cadence: high, verified: 2026-07-12, status: active }   # abandoned X @obra ("I don't post here anymore"), active on Bluesky @s.ly (no sweepable feed) — swept via blog Atom feed; skills framework lives at github.com/obra/superpowers
+      feeds: [ https://blog.fsck.com/feed/feed.xml, https://bsky.app/profile/s.ly/rss ], cadence: high, verified: 2026-07-12, status: active }   # abandoned X @obra ("I don't post here anymore"); active on Bluesky @s.ly — swept via blog Atom feed + Bluesky RSS. Skills framework lives at github.com/obra/superpowers
 
   # --- Tier: bigger-picture / trend ---
   - { name: Andrej Karpathy, tier: trend, focus: "Foundational explainers; 'vibe coding'; Zero-to-Hero; at Anthropic (2026)",
@@ -105,7 +105,7 @@ voices:
       feeds: [ https://www.philschmid.de/rss ], cadence: high, verified: 2026-07-07, status: active }
   - { name: Paige Bailey, tier: frontier-lab, focus: "AI DevRel Engineering Lead, Google DeepMind (ex-GitHub/Copilot)",
       handles: { site: null, x: https://x.com/dynamicwebpaige, youtube: null, github: https://github.com/dynamicwebpaige },
-      feeds: [], cadence: medium, verified: 2026-07-06, status: active }   # X-only; no free feed
+      feeds: [ https://bsky.app/profile/dynamicwebpaige.bsky.social/rss ], cadence: medium, verified: 2026-07-12, status: active }   # 2026-07-12: active on Bluesky (@dynamicwebpaige.bsky.social) — swept via Bluesky RSS; also on X
   - { name: Anthropic Engineering, tier: org, focus: "Primary source: agent patterns, Claude Code best-practices",
       handles: { site: https://www.anthropic.com/engineering, x: null, youtube: null, github: null },
       feeds: [], cadence: medium, verified: 2026-07-07, status: active }   # no official RSS; swept via site search
@@ -128,7 +128,7 @@ voices:
       feeds: [ https://rachel.fast.ai/index.xml ], cadence: low, verified: 2026-07-07, status: active }
   - { name: Emily Bender, tier: balance, focus: "Critical-linguistics counterweight ('stochastic parrots'; The AI Con)",
       handles: { site: https://faculty.washington.edu/ebender/, x: null, youtube: null, github: null },
-      feeds: [], cadence: low, verified: 2026-07-06, status: active }   # active on Bluesky (emilymbender.bsky.social), not X; faculty page has no RSS
+      feeds: [ https://bsky.app/profile/emilymbender.bsky.social/rss ], cadence: medium, verified: 2026-07-12, status: active }   # active on Bluesky (@emilymbender.bsky.social), not X — swept via Bluesky RSS (2026-07-12); faculty page has no RSS
 
   # --- Tier: community aggregator ---
   - { name: Latent Space (swyx + Alessio Fanelli), tier: community, focus: "The AI Engineer podcast/newsletter; connective tissue that surfaces most voices above",
