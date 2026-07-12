@@ -60,6 +60,9 @@ voices:
   - { name: Addy Osmani, tier: core, focus: "AI-assisted engineering practice, hype-free; 'The 70% Problem'; Elevate newsletter; agentic-workflow deep-dives",
       handles: { site: https://addyosmani.com/, x: https://x.com/addyosmani, youtube: null, github: https://github.com/addyosmani },
       feeds: [ https://addyosmani.com/feed.xml, https://addyo.substack.com/feed ], cadence: high, verified: 2026-07-07, status: active }   # Elevate newsletter = addyo.substack.com
+  - { name: Jesse Vincent, tier: core, focus: "Superpowers — the most-used Claude Code skills plugin; skill-authoring methodology, TDD-with-agents, subagent-driven development — directly parallel to this repo's Skills",
+      handles: { site: https://blog.fsck.com/, x: null, youtube: null, github: https://github.com/obra },
+      feeds: [ https://blog.fsck.com/feed/feed.xml ], cadence: high, verified: 2026-07-12, status: active }   # abandoned X @obra ("I don't post here anymore"), active on Bluesky @s.ly (no sweepable feed) — swept via blog Atom feed; skills framework lives at github.com/obra/superpowers
 
   # --- Tier: bigger-picture / trend ---
   - { name: Andrej Karpathy, tier: trend, focus: "Foundational explainers; 'vibe coding'; Zero-to-Hero; at Anthropic (2026)",

@@ -122,6 +122,19 @@ The tiers below match `voices.yml`'s `tier` buckets: **core** (Tier 1) · **tren
 - **X:** https://x.com/addyosmani
 - **YouTube:** No dedicated channel (appears on podcasts)
 
+### Jesse Vincent
+- **Focus:** Skills-as-methodology, from a toolmaker who ships. Creator of **Superpowers**, the
+  most-used Claude Code plugin — an agentic skills framework and software-development methodology
+  (TDD-with-agents, systematic debugging, subagent-driven development with built-in review, and
+  skill-authoring itself). Directly parallel to this repo's own Skills + lifecycle model, so a
+  high-signal external check on how skill bodies and agent workflows are converging. Long track record
+  as a toolmaker (Request Tracker, K-9 Mail, Keyboardio); now Founder/CEO, Prime Radiant.
+- **Site:** https://blog.fsck.com/ (Massively Parallel Procrastination) · Skills framework:
+  https://github.com/obra/superpowers
+- **X:** none active — abandoned [@obra](https://x.com/obra) ("I don't post here anymore"); posts on
+  Bluesky ([@s.ly](https://bsky.app/profile/s.ly)) instead. Swept via the blog's Atom feed.
+- **GitHub:** https://github.com/obra
+
 ## Tier 2 — Bigger-picture / trend voices
 
 ### Andrej Karpathy
