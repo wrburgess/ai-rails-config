@@ -199,15 +199,18 @@ This is the highest-uncertainty tool and the one that amends ADR 0002; verdicts 
   `@import` to configure.
 - **`AGENTS.md` support.** Native since launch (early beta, 2026-05-25). It slots in exactly like
   Codex and Copilot: **native-canonical — no Adapter, no parity-check change.**
-- **Model.** Grok Build is *"now powered by Grok 4.5 — our new model"* (`x.ai/cli`). Grok 4.5 became
-  the CLI's default model on 2026-07-08 (`x.ai/news/grok-4-5`), superseding the earlier Grok coding
-  model the CLI launched on; living docs name the current model family **Grok / Grok 4.5**.
+- **Model.** Grok Build is *"now powered by Grok 4.5 — our new model"* (`x.ai/cli`). It launched on
+  **`grok-build-0.1`** (`x.ai/news/grok-build-0-1`, 2026-05-29 — *"the same model that powers the Grok
+  Build CLI"*), which **Grok 4.5** superseded as the CLI's default model on 2026-07-08
+  (`x.ai/news/grok-4-5`). Living docs name the current model family **Grok / Grok 4.5**; the superseded
+  `grok-build-0.1` is recorded here as history, not adopted as the current model.
 - **Verdict:** **NATIVE-CANONICAL** — the Canonical Source *is* Grok Build's native file; no Adapter,
   no pointer, no inlining.
 
 **Citations** (fetched 2026-07-10)
 - <https://x.ai/news/grok-build-cli> — (2026-05-25) "Grok Build is a new coding agent that runs right from your terminal."
 - <https://x.ai/news/grok-build-cli> — (2026-05-25) "Your AGENTS.md, plugins, hooks, skills, and MCP servers all work out of the box."
+- <https://x.ai/news/grok-build-0-1> — (2026-05-29) "the same model that powers the Grok Build CLI." (`grok-build-0.1`, the launch model, since superseded by Grok 4.5.)
 - <https://x.ai/cli> — "A powerful coding agent and CLI for complex coding work, now powered by Grok 4.5 — our new model."
 - <https://x.ai/news/grok-4-5> — (2026-07-08) "Grok 4.5 is now the default model in Grok Build."
 - <https://x.ai/build/changelog> — CLI version 0.2.94 (2026-07-09); the pre-1.0 (0.2.x) line ships ~daily.
