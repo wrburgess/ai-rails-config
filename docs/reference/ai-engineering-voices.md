@@ -48,6 +48,7 @@ The tiers below match `voices.yml`'s `tier` buckets: **core** (Tier 1) · **tren
   thing to a living best-practices text.
 - **Site:** https://simonwillison.net/
 - **X:** https://x.com/simonw
+- **Bluesky:** https://bsky.app/profile/simonwillison.net (active daily — swept via its RSS feed)
 - **YouTube:** No dedicated channel (talks appear on event/conference channels)
 
 ### Thorsten Ball
@@ -122,6 +123,19 @@ The tiers below match `voices.yml`'s `tier` buckets: **core** (Tier 1) · **tren
 - **X:** https://x.com/addyosmani
 - **YouTube:** No dedicated channel (appears on podcasts)
 
+### Jesse Vincent
+- **Focus:** Skills-as-methodology, from a toolmaker who ships. Creator of **Superpowers**, the
+  most-used Claude Code plugin — an agentic skills framework and software-development methodology
+  (TDD-with-agents, systematic debugging, subagent-driven development with built-in review, and
+  skill-authoring itself). Directly parallel to this repo's own Skills + lifecycle model, so a
+  high-signal external check on how skill bodies and agent workflows are converging. Long track record
+  as a toolmaker (Request Tracker, K-9 Mail, Keyboardio); now Founder/CEO, Prime Radiant.
+- **Site:** https://blog.fsck.com/ (Massively Parallel Procrastination) · Skills framework:
+  https://github.com/obra/superpowers
+- **X:** none active — abandoned [@obra](https://x.com/obra) ("I don't post here anymore"); posts on
+  Bluesky ([@s.ly](https://bsky.app/profile/s.ly)) instead. Swept via the blog's Atom feed.
+- **GitHub:** https://github.com/obra
+
 ## Tier 2 — Bigger-picture / trend voices
 
 ### Andrej Karpathy
@@ -180,7 +194,8 @@ directly since primary-source practice ships here first.
 - **Philipp Schmid** — Staff DevRel/DevX, Google DeepMind (ex-Hugging Face); very hands-on
   agentic-Gemini guides. Site: https://www.philschmid.de/ · GitHub: https://github.com/philschmid
 - **Paige Bailey** — AI DevRel Engineering Lead, Google DeepMind (ex-GitHub/Copilot). GitHub/handle:
-  `dynamicwebpaige` (https://github.com/dynamicwebpaige)
+  `dynamicwebpaige` (https://github.com/dynamicwebpaige) · Bluesky:
+  https://bsky.app/profile/dynamicwebpaige.bsky.social (active — swept via its RSS feed)
 - **Org:** Google AI for Developers — https://ai.google.dev/ (+ the Gemini CLI project)
 
 ## For balance (contrarian / primary sources)
@@ -195,7 +210,8 @@ Worth reading alongside the enthusiasts.
 - **Rachel Thomas** — Data ethics and a skeptical lens on AI hype; co-founder of fast.ai, now R&D at
   Answer.AI. Site: https://rachel.fast.ai/
 - **Emily Bender** — The critical-linguistics counterweight ("stochastic parrots"; *The AI Con*). Read
-  to pressure-test enthusiast claims. _(Verify current handle before citing — active on Bluesky, not X.)_
+  to pressure-test enthusiast claims. Active on Bluesky, not X:
+  https://bsky.app/profile/emilymbender.bsky.social (swept via its RSS feed).
 
 **Primary-source documents** (tracked here as documents, not people — kept out of the person-sweep):
 
@@ -211,12 +227,32 @@ Worth reading alongside the enthusiasts.
 - **Latent Space — The AI Engineer Podcast** (swyx / Shawn Wang + Alessio Fanelli) — named the "AI
   Engineer" movement; the connective tissue that surfaces most voices above in one feed.
   Site: https://www.latent.space/ · swyx X: https://x.com/swyx
+- **Seth Hobson** (`wshobson/agents`) — maintainer of a large (~38k-star) multi-harness agentic
+  plugin/agent marketplace: specialist agent prompts (frontend, backend, security, debugger) for Claude
+  Code, Codex, Cursor, Copilot, and Gemini CLI. Agent *definitions* rather than skills proper, but an
+  adjacent primary source for how the ecosystem structures agents. Swept via the repo's commit feed.
+  GitHub: https://github.com/wshobson/agents
 
 ## Master resource
+
+Ecosystem maps — curators, not authors — kept here as reference and **out of the person-sweep**
+(they map the landscape rather than produce field output). Anyone who wants live updates can subscribe
+to each repo's commit feed directly.
 
 **EthicalML/awesome-agentic-engineering-resources** — curates most of the above with quality tiers and
 free/paid tags. The best single map of the landscape.
 - https://github.com/EthicalML/awesome-agentic-engineering-resources
+
+**hesreallyhim/awesome-claude-code** — a large (~50k-star) hand-picked index of the Claude Code
+ecosystem (skills, agents, plugins, tooling). Curator/map, not original authorship; its commit feed is
+mostly automated ticker/SVG updates, so it's tracked here rather than swept.
+- https://github.com/hesreallyhim/awesome-claude-code
+  (feed: https://github.com/hesreallyhim/awesome-claude-code/commits.atom)
+
+**ComposioHQ/awesome-claude-skills** — a curated index of 1000+ Claude Skills/plugins (Composio).
+Another ecosystem map rather than an author; slower-moving feed, tracked here as reference.
+- https://github.com/ComposioHQ/awesome-claude-skills
+  (feed: https://github.com/ComposioHQ/awesome-claude-skills/commits.atom)
 
 ## Diversity note
 
