@@ -1,13 +1,13 @@
 # Per-Tool Config-Discovery Verification
 
-Verifies how each of the four coding agents — **Claude Code, Codex, GitHub Copilot,
-Gemini** — discovers its instruction/context files, and whether each reliably
+Verifies how each of the five coding agents — **Claude Code, Codex, GitHub Copilot,
+Gemini, Grok Build** — discovers its instruction/context files, and whether each reliably
 **follows a pointer/`@import` to `AGENTS.md`** (the core assumption of
 [ADR 0002](../adr/0002-agents-md-canonical-pointer-projection.md)) or requires the
 canonical content to be **inlined**.
 
 - **Issue:** wrburgess/ai-config#3 (`Part of #1`); Gemini re-verification #56.
-- **As-of:** 2026-07-07 (Gemini row re-verified against the 2026-05-19 Gemini CLI →
+- **As-of:** 2026-07-10 (Grok Build row added and verified 2026-07-10, issue #89; Gemini row re-verified against the 2026-05-19 Gemini CLI →
   Antigravity CLI transition, issue #56; all other rows as-of 2026-07-04). These
   behaviors drift fast (Copilot added three relevant capabilities across 2025-08 →
   2026-06; Google renamed its CLI surface mid-2026); **re-verify before each scaffold
@@ -25,7 +25,7 @@ splits cleanly into two kinds, and *neither* is a free-text "see AGENTS.md" poin
 - **Import-expansion** (Claude, Gemini/Antigravity CLI) — the Adapter file contains an `@AGENTS.md`
   directive that the tool *expands and inlines at load time*. Deterministic, not
   fragile pointer-following. **Pointer works.**
-- **Native discovery** (Codex, Copilot's relevant surfaces) — the tool reads
+- **Native discovery** (Codex, Copilot's relevant surfaces, Grok Build) — the tool reads
   `AGENTS.md` *directly by filename*; no Adapter is needed at all. **Native-canonical.**
 
 The one place the fallback ADR 0002 designed actually fires is **Copilot's older
@@ -46,6 +46,7 @@ both of which now read `AGENTS.md` natively.
 | **Copilot — VS Code in-editor** | in-editor chat | `AGENTS.md` (auto), `copilot-instructions.md`, `*.instructions.md` | **native** (gated by `chat.useAgentsMdFile`) | No — links not a guaranteed load | **NATIVE-CANONICAL** |
 | **Copilot — other IDEs** (JetBrains/VS/Xcode/Eclipse) | in-editor chat | `.github/copilot-instructions.md` only | not documented | **No** | **HYBRID-RENDER NEEDED** |
 | **Gemini** | Antigravity CLI (was Gemini CLI) | `GEMINI.md` (configurable) | via import or `context.fileName` | **Yes** — `@AGENTS.md`, 5-hop max | **POINTER WORKS** |
+| **Grok Build** | terminal coding agent (CLI) | `AGENTS.md` | **native, by filename** | n/a (reads it directly) | **NATIVE-CANONICAL** |
 
 Classifications: **POINTER WORKS** (an `@import` in the Adapter reliably inlines the
 Canonical Source) · **NATIVE-CANONICAL** (the tool reads `AGENTS.md` directly, no
@@ -187,6 +188,33 @@ This is the highest-uncertainty tool and the one that amends ADR 0002; verdicts 
 - <https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/> — (fetched 2026-07-07) "On June 18, 2026, Gemini CLI and Gemini Code Assist IDE extensions will stop serving requests for Google AI Pro and Ultra"; enterprise Code Assist Standard/Enterprise "access remains unchanged"; Antigravity CLI "keeps the most critical features" of Gemini CLI (Agent Skills, Hooks, Subagents, Extensions). *(This post covers the transition and dates only — the `GEMINI.md`/`AGENTS.md`/`@`-import continuity is sourced from the two citations below, not here.)*
 - <https://discuss.ai.google.dev/t/antigravity-update-1-20-3-2026-3-5/129320> — (fetched 2026-07-07) Antigravity update **1.20.3** (2026-03-05): "Added support for reading rules from `AGENTS.md` in addition to `GEMINI.md`." Native `AGENTS.md`, so the Canonical Source is read directly even without the `@`-import.
 - <https://geminicli.com/docs/cli/gemini-md.md> — (fetched 2026-07-07) current context-file doc (carries a banner that "Gemini CLI will be replaced by Antigravity CLI"): default file `GEMINI.md`, filename configurable via `context.fileName` (example `["AGENTS.md", "CONTEXT.md", "GEMINI.md"]`), and "break down large `GEMINI.md` files … by importing content from other files using the `@file.md` syntax" — i.e. the `context.fileName` + `@`-import mechanism persists across the surface rename.
+
+---
+
+## Grok Build (xAI) — NATIVE-CANONICAL
+
+- **Native files.** Grok Build reads `AGENTS.md` **natively, by filename** — no adapter, no pointer.
+  Its launch post: *"Your AGENTS.md, plugins, hooks, skills, and MCP servers all work out of the box."*
+- **Import/pointer.** n/a — like Codex, it reads the Canonical Source directly; there is no in-file
+  `@import` to configure.
+- **`AGENTS.md` support.** Native since launch (early beta, 2026-05-25). It slots in exactly like
+  Codex and Copilot: **native-canonical — no Adapter, no parity-check change.**
+- **Model.** Grok Build is *"now powered by Grok 4.5 — our new model"* (`x.ai/cli`). It launched on
+  **`grok-build-0.1`** (`x.ai/news/grok-build-0-1`, 2026-05-29 — *"the same model that powers the Grok
+  Build CLI"*), which **Grok 4.5** superseded as the CLI's default model on 2026-07-08
+  (`x.ai/news/grok-4-5`). Living docs name the current model family **Grok / Grok 4.5**; the superseded
+  `grok-build-0.1` is recorded here as history, not adopted as the current model.
+- **Verdict:** **NATIVE-CANONICAL** — the Canonical Source *is* Grok Build's native file; no Adapter,
+  no pointer, no inlining.
+
+**Citations** (fetched 2026-07-10)
+- <https://x.ai/news/grok-build-cli> — (2026-05-25) "Grok Build is a new coding agent that runs right from your terminal."
+- <https://x.ai/news/grok-build-cli> — (2026-05-25) "Your AGENTS.md, plugins, hooks, skills, and MCP servers all work out of the box."
+- <https://x.ai/news/grok-build-0-1> — (2026-05-29) "the same model that powers the Grok Build CLI." (`grok-build-0.1`, the launch model, since superseded by Grok 4.5.)
+- <https://x.ai/cli> — "A powerful coding agent and CLI for complex coding work, now powered by Grok 4.5 — our new model."
+- <https://x.ai/news/grok-4-5> — (2026-07-08) "Grok 4.5 is now the default model in Grok Build."
+- <https://x.ai/build/changelog> — CLI version 0.2.94 (2026-07-09); the pre-1.0 (0.2.x) line ships ~daily.
+- *Method note:* WebFetch is HTTP 403-blocked on `x.ai` (pages load only via a live browser session), and the changelog's latest release needs a live-DOM read — a single page-text fetch mis-selects a stale entry — so re-verify it against the DOM or an independent release tracker. Facts here are from live primary `x.ai` pages, corroborated by `byteiota.com` and independent trackers.
 
 ---
 

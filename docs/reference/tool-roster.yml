@@ -85,6 +85,16 @@ harnesses:
     sources: [https://cursor.com/changelog]
     verified: 2026-07-10
     status: active
+  - name: Grok Build
+    vendor: xAI
+    stable_version: "0.2.94"
+    version_date: 2026-07-09
+    maturity: preview                # pre-1.0 (0.2.x) line, ships ~daily
+    house_model: Grok
+    config_features: [hooks, mcp, plugins, agents-md]
+    sources: [https://x.ai/cli, https://x.ai/news/grok-build-cli, https://x.ai/build/changelog]
+    verified: 2026-07-10
+    status: active
 
 models:
   - name: Claude Opus
@@ -126,5 +136,12 @@ models:
     maturity: preview                    # 3.1 Pro is Preview, not GA (GA-stable Gemini is 3.5 Flash) — see sources
     api_cost: { input: 2, output: 12 }   # base tier (<=200K context); tiered above — see source
     sources: [https://ai.google.dev/gemini-api/docs/pricing, https://ai.google.dev/gemini-api/docs/models]
+    verified: 2026-07-10
+    status: active
+  - name: Grok
+    vendor: xAI
+    stable_version: "4.5"
+    version_date: 2026-07-08
+    sources: [https://x.ai/cli, https://x.ai/news/grok-4-5]
     verified: 2026-07-10
     status: active

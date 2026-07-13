@@ -1,6 +1,6 @@
 # Branch protection — defense in depth
 
-This bundle prevents any of the four agents (Claude, Codex, Copilot, Antigravity) — and an accidental
+This bundle prevents any of the five agents (Claude, Codex, Copilot, Antigravity, Grok Build) — and an accidental
 human — from committing or pushing to a protected branch. Enforcement is layered so that no single
 missing piece leaves a gap ([ADR 0009](../adr/0009-defense-in-depth-branch-protection-all-agents.md)).
 

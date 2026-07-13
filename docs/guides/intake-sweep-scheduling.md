@@ -16,7 +16,7 @@ which is documented for the host to enable, not applied for it.
 ## Two ways to drive it
 
 - **Manually** — invoke `/scout` (Claude) or follow the skill's documented procedure (Codex, Copilot,
-  Antigravity) whenever you want a sweep. This needs no setup.
+  Antigravity, Grok Build) whenever you want a sweep. This needs no setup.
 - **On a schedule** — a recurring job invokes the *same* skill on a cadence and files the review PR
   for you. That is what this guide sets up. The sweep runs the identical **discovery-and-drafting**
   procedure either way — there is no scheduled-only fast path. The one legitimate difference is
@@ -67,7 +67,7 @@ jobs:
       - uses: actions/checkout@v4
       # Run the agent your host uses with a tool-neutral instruction — "read and follow
       # skills/scout/SKILL.md and run one sweep". On Claude that is the /scout shim;
-      # Codex/Copilot/Antigravity reach the same body via native AGENTS.md discovery.
+      # Codex/Copilot/Antigravity/Grok Build reach the same body via native AGENTS.md discovery.
       # Supply the agent's credential as a repository secret (e.g. an API key);
       # the Generic Baseline names no specific tool or secret here.
       # The step must open a REVIEW PR — never merge. Branch protection (Layers 1-3)
@@ -76,7 +76,7 @@ jobs:
 
 Whatever agent the step invokes, two invariants hold: it runs the **same skill** — via the `/scout`
 shim on Claude, or by reading and following `skills/scout/SKILL.md` on the native-discovery tools
-(Codex, Copilot, Antigravity) — and it opens a **review PR**, never an auto-merge. Enabling auto-merge
+(Codex, Copilot, Antigravity, Grok Build) — and it opens a **review PR**, never an auto-merge. Enabling auto-merge
 here would violate the two-gate philosophy and is out of scope.
 
 ## Cadence rationale

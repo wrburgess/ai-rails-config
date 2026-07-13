@@ -1,7 +1,7 @@
 # AGENTS.md — Canonical Source
 
 This is the **Canonical Source**: the one authored, model-neutral set of instructions every
-configured AI coding agent (Claude, Codex, Copilot, Antigravity) reads. Author instructions **here,
+configured AI coding agent (Claude, Codex, Copilot, Antigravity, Grok Build) reads. Author instructions **here,
 once**; each tool's own config file is a thin **Adapter** that resolves back to this file, so the
 agents never receive drifted instructions. See [`CONTEXT.md`](CONTEXT.md) for the vocabulary used
 throughout (Config Bundle, Adapter, Skill, Rules Layer, Project Config, …).
@@ -21,6 +21,7 @@ Antigravity re-verified #56); decision in [ADR 0002](docs/adr/0002-agents-md-can
 - **Antigravity** (Google; succeeded Gemini CLI) — reads `GEMINI.md`, which imports this file via
   `@AGENTS.md` (or names it via `context.fileName`), and also reads `AGENTS.md` natively.
   (CLI-transition history lives in the [research doc](docs/research/tool-config-discovery.md).)
+- **Grok Build** (xAI) — reads `AGENTS.md` **natively** by filename (like Codex). No Adapter needed.
 
 Resolution is always **import-expansion** (`@AGENTS.md`) or **native discovery**, never a free-text
 pointer; the parity check ([ADR 0008](docs/adr/0008-structural-parity-check-not-model-in-the-loop.md))
@@ -79,7 +80,7 @@ gates are identical on every tool, and only tool-specific execution enhancements
 
 - **Claude Code** — a slash command from the thin shim at `.claude/commands/<name>.md` (e.g.
   `/distill`), which points at the canonical body.
-- **Codex / Copilot / Antigravity** — no slash command; these tools read `AGENTS.md` natively, so **the
+- **Codex / Copilot / Antigravity / Grok Build** — no slash command; these tools read `AGENTS.md` natively, so **the
   documented procedure is the shim**: read and follow the canonical body at `skills/<name>/SKILL.md`.
 
 | Skill | Purpose | Body | ADR(s) |
