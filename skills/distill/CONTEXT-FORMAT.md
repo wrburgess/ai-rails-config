@@ -75,3 +75,9 @@ The skill infers which structure applies:
 - If neither exists, create a root `CONTEXT.md` lazily when the first term is resolved
 
 When multiple contexts exist, infer which one the current topic relates to. If unclear, ask.
+
+**Vendored-bundle note:** in a Host App that vendored the ai-config bundle, the root `CONTEXT.md`
+is already occupied by the bundle's own config-layer vocabulary (and `AGENTS.md` links to it as
+such). Treat the host's first domain term as the multi-context trigger: create `CONTEXT-MAP.md`
+listing the config-layer context and the new domain context, rather than extending or replacing
+the bundle glossary.

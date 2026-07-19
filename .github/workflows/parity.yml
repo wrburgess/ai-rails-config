@@ -18,22 +18,36 @@ jobs:
           # No bundler: the checker and its self-test are stdlib-only (ADR 0008).
           bundler-cache: false
 
+      # The bundle's own self-tests live in test/, which ai-config-sync deliberately never vendors
+      # into a Host App (usage guide §1). Gating them on the tree's presence keeps this ONE workflow
+      # correct in both places: in this repo the self-tests run; in a vendored copy they are skipped
+      # instead of failing on day one (issue #95, surfaced by the first host vendoring).
+      - name: Detect the repo-only test tree
+        id: tests
+        run: echo "present=$([ -d test ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
       - name: Parity self-test (proves the checker fails correctly)
+        if: steps.tests.outputs.present == 'true'
         run: ruby test/parity_check_test.rb
 
       - name: Sync self-test (proves the vendoring installer works)
+        if: steps.tests.outputs.present == 'true'
         run: ruby test/ai_config_sync_test.rb
 
       - name: Protected-branch extractor self-test
+        if: steps.tests.outputs.present == 'true'
         run: ruby test/protected_branches_test.rb
 
       - name: Watchlist data-contract self-test (voices.yml schema)
+        if: steps.tests.outputs.present == 'true'
         run: ruby test/voices_watchlist_test.rb
 
       - name: Roster parity self-test (prose doc <-> voices.yml)
+        if: steps.tests.outputs.present == 'true'
         run: ruby test/voices_roster_parity_test.rb
 
       - name: Guard self-test (Layer 2 git-hook guard)
+        if: steps.tests.outputs.present == 'true'
         run: bash test/guard_protected_branch.test.sh
 
       - name: Enforce-hook self-test (Layer 3 Claude fast-fail; needs jq)
