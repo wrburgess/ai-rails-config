@@ -10,8 +10,17 @@ Execute the approved implementation plan for the tracked issue named in the invo
 
 Read host-specific values — the **quality-check commands** from [`PROJECT.md`](../../PROJECT.md) →
 *Quality Checks*, the branch/PR/issue-linking policy from *Branch & PR Policy*, the attribution/model
-from *Attribution & Model Declaration*, and the lifecycle host / artifact map from *Lifecycle Host*.
-Never hardcode a stack's commands, branch names, or platform verbs here.
+from *Attribution & Model Declaration*, the lifecycle host / artifact map from *Lifecycle Host*, and
+the gate policy from *Human Gates*. Never hardcode a stack's commands, branch names, or platform verbs
+here.
+
+**Start by re-reading the posted plan from the issue — Step 1 below, and it is unconditional.** The
+plan gate is a **session boundary** as well as an approval: `invoke` is the phase that begins right
+after it, so it must reconstruct the plan from the durable artifact, never from conversational memory.
+This holds **whatever [`PROJECT.md`](../../PROJECT.md) → *Human Gates* says.** The baseline is plan
+approval `required`; a host may set it to `auto`, which waives the *wait* for a human — it does **not**
+waive this re-read. A run that "already knows" the plan and skips the re-read has crossed the boundary
+without a firebreak.
 
 **Terminal artifact: the open PR.** `invoke` creates the PR here and nowhere else — commit ≠ done.
 
@@ -66,7 +75,18 @@ change with no code to lint) — checks are **not applicable, not skipped**; sta
 
 **Steps 3–5 are what the sub-agent runs (or you, inline); 1–2 and 6–9 are the orchestrator's.**
 
-1. **Read the issue, plan, and agent strategy.**
+1. **Re-read the posted plan from the issue — before anything else, every run.** Fetch the issue and
+   its comments through the lifecycle host and read the plan comment
+   [`devise`](../../skills/devise/SKILL.md) posted, plus the chosen option in the assessment and the
+   agent strategy. Work from **that text**, not from what this session remembers: the plan gate is a
+   session boundary, so the plan may have been authored in a session that no longer exists, and it may
+   have been revised at the gate. Confirm before proceeding that you can name, from the artifact you
+   just read: the ordered tasks, the testing strategy, and the branch. If **no plan comment exists**,
+   Stage 2's terminal artifact was skipped — **stop and recheck; do not infer a plan.**
+
+   This step is **unconditional** — it does not depend on [`PROJECT.md`](../../PROJECT.md) → *Human
+   Gates*. Under the baseline `required` the plan was approved by the HC; under `auto` the AC posted it
+   and proceeded on its own. Either way the posted comment, not the conversation, is the source.
 2. **Check the current branch** — if on a protected branch, create the plan's feature branch first
    (the guardrails will block writes otherwise).
 3. **Execute each task in the planned order:**
@@ -110,7 +130,8 @@ change with no code to lint) — checks are **not applicable, not skipped**; sta
 
 <quality-gate>
 
-Do **not** open the PR until: every check in [`PROJECT.md`](../../PROJECT.md) → *Quality Checks* is
+Do **not** open the PR until: the posted plan was **re-read from the issue** at Step 1 and the work is
+reconciled against *that* text; every check in [`PROJECT.md`](../../PROJECT.md) → *Quality Checks* is
 green; all planned tasks are complete; the self-review checklist is done; the commit message follows
 the host's attribution format; and the PR body has Summary, Changes, Technical Approach, Testing, and
 Checklist sections.

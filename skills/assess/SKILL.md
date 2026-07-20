@@ -9,8 +9,11 @@ Review the tracked issue named in the invocation and prepare an assessment for t
 (HC). This is **Stage 1 (Assess)** of the [development lifecycle](../../docs/standards/development-lifecycle.md).
 
 Read host-specific values — the lifecycle host and its artifact map, the attribution/model, the review
-severities, the quality-check commands — from [`PROJECT.md`](../../PROJECT.md). Never hardcode them
-here. Name the lifecycle *verb* ("read the issue", "post the assessment to the issue"); the concrete
+severities, the quality-check commands, and the **human-gate policy** — from
+[`PROJECT.md`](../../PROJECT.md). Never hardcode them here. **Baseline: plan approval is `required`,
+and it covers this stage's option pick** — the AC posts the assessment and does not proceed without a
+chosen option. A Host App may set it to `auto` in `PROJECT.md` → *Human Gates*; read that section
+before writing the Next Step. Name the lifecycle *verb* ("read the issue", "post the assessment to the issue"); the concrete
 mechanism (which platform, which command) is set in `PROJECT.md` → *Lifecycle Host* (GitHub is the
 default).
 
@@ -121,14 +124,26 @@ HC can discuss before choosing. Use this template:
 Option [X] because [rationale].
 
 ### Next Step
+[plan approval `required` — the shipped baseline]
 HC: send this assessment to the Reviewer, then reply with your chosen option and run the plan skill
 (`devise`) for the same issue.
+
+[plan approval `auto` — only if PROJECT.md -> Human Gates sets it]
+Plan approval is set to `auto` in PROJECT.md -> Human Gates, so I am proceeding on my own recommendation
+above (Option [X]) without waiting for a choice; this comment is the record of what was selected. Next:
+the plan skill (`devise`) for the same issue.
 ```
+
+Emit **one** of those two variants — the one the host's setting selects — never both.
 
 Sign the comment with the attribution footer from [`PROJECT.md`](../../PROJECT.md) → *Attribution &
 Model Declaration* (e.g. `— Claude Code (Opus 4.8)`), using your runtime-actual model.
 
-**Terminal artifact:** the assessment posted on the issue.
+**Terminal artifact:** the assessment posted on the issue — posted under **every** setting. **Exit:** an
+option is chosen. Under the baseline **`required`** the HC chooses it and the AC does not proceed
+without one; under `auto` the AC proceeds on its **own stated recommendation** and says so in the
+posted comment, which is then the only record of the choice. The recommendation must therefore be
+written to stand on its own — under `auto` nothing else vouches for it.
 
 ## Quality standard
 

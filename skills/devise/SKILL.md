@@ -10,8 +10,10 @@ HC chose from the [assessment](../../skills/assess/SKILL.md). This is **Stage 2 
 [development lifecycle](../../docs/standards/development-lifecycle.md).
 
 Read host-specific values — the lifecycle host and artifact map, the branch/PR policy, the
-quality-check commands, the attribution/model — from [`PROJECT.md`](../../PROJECT.md). Never hardcode
-them here.
+quality-check commands, the attribution/model, and the **human-gate policy** — from
+[`PROJECT.md`](../../PROJECT.md). Never hardcode them here. **Baseline: plan approval is `required`**
+— the AC posts the plan and waits for the HC — and a Host App may set it to `auto` in `PROJECT.md` →
+*Human Gates*. Read that section before writing the Next Step.
 
 </what-to-do>
 
@@ -25,9 +27,16 @@ them here.
    produce instead a **thin hypothesis + a spike/prototype step + an explicit re-plan checkpoint**: the
    smallest experiment that resolves the uncertainty, plus the named question it must answer before the
    real plan is written. That *is* the right-sized plan for a discovery task — *a plan to learn*, not a
-   lighter gate: it is still posted and still approved. The AC **surfaces** the exploratory path and its
-   rationale; the **HC elects it** — the AC never self-selects a compressed or exploratory workflow (see
-   the [development lifecycle](../../docs/standards/development-lifecycle.md)).
+   lighter gate: it is still posted and still approved.
+
+   **Who elects it depends on the gate setting.** Under the baseline `required`, the AC **surfaces**
+   the exploratory path and its rationale and the **HC elects it** — the AC never self-selects a
+   compressed or exploratory workflow (see the
+   [development lifecycle](../../docs/standards/development-lifecycle.md)). Where a host has set plan
+   approval to `auto` ([`PROJECT.md`](../../PROJECT.md) → *Human Gates*), the AC **may elect the
+   exploratory path itself** — it must then state the rationale in the posted plan and name that it
+   self-selected under `auto`, so the choice stays auditable. Compressing away a whole *stage* remains
+   the HC's call under either setting.
 3. **Break the work into discrete, ordered tasks** — each specific enough to implement without
    guessing, with the files it creates or modifies named. (For an exploratory plan, the ordered tasks
    are the spike itself, run to *learn*; its exit is the re-plan checkpoint. The spike is a Plan-stage
@@ -99,15 +108,32 @@ post-spike re-plan; here, state only what the spike must *learn*.)
 - [Migration, authorization, search/index, or breaking-change concerns]
 
 ### Next Step
+[plan approval `required` — the shipped baseline]
 HC: send this plan to the Reviewer, then approve to proceed with the implement skill (`invoke`) for the
 same issue.
+
+[plan approval `auto` — only if PROJECT.md -> Human Gates sets it]
+Plan approval is set to `auto` in PROJECT.md -> Human Gates, so I am proceeding on this plan without
+waiting for approval; this comment is the record of what was decided. [If exploratory: I elected the
+spike-then-plan path myself under `auto`, because <rationale>.] Next: the implement skill (`invoke`)
+for the same issue, which re-reads this posted plan before writing any code.
 ```
+
+Emit **one** of those two variants — the one the host's setting selects — never both.
 
 Sign with the attribution footer from [`PROJECT.md`](../../PROJECT.md) → *Attribution & Model
 Declaration*, using your runtime-actual model.
 
-**Terminal artifact:** the plan posted on the issue. **This is the first mandatory human gate (plan
-approval)** — the AC does not write code without an approved plan.
+**Terminal artifact:** the plan posted on the issue — posted under **every** setting; it is the durable
+record the next stage re-reads. **This is the first human gate (plan approval).** Its setting comes from
+[`PROJECT.md`](../../PROJECT.md) → *Human Gates*: the shipped baseline is **`required`**, and the AC
+does not write code without an approved plan; a host may set it to `auto`, and the AC then proceeds on
+this plan, naming that in the comment.
+
+**The gate is also a session boundary, and that role is unconditional.** "Plan posted" ends the session
+under `required` *and* under `auto` — `auto` waives the *wait*, never the context firebreak.
+[`invoke`](../../skills/invoke/SKILL.md) begins by re-reading this plan from the issue rather than
+carrying it in conversational memory.
 
 An approved plan is **revisable direction, not a frozen contract.** Discovering mid-`invoke` that the
 plan was wrong — an assumption broke, the spike taught something the plan didn't foresee — is an

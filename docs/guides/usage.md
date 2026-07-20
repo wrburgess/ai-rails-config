@@ -62,7 +62,8 @@ Author host-specific content as **Customization**, never by editing the baseline
 split is what keeps future updates mergeable.
 
 1. **Edit [`PROJECT.md`](../../PROJECT.md)** — the single Customization surface the agents read. Replace
-   the business-neutral placeholders in each of its five sections:
+   the business-neutral placeholders in its sections (the parity check requires the first five; the
+   rest are additive and each has a shipped default):
    - **Quality Checks** — the real commands an agent must run green before "done" (lint, tests,
      security, dependency audit).
    - **Attribution & Model Declaration** — the per-agent tool + model for commit trailers and comment
@@ -73,6 +74,16 @@ split is what keeps future updates mergeable.
      `verify`/`listen`/`final` skills classify against.
    - **Lifecycle Host** — the platform hosting issues/PRs and the artifact map (GitHub by default,
      remappable — [ADR 0006](../adr/0006-baseline-skill-set-and-github-default-lifecycle-host.md)).
+   - **Human Gates** — which lifecycle pauses require a human
+     ([ADR 0025](../adr/0025-human-gate-policy-is-a-project-config-value.md)). Ships **strict**: plan
+     approval `required`, merge `required`. Set *plan approval* to `auto` if your host wants the AC to
+     proceed on its own recommendation — it still posts the assessment and the plan (under `auto` those
+     comments are the sole audit trail) and names that it self-selected. **Merge is not configurable:**
+     `required` is its only legal value, so no host can express self-merge, and parity hard-fails any
+     attempt. Leaving this section out entirely is fine — a vendored copy that predates it parses to
+     the same strict defaults.
+   - **Intake Pipeline** / **Tool Roster** — the artifact locations `scout`/`clip` and `restock` read
+     and write (also additive; repoint them if you relocate those artifacts).
 2. **Add your domain rules** to the [Rules Layer](../../rules/) as Customization — host-specific
    Patterns and Anti-Patterns, kept separate from the baseline starters
    ([ADR 0004](../adr/0004-two-tier-rules-layer-progressive-context.md)). Heavy, subsystem-specific case
@@ -121,12 +132,15 @@ shim, and the native-discovery tools reach the same body by the documented "read
 
 - Issue-scoped stages (`assess`, `devise`, `invoke`) take the **issue** id; PR-scoped stages (`verify`,
   `listen`, `final`) take the **PR** id that `invoke` opens.
-- Two human gates are mandatory and never bypassed — **plan approval** (after `devise`) and **merge**
-  (after `final`).
+- Two human gates punctuate it — **plan approval** (after `devise`) and **merge** (after `final`).
+  Which of them *pauses* is declared in [`PROJECT.md`](../../PROJECT.md) → *Human Gates*; the shipped
+  baseline is strict, so out of the box both wait for the HC. **Merge is never configurable.** And
+  whatever the setting, "plan posted" stays a **session boundary**: `invoke` re-reads the posted plan
+  from the issue rather than trusting conversational memory.
 - Full stage spec, terminal artifacts, and when to compress stages →
   [`development-lifecycle.md`](../standards/development-lifecycle.md).
 - To run the whole lifecycle hands-off, the [`ship`](../../skills/ship/SKILL.md) orchestrator sequences
-  all six while protecting exactly those two gates.
+  all six while protecting exactly those two gates, as your *Human Gates* setting declares them.
 
 ### The intake pipeline (`scout` + `clip`)
 

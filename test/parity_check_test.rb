@@ -113,8 +113,9 @@ class ParityCheckTest < Minitest::Test
   end
 
   # Writes one skill: body + shim + AGENTS.md reference. The default body carries `name:` frontmatter,
-  # references PROJECT.md (satisfying the lifecycle-Skill positive check), and names no host-specific
-  # token. `body:` overrides it (used by the neutrality failure tests).
+  # references PROJECT.md (satisfying the lifecycle-Skill positive check), names the `Human Gates` host
+  # value (satisfying the gate-aware check for assess/devise/invoke/ship/final — ADR 0025), and names
+  # no host-specific token. `body:` overrides it (used by the neutrality failure tests).
   def write_skill(dir, name, body: nil)
     body_rel = "skills/#{name}/SKILL.md"
     shim_rel = ".claude/commands/#{name}.md"
@@ -126,7 +127,7 @@ class ParityCheckTest < Minitest::Test
       description: A portable skill.
       ---
 
-      Skill body. Reads host values from PROJECT.md.
+      Skill body. Reads host values from PROJECT.md, including the Human Gates policy.
     MD
     # The shim's relative link contains body_rel as a substring, satisfying the reference invariant.
     File.write(File.join(dir, shim_rel), "Read and follow [`#{body_rel}`](../../#{body_rel}).\n")
@@ -569,7 +570,8 @@ class ParityCheckTest < Minitest::Test
     # the denylist (guards the ASCII-letter word-boundary matcher against a false positive).
     with_bundle do |dir|
       add_skills(dir)
-      write_skill(dir, "assess", body: "---\nname: assess\ndescription: x\n---\n\nFlag anything underspecified in the issue; read PROJECT.md.\n")
+      # `assess` is gate-aware, so the body must also name Human Gates to isolate the token check.
+      write_skill(dir, "assess", body: "---\nname: assess\ndescription: x\n---\n\nFlag anything underspecified in the issue; read PROJECT.md -> Human Gates.\n")
       code, out = run_check(dir)
       assert_equal 0, code, out
     end
@@ -636,6 +638,78 @@ class ParityCheckTest < Minitest::Test
       code, out = run_check(dir)
       assert_equal 1, code
       assert_match(/Dead link/, out)
+    end
+  end
+
+  # --- Human-gate policy (ADR 0025) --------------------------------------------------------------
+
+  # Appends a `## Human Gates` section to the baseline fixture's PROJECT.md. Deliberately an ADDITIVE
+  # helper rather than an edit to build_baseline: test_baseline_without_human_gates_section_passes
+  # depends on build_baseline staying free of the section, as the vendored-host regression guard.
+  def add_human_gates(dir, plan: "required", merge: "required")
+    project = File.read(File.join(dir, "PROJECT.md"))
+    File.write(File.join(dir, "PROJECT.md"), <<~MD)
+      #{project}
+      ## Human Gates
+
+      | Gate | Setting | Allowed values |
+      |------|---------|----------------|
+      | **Plan approval** — the option pick and the plan | `#{plan}` | `required` · `auto` |
+      | **Merge** — the HC merges the delivered PR | `#{merge}` | `required` (not configurable) |
+    MD
+  end
+
+  def test_baseline_without_human_gates_section_passes
+    # The additive / non-breaking contract: `## Human Gates` is NOT in REQUIRED_PROJECT_SECTIONS, so a
+    # PROJECT.md that predates it (exactly what build_baseline writes, and what every already-vendored
+    # Host App has) must still pass — the parser supplies the strict defaults. This is why
+    # build_baseline must stay untouched: it IS the regression fixture for the vendored-host case.
+    with_bundle do |dir|
+      refute_includes File.read(File.join(dir, "PROJECT.md")), "## Human Gates"
+      code, out = run_check(dir)
+      assert_equal 0, code, out
+    end
+  end
+
+  def test_valid_human_gates_section_passes
+    with_bundle do |dir|
+      add_human_gates(dir)
+      code, out = run_check(dir)
+      assert_equal 0, code, out
+    end
+  end
+
+  def test_auto_merge_gate_fails_as_non_configurable
+    # The safety invariant: no Host App may express self-merge. This must fail with its OWN message
+    # naming merge as non-configurable, not the generic bad-value message — it is a policy boundary.
+    with_bundle do |dir|
+      add_human_gates(dir, merge: "auto")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/merge gate is NOT configurable/, out)
+      assert_match(/no Host App may express self-merge/, out)
+    end
+  end
+
+  def test_unknown_plan_approval_value_fails_with_allowed_values
+    with_bundle do |dir|
+      add_human_gates(dir, plan: "sometimes")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/unknown value `sometimes` for `plan-approval`/, out)
+      assert_match(/allowed values are `required`, `auto`/, out)
+    end
+  end
+
+  def test_gate_aware_skill_not_naming_human_gates_fails
+    # The resident-default rule (ADR 0025): a body that acts on a gate must NAME the host value. A
+    # body that references PROJECT.md but never names Human Gates would be hardcoding a gate policy.
+    with_bundle do |dir|
+      add_skills(dir)
+      write_skill(dir, "ship", body: "---\nname: ship\ndescription: x\n---\n\nSequence the phases; read host values from PROJECT.md.\n")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/Gate-aware Skill ship: skills\/ship\/SKILL\.md does not name the `Human Gates`/, out)
     end
   end
 

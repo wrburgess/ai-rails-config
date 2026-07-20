@@ -36,6 +36,10 @@ jobs:
         if: ${{ hashFiles('test/protected_branches_test.rb') != '' }}
         run: ruby test/protected_branches_test.rb
 
+      - name: Human-gate extractor self-test
+        if: ${{ hashFiles('test/human_gates_test.rb') != '' }}
+        run: ruby test/human_gates_test.rb
+
       - name: Watchlist data-contract self-test (voices.yml schema)
         if: ${{ hashFiles('test/voices_watchlist_test.rb') != '' }}
         run: ruby test/voices_watchlist_test.rb

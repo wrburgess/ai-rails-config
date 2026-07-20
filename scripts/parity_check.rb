@@ -21,6 +21,7 @@
 
 require "optparse"
 require_relative "protected_branches"
+require_relative "human_gates"
 
 class ParityCheck
   CANONICAL = "AGENTS.md"
@@ -119,6 +120,9 @@ class ParityCheck
   ].freeze
 
   # Required PROJECT.md H2 sections (verbatim). This is the parity contract with PROJECT.md.
+  # Deliberately a FLOOR, not an inventory: PROJECT.md ships more sections than these (Human Gates,
+  # Intake Pipeline, Tool Roster). Those stay out so an already-vendored Host App whose PROJECT.md
+  # predates one of them is not reddened by an additive change — each has a shipped default instead.
   REQUIRED_PROJECT_SECTIONS = [
     "## Quality Checks",
     "## Attribution & Model Declaration",
@@ -126,6 +130,14 @@ class ParityCheck
     "## Review Severity Framework",
     "## Lifecycle Host",
   ].freeze
+
+  # Human-gate policy (ADR 0025). The settings are a Project Config value read through HumanGates,
+  # which returns the shipped strict defaults when `## Human Gates` is absent (see the note above).
+  # These Skill bodies act on a gate, so each must NAME the host value — the resident-default rule:
+  # a body states the shipped default inline AND points at the override, so it can never hardcode a
+  # policy a host overrode, and Copilot (which does not follow links) still receives the instruction.
+  GATE_AWARE_SKILLS = %w[assess devise invoke ship final].freeze
+  GATE_REFERENCE = "Human Gates"
 
   # Branch-protection guardrails (ADR 0009). Checked only for a bundle that ships them — signalled by
   # the derived sidecar's presence — so minimal fixture bundles are unaffected.
@@ -154,6 +166,7 @@ class ParityCheck
     check_copilot_adapter
     check_rendered_regions
     check_project_sections
+    check_human_gates
     check_rules
     check_skills
     check_guardrails
@@ -252,6 +265,33 @@ class ParityCheck
     end
   end
 
+  # Human-gate policy (ADR 0025). PROJECT.md declares which lifecycle pauses require a human; the
+  # generic Skill bodies read it instead of hardcoding a policy. Two invariants, both value-level (the
+  # per-body "does it NAME the value" invariant lives in check_skills, behind the skills/ gate):
+  #   (1) MERGE IS NOT CONFIGURABLE - `required` is its only legal value, so no Host App can express
+  #       self-merge. This gets its own message because it is a policy boundary, not a typo.
+  #   (2) Any other out-of-set value is reported with the allowed set, never coerced to a default.
+  # A PROJECT.md with no `## Human Gates` section parses to the shipped strict defaults and passes.
+  def check_human_gates
+    return unless exist?(PROJECT_CONFIG)
+
+    gates = HumanGates.extract(read(PROJECT_CONFIG))
+
+    if gates[:merge] != HumanGates::DEFAULTS[:merge]
+      err("Human-gate policy: the merge gate is NOT configurable - #{PROJECT_CONFIG} declares " \
+          "`merge: #{gates[:merge]}` but `#{HumanGates::DEFAULTS[:merge]}` is its only allowed value " \
+          "(no Host App may express self-merge; a human always merges)")
+    end
+
+    HumanGates.invalid(gates).each do |key, value|
+      next if key == :merge # already reported above, with the specific non-configurable message
+
+      allowed = HumanGates::ALLOWED[key].map { |v| "`#{v}`" }.join(", ")
+      err("Human-gate policy: #{PROJECT_CONFIG} declares an unknown value `#{value}` for " \
+          "`#{key.to_s.tr('_', '-')}` - allowed values are #{allowed}")
+    end
+  end
+
   # Tier-1 Rules Layer (ADR 0004). Runs only when the bundle ships a rules/ tree, so a minimal bundle
   # without the Rules Layer is unaffected (the same gate stance as check_guardrails). Three invariants
   # per rule file: (1) it exists, (2) AGENTS.md references it (the Lean Core must be reachable from the
@@ -329,6 +369,14 @@ class ParityCheck
       if LIFECYCLE_SKILLS.include?(name) && !body.include?(PROJECT_CONFIG)
         err("Lifecycle Skill #{name}: #{body_rel} does not reference #{PROJECT_CONFIG} (it must read " \
             "quality checks / attribution / severities / lifecycle host from Project Config, not hardcode them)")
+      end
+
+      # … and every gate-aware Skill must NAME the Human Gates host value (ADR 0025). This verifies
+      # the REFERENCE, not the prose's semantic agreement with the setting - see the ADR's limits.
+      if GATE_AWARE_SKILLS.include?(name) && !body.include?(GATE_REFERENCE)
+        err("Gate-aware Skill #{name}: #{body_rel} does not name the `#{GATE_REFERENCE}` host value " \
+            "(a body that acts on a human gate must state the shipped default inline AND read the " \
+            "override from #{PROJECT_CONFIG} -> #{GATE_REFERENCE}, never hardcode a gate policy)")
       end
     end
   end
