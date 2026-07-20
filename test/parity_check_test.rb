@@ -332,6 +332,36 @@ class ParityCheckTest < Minitest::Test
     end
   end
 
+  def test_matching_render_block_whose_canonical_contains_a_fence_passes
+    # THE distinguishing test for "detect on stripped lines, CAPTURE from the original ones".
+    # A drifted fixture cannot prove it — that mismatches under either implementation. Only a MATCHING
+    # block whose canonical contains code can: if the region were captured from the stripped lines, the
+    # fence and the inline span would come back blanked, the comparison would fail, and the bundle
+    # would report drift against a byte-identical copy. This is reachable, not hypothetical — the real
+    # AGENTS.md ships a fenced block (the quality-gate command), so any render-mode host hits it.
+    Dir.mktmpdir do |dir|
+      agents = <<~MD
+        # Canonical
+
+        Run the gate, and note the `inline span` here:
+
+        ```sh
+        ruby scripts/parity_check.rb
+        ```
+
+        Trailing prose.
+      MD
+      build_baseline(dir, agents: agents)
+      File.write(
+        File.join(dir, ".github/copilot-instructions.md"),
+        "<!-- parity:render source=AGENTS.md -->\n#{agents}<!-- parity:endrender -->\n"
+      )
+      code, out = run_check(dir)
+      assert_equal 0, code, out
+      refute_match(/byte-for-byte/, out, "a byte-identical render block was reported as drift")
+    end
+  end
+
   def test_real_render_block_still_compared_byte_for_byte_when_the_file_also_has_a_fenced_example
     # The other half: detection is code-aware, but the CAPTURE must still read the file's real bytes.
     # A file carrying BOTH a fenced illustration and a genuine drifted render block must still fail —
@@ -938,30 +968,60 @@ class ParityCheckTest < Minitest::Test
 
   # Markdown files that are vendored but deliberately NOT link-checked. Empty by design: if you add an
   # entry here, state WHY the file's links may rot in a Host App. An empty list is the strong form of
-  # the invariant — every markdown file the bundle ships has its links resolved.
+  # the invariant — every markdown file the bundle ships has its links resolved. Both properties are
+  # asserted below, because an unguarded exemption list is just a quiet way to silence this guard.
   LINK_CHECK_EXEMPT = [].freeze
 
   def repo_root = File.expand_path("..", __dir__)
 
-  # Every markdown file this bundle VENDORS, derived by walking ai-config-sync's own ALLOW manifest.
+  def sync_installer
+    load File.join(repo_root, "bin", "ai-config-sync") unless defined?(AiConfigSync)
+    AiConfigSync
+  end
+
+  # Every markdown file this bundle VENDORS, derived by walking ai-config-sync's own ALLOW manifest and
+  # mirroring its copy semantics exactly (FNM_DOTMATCH, the self-exclusion, the .local skip).
   #
   # Deriving from ALLOW rather than re-globbing the subtrees LINK_CHECKED enumerates is the whole point
   # of this guard: a glob list written next to the constant can only ever agree with it, so an omitted
   # *subtree* (docs/research/, docs/overlays/, .claude/commands/ were all missed exactly this way) is
-  # invisible. ALLOW is the authoritative answer to "what ships", so anything new that ships is caught.
+  # invisible. For the same reason the walk must match the installer rather than approximate it — a
+  # dotted directory like docs/.templates/ ships to hosts under FNM_DOTMATCH, and a plain **/*.md glob
+  # would never see it.
   def vendored_markdown
-    load File.join(repo_root, "bin", "ai-config-sync") unless defined?(AiConfigSync)
-    AiConfigSync::ALLOW
+    sync = sync_installer
+    sync::ALLOW
       .flat_map do |entry|
         abs = File.join(repo_root, entry)
-        if File.directory?(abs) then Dir.glob(File.join(abs, "**", "*.md"))
-        elsif File.file?(abs) && entry.end_with?(".md") then [abs]
-        else []
+        if File.directory?(abs)
+          Dir.glob("**/*.md", File::FNM_DOTMATCH, base: abs).map { |sub| File.join(entry, sub) }
+        elsif File.file?(abs) && entry.end_with?(".md")
+          [entry]
+        else
+          []
         end
       end
-      .map { |abs| abs.delete_prefix("#{repo_root}/") }
-      .reject { |rel| rel.start_with?("test/") } # never vendored; see the sync installer's own tests
+      .reject { |rel| rel == sync::SELF_REL || File.basename(rel).match?(sync::LOCAL_RE) }
       .uniq.sort
+  end
+
+  def test_link_check_exempt_entries_are_real_and_the_list_is_empty
+    # An exemption list nobody checks is a silencing hole: a stale or misspelled entry exempts nothing
+    # and reports nothing, and a "just quiet the failure" entry looks identical to a considered one.
+    # Guard both ends — every entry must name a file that actually ships...
+    stale = LINK_CHECK_EXEMPT - vendored_markdown
+    assert_empty(
+      stale,
+      "these LINK_CHECK_EXEMPT entries are not vendored markdown files, so they exempt nothing:\n  " \
+      "#{stale.join("\n  ")}"
+    )
+    # ...and the list ships EMPTY, so adding to it is a deliberate, reviewed act rather than a quiet
+    # way to make this file's other guard go green. Adding an entry should require editing this test.
+    assert_empty(
+      LINK_CHECK_EXEMPT,
+      "LINK_CHECK_EXEMPT is no longer empty. That may be correct - but it weakens the link-check " \
+      "invariant, so state the justification here and update this assertion deliberately."
+    )
   end
 
   def test_link_checked_enumerates_every_vendored_markdown_file

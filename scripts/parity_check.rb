@@ -670,6 +670,17 @@ class ParityCheck
   end
 
   # The delimiter run of a fence line (``` / ~~~~ / ```md), or nil when the line is not a fence.
+  #
+  # KNOWN TRADE-OFF: matching `line.strip` means indentation is ignored, which is what lets a fence
+  # nested inside a list item be recognized — the common case in these docs. The cost is that a
+  # 4-space-indented ``` line, which CommonMark reads as *indented code* rather than a fence, is
+  # treated as a fence here; prose carrying a real dead link between two such lines would be blanked
+  # and pass. That direction is a FALSE GREEN, so it is the one to know about — it is also contrived,
+  # and no file in the bundle is written that way. The sibling limitations all fail the SAFE way, in
+  # the red direction: an indented (non-fenced) code block and an HTML-comment block are not
+  # recognized as code at all, so an illustrative link inside either is still resolved and reported.
+  # Reported noise is recoverable; a silent miss is not. Do not "fix" the indentation handling without
+  # re-checking which direction each case then fails in.
   def fence_delimiter(line)
     m = FENCE_LINE.match(line.strip)
     m && m[1]

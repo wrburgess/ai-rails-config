@@ -127,13 +127,22 @@ an **inbox-only** run:
    in this same PR** — a drop whose learning has been proposed has done its job and must not be swept
    again.
 
-   **Then keep the link enumeration in step with the files you just added.** The structural check in
-   `scripts/parity_check.rb` resolves links for an **explicit list** of the markdown files the bundle
-   vendors (`LINK_CHECKED`). When the locations you resolved in step 1 fall **inside** that enumerated
-   set — as they do in the config bundle itself — add every file you created (each new entry, plus any
-   drop you deliberately left in the inbox per step 9) to that list **in this same PR**; otherwise the
-   drift guard reds the very PR you are about to open. When those locations are a **Host App's own**
-   intake tree they are deliberately *not* enumerated — add nothing. Check, don't assume.
+   **Then, when you are sweeping the config bundle itself, keep the link enumeration in step with the
+   files you just added.** The structural check in `scripts/parity_check.rb` resolves links for an
+   **explicit list** of the markdown files the bundle ships (`LINK_CHECKED`), and a drift guard in the
+   bundle's own self-tests reds any PR that adds a shipped markdown file without listing it. So add
+   every file you created — each new entry, plus any drop you deliberately left in the inbox per step 9
+   — to that list **in this same PR**.
+
+   **In a Host App, add nothing.** The distinction is *which repo you are in*, not where the artifacts
+   live: the shipped *Intake Pipeline* defaults already point inside the enumerated tree
+   (`docs/reference/` — the Watchlist, the Learnings Log and its index, the manual-drop inbox), so a
+   default-configured host writes to enumerated locations too and would otherwise look like the first
+   case. It isn't, for two reasons: the drift guard lives in the bundle's `test/` tree, which is never
+   vendored, so nothing reds; and an edit to the host's vendored `scripts/parity_check.rb` is
+   overwritten by the next update anyway. Tell the two apart by whether the repo ships the bundle's own
+   self-tests. If a host *wants* its own entries link-checked, that is a deliberate local customization
+   with a known per-update cost — not part of this sweep.
 
 9. **Surface staleness.** *(Full sweep only — an inbox-only run swept no feeds, so it reports no
    feed-staleness; only the inbox item is in scope.)* In the PR description, note which sources had
@@ -165,10 +174,11 @@ the human-disposes gate never do.
 
 Before opening the PR: every drafted entry carries a real `source.link` (no invented URL), a
 **`stance`**, and a **`touches`** target, and no stance-less entry survived. Whenever at least one
-entry survives, the output is a reviewable PR, **never a direct commit** to a protected branch. Every
-file the sweep added under an **enumerated** location is listed in `LINK_CHECKED`
-(`scripts/parity_check.rb`) in the same PR (step 8) — an unenumerated new entry reds the drift guard on
-the PR you just opened, so verify this before pushing rather than after CI says so. The
+entry survives, the output is a reviewable PR, **never a direct commit** to a protected branch. When
+the sweep ran against **the config bundle itself** (the repo that ships this Skill's self-tests), every
+file it added is also listed in `LINK_CHECKED` (`scripts/parity_check.rb`) in the same PR (step 8) —
+otherwise the drift guard reds the PR you just opened, so verify before pushing rather than after CI
+says so; in a Host App this does not apply. The
 marker and staleness invariants depend on the invocation mode (steps 8–9):
 
 - **Full sweep** — the last-swept marker was advanced to today and the staleness notes are in the PR
