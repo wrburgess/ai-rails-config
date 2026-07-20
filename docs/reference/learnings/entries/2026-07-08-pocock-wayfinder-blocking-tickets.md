@@ -40,7 +40,7 @@ oversized plan into sized, dependency-linked, parallelizable issues**; that upst
 what wayfinder adds. The `/to-tickets` renames also **confirm** the repo's own platform-neutral-verbs
 discipline (the *Lifecycle Host* artifact map, "never hardcode a platform verb"): Pocock's local-file
 vs real-tracker duality is the same "map the verbs, don't hardcode the platform" move
-([ADR 0006](../../adr/0006-baseline-skill-set-and-github-default-lifecycle-host.md)).
+([ADR 0006](../../../adr/0006-baseline-skill-set-and-github-default-lifecycle-host.md)).
 
 ## Disposition
 

@@ -127,6 +127,14 @@ an **inbox-only** run:
    in this same PR** — a drop whose learning has been proposed has done its job and must not be swept
    again.
 
+   **Then keep the link enumeration in step with the files you just added.** The structural check in
+   `scripts/parity_check.rb` resolves links for an **explicit list** of the markdown files the bundle
+   vendors (`LINK_CHECKED`). When the locations you resolved in step 1 fall **inside** that enumerated
+   set — as they do in the config bundle itself — add every file you created (each new entry, plus any
+   drop you deliberately left in the inbox per step 9) to that list **in this same PR**; otherwise the
+   drift guard reds the very PR you are about to open. When those locations are a **Host App's own**
+   intake tree they are deliberately *not* enumerated — add nothing. Check, don't assume.
+
 9. **Surface staleness.** *(Full sweep only — an inbox-only run swept no feeds, so it reports no
    feed-staleness; only the inbox item is in scope.)* In the PR description, note which sources had
    unresolved feeds (still `[]`), which produced nothing this window, and any handles whose `verified`
@@ -157,7 +165,10 @@ the human-disposes gate never do.
 
 Before opening the PR: every drafted entry carries a real `source.link` (no invented URL), a
 **`stance`**, and a **`touches`** target, and no stance-less entry survived. Whenever at least one
-entry survives, the output is a reviewable PR, **never a direct commit** to a protected branch. The
+entry survives, the output is a reviewable PR, **never a direct commit** to a protected branch. Every
+file the sweep added under an **enumerated** location is listed in `LINK_CHECKED`
+(`scripts/parity_check.rb`) in the same PR (step 8) — an unenumerated new entry reds the drift guard on
+the PR you just opened, so verify this before pushing rather than after CI says so. The
 marker and staleness invariants depend on the invocation mode (steps 8–9):
 
 - **Full sweep** — the last-swept marker was advanced to today and the staleness notes are in the PR

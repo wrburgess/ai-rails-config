@@ -176,6 +176,13 @@ is the happy path; a human disposes (on the single finding interactively when pr
 PR). Invoke it like any Skill — Claude: `/clip`; the native-discovery tools: read and follow
 `skills/clip/SKILL.md`.
 
+**Don't want the intake pipeline?** Leaving it in place costs nothing at rest — the skills are inert
+unless invoked — so ignoring it is the recommended default. If your host really must remove it, the
+pipeline is woven through the bundle rather than bolted on, and a partial trim leaves either a red
+parity check or a live command pointing at a deleted body. The full file manifest, the ordering hazard,
+and the per-update cost of re-syncing are in
+[detaching the intake pipeline](detaching-the-intake-pipeline.md).
+
 ## 5. Keep the bundle green in-host
 
 A vendored copy must keep the shipped [`parity_check.rb`](../../scripts/parity_check.rb) **green

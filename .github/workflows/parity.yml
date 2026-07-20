@@ -48,6 +48,10 @@ jobs:
         if: ${{ hashFiles('test/voices_roster_parity_test.rb') != '' }}
         run: ruby test/voices_roster_parity_test.rb
 
+      - name: Tool Roster data-contract self-test (tool-roster.yml schema)
+        if: ${{ hashFiles('test/tool_roster_test.rb') != '' }}
+        run: ruby test/tool_roster_test.rb
+
       - name: Guard self-test (Layer 2 git-hook guard)
         if: ${{ hashFiles('test/guard_protected_branch.test.sh') != '' }}
         run: bash test/guard_protected_branch.test.sh

@@ -307,6 +307,55 @@ class ParityCheckTest < Minitest::Test
     end
   end
 
+  def test_render_marker_inside_a_fenced_example_is_not_a_real_marker
+    # Widening LINK_CHECKED (issue #96) widened check_rendered_regions to the same ~96 files, so a doc
+    # that legitimately DOCUMENTS the render mode by showing the marker pair inside a fence would be
+    # read as a real, unterminated render block. The "alone on its own line" rule defeats an inline
+    # backtick mention but not a fence. Here the fenced example shows only the OPEN marker: under the
+    # old behavior that is a `parity:render` with no close, and the bundle fails on its own docs.
+    with_bundle do |dir|
+      FileUtils.mkdir_p(File.join(dir, "docs/guides"))
+      File.write(File.join(dir, "docs/guides/usage.md"), <<~MD)
+        # Guide
+
+        Set the adapter to render mode by opening the block with:
+
+        ```md
+        <!-- parity:render source=AGENTS.md -->
+        ```
+
+        See [canonical](../../AGENTS.md).
+      MD
+      code, out = run_check(dir)
+      assert_equal 0, code, out
+      refute_match(/endrender/, out, "a fenced example was mistaken for a real render block")
+    end
+  end
+
+  def test_real_render_block_still_compared_byte_for_byte_when_the_file_also_has_a_fenced_example
+    # The other half: detection is code-aware, but the CAPTURE must still read the file's real bytes.
+    # A file carrying BOTH a fenced illustration and a genuine drifted render block must still fail —
+    # proving the fence skip did not shift the captured region or disable the comparison.
+    Dir.mktmpdir do |dir|
+      agents = "# Canonical\n\nNo links.\n"
+      build_baseline(dir, agents: agents)
+      File.write(File.join(dir, ".github/copilot-instructions.md"), <<~MD)
+        ```md
+        <!-- parity:render source=AGENTS.md -->
+        ```
+
+        <!-- parity:render source=AGENTS.md -->
+        # Canonical
+
+        DRIFTED.
+        <!-- parity:endrender -->
+      MD
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/byte-for-byte/, out)
+    end
+  end
+
   def test_copilot_adapter_without_marker_fails
     with_bundle do |dir|
       File.write(File.join(dir, ".github/copilot-instructions.md"), "just prose, no marker\n")
@@ -528,6 +577,32 @@ class ParityCheckTest < Minitest::Test
     end
   end
 
+  def test_required_scout_skill_absent_fails
+    # `scout` is the intake-pipeline sweep (ADR 0012) and part of the floor: dropping it reddens too.
+    # Until issue #96 this pin was MISSING, so a trim could silently delete the intake sweep from
+    # REQUIRED_SKILLS with the whole suite still green — the invisible-trim bug class this issue exists
+    # to close. Pinning it makes any future detachment an explicit, reviewed edit to the floor.
+    with_bundle do |dir|
+      add_skills(dir)
+      FileUtils.rm_rf(File.join(dir, "skills/scout"))
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(%r{Required skill missing: skills/scout/SKILL\.md}, out)
+    end
+  end
+
+  def test_required_clip_skill_absent_fails
+    # `clip` is the intake pipeline's push front door (ADR 0015) and part of the floor. Same missing
+    # pin as scout above (issue #96): dropping it must redden, not pass silently.
+    with_bundle do |dir|
+      add_skills(dir)
+      FileUtils.rm_rf(File.join(dir, "skills/clip"))
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(%r{Required skill missing: skills/clip/SKILL\.md}, out)
+    end
+  end
+
   # --- Skills content-neutrality (ADR 0003) ------------------------------------------------------
 
   def test_lifecycle_skill_without_project_reference_fails
@@ -639,6 +714,298 @@ class ParityCheckTest < Minitest::Test
       assert_equal 1, code
       assert_match(/Dead link/, out)
     end
+  end
+
+  # --- Link checking: code spans are not links (issue #96) ---------------------------------------
+  #
+  # check_links must resolve REAL links only. A markdown link that exists as an ILLUSTRATION — inside
+  # a fenced code block or an inline-code span — names a path in someone else's repo (or documents the
+  # link syntax itself), so reporting it dead is a false positive. Before issue #96 the check had no
+  # such notion, which is why LINK_CHECKED could not be widened: doing so reddened three real files
+  # (`skills/distill/CONTEXT-FORMAT.md`'s illustrative Context Map, `docs/rules/README.md`'s prose
+  # documenting the `[text](path)` convention) and would have taught every author that examples are
+  # forbidden. These tests pin the stripping in both directions: illustrations pass, real links fail.
+
+  def test_dead_link_inside_fenced_block_passes
+    # Regression guard for skills/distill/CONTEXT-FORMAT.md: an illustrative Context Map inside a
+    # ```md fence (note the info string) names paths in a hypothetical host repo, not this one.
+    with_bundle do |dir|
+      File.write(File.join(dir, "AGENTS.md"), <<~MD)
+        # Canonical
+
+        ```md
+        - [Ordering](./src/ordering/CONTEXT.md) - an example for a host repo, not a real target
+        ```
+      MD
+      code, out = run_check(dir)
+      assert_equal 0, code, out
+    end
+  end
+
+  def test_dead_link_inside_tilde_fenced_block_passes
+    # ~~~ is an equally valid CommonMark fence; the checker must not recognize only backticks.
+    with_bundle do |dir|
+      File.write(File.join(dir, "AGENTS.md"), <<~MD)
+        # Canonical
+
+        ~~~
+        [example](./src/ordering/CONTEXT.md)
+        ~~~
+      MD
+      code, out = run_check(dir)
+      assert_equal 0, code, out
+    end
+  end
+
+  def test_dead_link_inside_inline_code_span_passes
+    # Regression guard for docs/rules/README.md, whose prose documents this very convention by
+    # quoting the literal string `[text](path)` inside an inline-code span.
+    with_bundle do |dir|
+      File.write(
+        File.join(dir, "AGENTS.md"),
+        "# Canonical\n\nA backticked path, not a `[text](path)` markdown link.\n"
+      )
+      code, out = run_check(dir)
+      assert_equal 0, code, out
+    end
+  end
+
+  def test_dead_link_inside_double_backtick_span_passes
+    # A double-backtick span exists to hold a literal backtick. The closer must be a run of EXACTLY
+    # the opening length, so the lone ` inside must not end the span early (which would leak the
+    # illustrative link back into the scan and false-fail).
+    with_bundle do |dir|
+      File.write(
+        File.join(dir, "AGENTS.md"),
+        "# Canonical\n\nSpan: ``[t](./illustrative.md) and a ` tick`` done.\n"
+      )
+      code, out = run_check(dir)
+      assert_equal 0, code, out
+    end
+  end
+
+  def test_dead_link_outside_code_spans_still_fails
+    # The sad path the stripping must NOT swallow: an ordinary dead link still reddens, named by file.
+    with_bundle do |dir|
+      File.write(File.join(dir, "AGENTS.md"), "# Canonical\n\n[gone](docs/nope.md)\n")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(%r{Dead link in AGENTS\.md: `docs/nope\.md`}, out)
+    end
+  end
+
+  def test_unterminated_fence_does_not_disable_link_checking
+    # The false-green guard. If an unterminated fence were treated as running to end-of-file (the
+    # renderer's semantics), one stray delimiter would silently switch link checking OFF for every
+    # remaining line — a checker's worst failure mode. A fence is stripped only when its closer is
+    # found; an unterminated one is a stray delimiter, and links on BOTH sides of it still resolve.
+    with_bundle do |dir|
+      File.write(File.join(dir, "AGENTS.md"), <<~MD)
+        # Canonical
+
+        [before](./gone-before.md)
+
+        ```md
+        an opening fence that is never closed
+
+        [after](./gone-after.md)
+      MD
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(%r{Dead link in AGENTS\.md: `\./gone-before\.md`}, out)
+      assert_match(
+        %r{Dead link in AGENTS\.md: `\./gone-after\.md`}, out,
+        "an unterminated fence swallowed the rest of the file and disabled link checking"
+      )
+    end
+  end
+
+  def test_real_link_on_same_line_as_inline_code_span_still_fails
+    # The over-stripping guard: blanking must remove the SPAN, never the whole line. A line that
+    # quotes the link syntax and then uses a real link must still resolve the real one.
+    with_bundle do |dir|
+      File.write(
+        File.join(dir, "AGENTS.md"),
+        "# Canonical\n\nSyntax is `[t](./illustrative.md)`, and here is [real](./missing.md).\n"
+      )
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(%r{Dead link in AGENTS\.md: `\./missing\.md`}, out)
+      refute_match(/illustrative/, out, "the inline-code span leaked into the link scan")
+    end
+  end
+
+  # --- Link checking: the widened bundle-owned surface (issue #96) --------------------------------
+  #
+  # Before issue #96 LINK_CHECKED covered nine files, so a dead link anywhere in docs/adr/,
+  # docs/reference/, skills/, rules/ or CONTEXT.md shipped green. LINK_CHECKED is now an EXPLICIT
+  # enumeration of every bundle-owned markdown file (never a glob — a glob would sweep a Host App's
+  # OWN docs after vendoring and redden their parity on day one for links the bundle never shipped).
+
+  # Writes `body` to the first LINK_CHECKED entry under `prefix` and returns that relative path.
+  # Selecting the path FROM the constant, rather than hardcoding one filename, keeps these tests
+  # honest when an ADR or entry is added or renamed, while still proving the subtree is covered.
+  def write_link_checked_under(dir, prefix, body)
+    rel = ParityCheck::LINK_CHECKED.find { |p| p.start_with?(prefix) }
+    refute_nil rel, "LINK_CHECKED covers no file under #{prefix}"
+    FileUtils.mkdir_p(File.join(dir, File.dirname(rel)))
+    File.write(File.join(dir, rel), body)
+    rel
+  end
+
+  def test_dead_link_in_adr_fails
+    with_bundle do |dir|
+      rel = write_link_checked_under(dir, "docs/adr/", "# ADR\n\n[gone](./nope.md)\n")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(%r{Dead link in #{Regexp.escape(rel)}: `\./nope\.md`}, out)
+    end
+  end
+
+  def test_dead_link_in_reference_doc_fails
+    # docs/reference/ holds the Learnings-Log entries — the subtree that actually carried the one
+    # genuine dead link this issue found (a `../../adr/` that needed `../../../adr/`).
+    with_bundle do |dir|
+      rel = write_link_checked_under(dir, "docs/reference/", "# Entry\n\n[gone](./nope.md)\n")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(%r{Dead link in #{Regexp.escape(rel)}: `\./nope\.md`}, out)
+    end
+  end
+
+  def test_dead_link_in_skill_body_fails
+    # The literal case from the field report: a Skill body pointing at a path that no longer exists.
+    with_bundle do |dir|
+      add_skills(dir)
+      write_skill(
+        dir, "distill",
+        body: "---\nname: distill\ndescription: x\n---\n\nSee [the format](./MISSING-FORMAT.md).\n"
+      )
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(%r{Dead link in skills/distill/SKILL\.md: `\./MISSING-FORMAT\.md`}, out)
+    end
+  end
+
+  def test_dead_link_in_rule_file_fails
+    with_bundle do |dir|
+      add_rules(dir)
+      File.write(File.join(dir, "rules/testing.md"), <<~MD)
+        # Rule
+
+        See [the deep doc](../docs/rules/nope.md).
+
+        ## Patterns
+
+        - Prefer the framework's built-ins.
+
+        ## Anti-Patterns
+
+        - **Never** do the bad thing - because it breaks.
+      MD
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(%r{Dead link in rules/testing\.md: `\.\./docs/rules/nope\.md`}, out)
+    end
+  end
+
+  def test_dead_link_in_context_map_fails
+    with_bundle do |dir|
+      assert_includes ParityCheck::LINK_CHECKED, "CONTEXT.md"
+      File.write(File.join(dir, "CONTEXT.md"), "# Context\n\n[gone](docs/nope.md)\n")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(%r{Dead link in CONTEXT\.md: `docs/nope\.md`}, out)
+    end
+  end
+
+  def test_widened_link_surface_leaves_a_minimal_bundle_green
+    # The boundary that keeps host blast radius at zero: every widened entry is presence-gated, so a
+    # bundle that ships none of those files (the minimal fixture, and any partially-vendored host) is
+    # unaffected by the widening. Asserted explicitly — this is the invariant the enumeration buys.
+    with_bundle do |dir|
+      # Everything build_baseline does NOT write — i.e. every entry the widening added.
+      fixture_writes = ["AGENTS.md", "CLAUDE.md", "GEMINI.md", "PROJECT.md", ".github/copilot-instructions.md"]
+      widened = ParityCheck::LINK_CHECKED - fixture_writes
+      refute_empty widened
+      widened.each { |rel| refute File.exist?(File.join(dir, rel)), "fixture unexpectedly ships #{rel}" }
+      code, out = run_check(dir)
+      assert_equal 0, code, out
+    end
+  end
+
+  # --- LINK_CHECKED enumeration drift guard (issue #96) -------------------------------------------
+
+  # Markdown files that are vendored but deliberately NOT link-checked. Empty by design: if you add an
+  # entry here, state WHY the file's links may rot in a Host App. An empty list is the strong form of
+  # the invariant — every markdown file the bundle ships has its links resolved.
+  LINK_CHECK_EXEMPT = [].freeze
+
+  def repo_root = File.expand_path("..", __dir__)
+
+  # Every markdown file this bundle VENDORS, derived by walking ai-config-sync's own ALLOW manifest.
+  #
+  # Deriving from ALLOW rather than re-globbing the subtrees LINK_CHECKED enumerates is the whole point
+  # of this guard: a glob list written next to the constant can only ever agree with it, so an omitted
+  # *subtree* (docs/research/, docs/overlays/, .claude/commands/ were all missed exactly this way) is
+  # invisible. ALLOW is the authoritative answer to "what ships", so anything new that ships is caught.
+  def vendored_markdown
+    load File.join(repo_root, "bin", "ai-config-sync") unless defined?(AiConfigSync)
+    AiConfigSync::ALLOW
+      .flat_map do |entry|
+        abs = File.join(repo_root, entry)
+        if File.directory?(abs) then Dir.glob(File.join(abs, "**", "*.md"))
+        elsif File.file?(abs) && entry.end_with?(".md") then [abs]
+        else []
+        end
+      end
+      .map { |abs| abs.delete_prefix("#{repo_root}/") }
+      .reject { |rel| rel.start_with?("test/") } # never vendored; see the sync installer's own tests
+      .uniq.sort
+  end
+
+  def test_link_checked_enumerates_every_vendored_markdown_file
+    # An explicit list rots the moment someone adds a doc. This is the guard that buys it its safety:
+    # add an ADR, a Learnings entry, a guide, a Skill body or a shim — or a whole new docs/ subtree —
+    # without listing it, and this reddens naming the files, so the fix is mechanical.
+    shipped = vendored_markdown
+    refute_empty shipped, "walking ai-config-sync's ALLOW manifest found no markdown - the walk is broken"
+    unlisted = shipped - ParityCheck::LINK_CHECKED - LINK_CHECK_EXEMPT
+    assert_empty(
+      unlisted,
+      "these vendored markdown files are not in ParityCheck::LINK_CHECKED, so their links are never " \
+      "resolved - add each to the constant:\n  #{unlisted.join("\n  ")}"
+    )
+  end
+
+  def test_vendored_markdown_walk_reaches_every_docs_subtree
+    # Guards the guard. If the ALLOW walk ever stopped recursing (a `*.md` where `**/*.md` belongs),
+    # the test above would pass vacuously while covering almost nothing. Pin that it reaches the
+    # deepest shipped tree and every top-level docs/ subdirectory that exists.
+    shipped = vendored_markdown
+    assert_includes shipped, "docs/reference/learnings/entries/2026-07-06-hamel-evals-first-class-tests.md"
+    Dir.children(File.join(repo_root, "docs"))
+       .select { |c| Dir.exist?(File.join(repo_root, "docs", c)) }
+       .each do |sub|
+      next if Dir.glob(File.join(repo_root, "docs", sub, "**", "*.md")).empty?
+
+      assert(
+        shipped.any? { |rel| rel.start_with?("docs/#{sub}/") },
+        "the ALLOW walk reached no markdown under docs/#{sub}/ - the walk is not recursing"
+      )
+    end
+  end
+
+  def test_link_checked_has_no_stale_entries
+    # The other direction: a renamed or deleted doc leaves an entry that silently checks nothing
+    # (check_links skips missing files by design, so the rot is invisible without this assertion).
+    # Every LINK_CHECKED entry must exist in THIS repo — the presence-gate exists for partial HOSTS.
+    stale = ParityCheck::LINK_CHECKED.reject { |rel| File.exist?(File.join(repo_root, rel)) }
+    assert_empty(
+      stale,
+      "these ParityCheck::LINK_CHECKED entries no longer exist on disk, so they check nothing - " \
+      "remove or rename each:\n  #{stale.join("\n  ")}"
+    )
   end
 
   # --- Human-gate policy (ADR 0025) --------------------------------------------------------------
