@@ -19,9 +19,11 @@ over time is which gates require external review vs. self-review; what changes a
 - **HC** — Human Contributor. Makes decisions, approves gates, owns the product.
 - **AC** — AI Contributor. Does the work, self-reviews, responds to feedback.
 - **Reviewer** — an **independent second model** that gives unbiased critique at the plan and PR
-  gates. The Host App names its reviewer tool (and wires it into CI if desired); this lifecycle only
-  requires that it is *a different model from the AC*. If no second model is reachable, the gate
-  **degrades to "stop and ask the HC"** — it is never silently dropped.
+  gates. The Host App names the reviewer declaration in [`PROJECT.md`](../../PROJECT.md) →
+  *Lifecycle Host* (primary reviewer, invocation paths, preconditions, fallback order, bounded wait
+  window, degradation floor); this lifecycle only requires that it is *a different model from the AC*.
+  If no second model is reachable, the gate **degrades to an explicit, flagged exception** (never a
+  silent skip).
 
 ## The lifecycle host
 
@@ -148,7 +150,7 @@ the orchestrator (ADR 0005).
 **AC delivers (`final`):** re-verifies the PR is green with no open must-fix findings, then posts a
 **Statement of Work** on the PR (issue link; option chosen; technical decisions; what changed; testing
 coverage; Reviewer findings + resolutions; known limitations; follow-ups) and a reference link on the
-issue.
+issue. If the reviewer chain exhausted without response, the SOW must explicitly flag that exception.
 
 **Both operate on the existing PR — they never open one. `final` does not self-merge.** **Terminal
 artifact:** the SOW on the PR + the reference link on the issue. **This is the second human gate, and
@@ -178,6 +180,10 @@ a Host App says otherwise both gates wait for the HC:
   memory, and the pre-`final` context check still applies. `auto` removes the *wait*, not the context
   firebreak — a stage is still not done until its terminal artifact exists.
 - **`ship`'s emergency stops** (below) are unconditional.
+- **Reviewer fallback is bounded, never indefinite.** The AC uses the *Lifecycle Host* reviewer
+  declaration to summon the primary reviewer, waits only the host-declared bounded window, then
+  triggers fallback order. If no reviewer responds, the run records the explicit degraded state in the
+  SOW rather than waiting forever or silently skipping the backstop.
 - **`listen`'s "after the HC chooses"** is outside this setting's scope and remains mandatory.
 - **"The HC decides when to compress"** remains mandatory for every row of
   [*When to skip or compress stages*](#when-to-skip-or-compress-stages) **but one**. `auto` waives

@@ -93,6 +93,21 @@ definitions.
   and `.github/copilot-instructions.md` is a discovery marker. Set to `render` (a byte-for-byte
   `parity:render` block in `.github/copilot-instructions.md`) only if the host drives work through a
   legacy in-editor Copilot IDE; the parity check enforces the render matches `AGENTS.md`.
+- **Reviewer (second-model review of plans and PRs):**
+  - **Primary:** `Codex` (harness) running the model declared by the host in *Attribution & Model
+    Declaration*.
+  - **Fallback order:** `Copilot`, then **degrade to flagged SOW** (never silently skip missing review).
+  - **Bounded wait policy:** if the primary does not respond within a host-declared bounded window
+    (for example, 30 minutes), trigger fallback instead of waiting indefinitely.
+  - **Invocation paths + preconditions:**
+
+    | Reviewer | Plan review invocation path | PR review invocation path | Preconditions / caveats |
+    |----------|-----------------------------|---------------------------|-------------------------|
+    | `Codex` | Mention `@codex` on the issue plan comment | Comment `@codex review` on the PR | Codex GitHub app must be installed on the repository. Without installation, mentions may fail silently (no response event). |
+    | `Copilot` | Request Copilot review through the lifecycle host API/automation path | Request Copilot code review through the lifecycle host API/automation path | Backing model is variable/undisclosed; attribution should record the harness and note model variance per ADR 0007. |
+  - **Degradation floor:** if neither reviewer responds after the fallback chain is exhausted, continue
+    only by explicitly flagging "Reviewer backstop unavailable" in the SOW (and in the issue link
+    comment). Missing review is an explicit exception, never an implicit omission.
 
 ## Human Gates
 

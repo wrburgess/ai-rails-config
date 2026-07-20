@@ -11,7 +11,9 @@ when the Reviewer sees it they find nothing. This is **Stage 4 (Verify)** of the
 
 Read host-specific values — the review severities from [`PROJECT.md`](../../PROJECT.md) → *Review
 Severity Framework*, the quality-check commands from *Quality Checks*, the lifecycle host from
-*Lifecycle Host*, the attribution/model from *Attribution & Model Declaration*. Never hardcode them.
+*Lifecycle Host* (including the Reviewer declaration: invocation paths, preconditions, fallback order,
+bounded wait window, degradation floor), the attribution/model from *Attribution & Model Declaration*.
+Never hardcode them.
 
 **This stage operates on the PR `invoke` already opened — it never opens one.** If there is no PR, a
 prior stage's terminal artifact was skipped: stop and recheck, don't reinterpret the lifecycle.
@@ -125,8 +127,16 @@ PR is ready for the Reviewer.
 ```
 
 Sign with the attribution footer from [`PROJECT.md`](../../PROJECT.md) → *Attribution & Model
-Declaration*. Then notify the HC the PR is ready to send to the Reviewer; after Reviewer feedback the
-HC runs the review-response skill (`listen`) then the deliver skill (`final`).
+Declaration*. Then request the primary Reviewer using [`PROJECT.md`](../../PROJECT.md) →
+*Lifecycle Host* → *Reviewer*:
+
+- use the configured invocation path and verify its preconditions first;
+- if there is no response within the configured bounded window, trigger the configured fallback;
+- if the fallback chain also yields no response, record the degraded reviewer state explicitly for
+  `final` to include in the SOW (never silently skip the backstop).
+
+After Reviewer feedback the HC runs the review-response skill (`listen`) then the deliver skill
+(`final`).
 
 **Terminal artifact:** the self-review comment on the PR.
 

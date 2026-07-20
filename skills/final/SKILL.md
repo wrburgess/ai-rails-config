@@ -11,7 +11,9 @@ Finalize the existing PR named in the invocation and prepare it for merge. This 
 Read host-specific values — the quality-check commands from [`PROJECT.md`](../../PROJECT.md) →
 *Quality Checks*, the review severities from *Review Severity Framework*, the branch/PR/issue-linking
 policy from *Branch & PR Policy*, the lifecycle host from *Lifecycle Host*, the attribution/model from
-*Attribution & Model Declaration*, the gate policy from *Human Gates*. Never hardcode them.
+*Attribution & Model Declaration*, the gate policy from *Human Gates*. Never hardcode them. The
+reviewer backstop contract (primary/fallback invocation, bounded wait, degradation floor) is read from
+*Lifecycle Host* → *Reviewer*.
 
 **This stage operates on the PR that already exists — it never opens one, and it never self-merges.**
 Merge is the second human gate, and **it is not configurable.** `PROJECT.md` → *Human Gates* declares
@@ -41,6 +43,8 @@ context you actually re-read (the PR, its checks, its review threads), not on a 
 2. **Resolve remaining Reviewer findings** by the [`PROJECT.md`](../../PROJECT.md) → *Review Severity
    Framework*: **all Critical and High findings must be resolved before the SOW.** Don't argue a
    finding unless it is factually incorrect — if the Reviewer flagged it, treat it as a real gap.
+   If no Reviewer responded after the configured bounded fallback chain, do not silently continue —
+   carry that degraded state into the SOW explicitly.
 3. **Generate the Statement of Work** and post it as a PR comment via the lifecycle host:
    ```markdown
    ## Statement of Work
@@ -67,6 +71,11 @@ context you actually re-read (the PR, its checks, its review threads), not on a 
    | Finding | Severity | Resolution |
    |---------|----------|------------|
    | [What was flagged] | [severity] | [How it was resolved] |
+
+   ### Reviewer Backstop Status
+   - [Primary reviewer invocation attempted + outcome]
+   - [Fallback invocation attempted + outcome]
+   - [If no reviewer response: explicit degraded-state note per PROJECT.md → Lifecycle Host → Reviewer]
 
    ### Known Limitations
    - [Anything intentionally deferred or out of scope]

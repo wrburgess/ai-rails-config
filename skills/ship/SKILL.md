@@ -20,7 +20,8 @@ quality-check commands, the review severities, the attribution/model, and the **
 from [`PROJECT.md`](../../PROJECT.md). Never hardcode them here. **Baseline: plan approval is
 `required` and merge is `required`**; a Host App may set *plan approval* to `auto` in `PROJECT.md` →
 *Human Gates*, and **merge is never configurable**. Read that section at the start of a run so the
-gates below are honored as the host declares them.
+gates below are honored as the host declares them. Also read *Lifecycle Host* → *Reviewer* (primary
+invocation path + preconditions, fallback order, bounded wait window, degradation floor).
 
 **Design goal: a lean main-thread context** ([ADR 0005](../../docs/adr/0005-ship-hybrid-delegation-offload-retrieval-protect-judgment.md)).
 `ship` reaches it by delegating **output-heavy, signal-light** work to sub-agents whose context is
@@ -95,10 +96,16 @@ Run the phases in order, following each phase's canonical body for its steps and
    Reconcile git state, gate on `verdict`, then commit → push → open the PR.
 4. **Verify** — follow [`verify`](../../skills/verify/SKILL.md): delegate the full-diff review, consume
    the `drift-report`, classify findings by severity, post the self-review on the PR.
-5. **Review response** — follow [`listen`](../../skills/listen/SKILL.md): delegate the fetch-and-fix churn
-   (`review-response` contract), but make the severity and stop-and-ask calls in the orchestrator and
-   summarize for the HC before any change is applied.
-6. **Deliver** — follow [`final`](../../skills/final/SKILL.md) **in the orchestrator**: re-verify the
+5. **Summon Reviewer (bounded fallback)** — after `verify` posts the self-review, invoke the primary
+   Reviewer per [`PROJECT.md`](../../PROJECT.md) → *Lifecycle Host* → *Reviewer*. If no response by the
+   host-declared bounded window, invoke the next fallback; repeat through the declared order. Do not
+   wait indefinitely on any hop.
+6. **Review response** — if a Reviewer responded, follow [`listen`](../../skills/listen/SKILL.md):
+   delegate the fetch-and-fix churn (`review-response` contract), but make the severity and
+   stop-and-ask calls in the orchestrator and summarize for the HC before any change is applied. If no
+   Reviewer responded after bounded fallback, skip `listen` and carry the explicit degraded reviewer
+   status into `final`.
+7. **Deliver** — follow [`final`](../../skills/final/SKILL.md) **in the orchestrator**: re-verify the
    PR is green with no open must-fix findings, post the Statement of Work, link it from the issue.
    **→ Human gate 2 (merge) — always human, never configurable.**
 
@@ -155,10 +162,12 @@ To keep the orchestrator lean through the delegated heavy ops, **externalize sta
 
 ## Faithfulness backstop
 
-The plan gate and the PR each get an **independent second-model review** (the Reviewer named in
-[`PROJECT.md`](../../PROJECT.md) → *Lifecycle Host* / the lifecycle's Reviewer role) so a delegated
-summary the orchestrator never saw cannot silently steer the outcome. If **no second model is
-reachable**, the backstop **degrades to "stop and ask the HC"** — it is never silently dropped.
+The plan gate and the PR each get an **independent second-model review** (the Reviewer chain declared
+in [`PROJECT.md`](../../PROJECT.md) → *Lifecycle Host* → *Reviewer*) so a delegated summary the
+orchestrator never saw cannot silently steer the outcome. Each reviewer hop gets only the declared
+bounded wait window; on timeout, `ship` moves to fallback immediately. If **no second model responds**
+after the full chain, the backstop **degrades to an explicit SOW flag** (and issue-link note) naming
+the missing review — it is never silently dropped and never waited on forever.
 
 </procedure>
 
