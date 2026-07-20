@@ -79,14 +79,36 @@ never self-merges; a human disposes on the PR.
    - **Reference it in [`AGENTS.md`](../../AGENTS.md)** → *Skills* — this reference is **parity-enforced**;
      a present `skills/<name>/` with no `skills/<name>/SKILL.md` reference in `AGENTS.md` reddens CI. Add
      its bullet to the shipped-Skills list.
-   - **Flip the count prose** everywhere it is stated — `AGENTS.md`, [`README.md`](../../README.md),
-     [`docs/guides/usage.md`](../../docs/guides/usage.md), and the Claude adapter
-     [`CLAUDE.md`](../../CLAUDE.md) (which enumerates the per-tool shims) each carry a written skill count
-     and/or list. These strings are **unenforced** (CI stays green if they drift), so update every one by
-     discipline — grep the tree for the current count word and the phrase "set of" to catch stragglers.
+   - **Flip the count prose where it is actually written** — the written skill count lives in exactly two
+     places: `AGENTS.md` → *Skills* and [`docs/guides/usage.md`](../../docs/guides/usage.md) (both read
+     "ships **N** Skills"), and each also carries a per-skill list that needs a new row.
+     `README.md` states **no total count**, but it does enumerate skills by *group*
+     (the lifecycle set, the intake set) — check whether yours joins one. [`CLAUDE.md`](../../CLAUDE.md)
+     carries **neither a count nor a list**; it delegates to the `AGENTS.md` table, so leave it be. These
+     strings are **unenforced** (CI stays green if they drift), so grep the tree for the current count
+     word to catch stragglers, and do not "update" a file that never carried a count.
+   - **Give it a glossary term in [`CONTEXT.md`](../../CONTEXT.md)** when the Skill is a new *category*
+     rather than another instance of an existing one — the glossary defines one term per distinct role,
+     and its *Relationships* section enumerates which Skills participate in each pipeline. A Skill that
+     merely joins an existing category needs no new term, only the relationship line.
+   - **Add its CI step if the Skill ships its own self-test.** A new `test/<name>_test.rb` runs in CI only
+     if [`.github/workflows/parity.yml`](../../.github/workflows/parity.yml) gains a step gated on the
+     exact file (`if: ${{ hashFiles('test/<name>_test.rb') != '' }}`, the repo-only sentinel idiom every
+     other step uses). Issue #96 found precisely this miss: an 18-test data-contract suite had shipped
+     and **never once executed in CI** because its step was forgotten — green, and blind.
+   - **Read the Rules Layer for this domain before writing, and feed it after.** [`rules/skills.md`](../../rules/skills.md)
+     is the always-resident Tier-1 rule; the Tier-2 deep doc it names carries the case studies behind
+     each anti-pattern. Read both before authoring, and when review of your Skill surfaces a durable
+     lesson, record it in that deep doc rather than letting it die in the PR thread.
+   - **Enumerate the new files in `LINK_CHECKED`** (in [`scripts/parity_check.rb`](../../scripts/parity_check.rb)):
+     the canonical body `skills/<name>/SKILL.md`, its shim `.claude/commands/<name>.md`, and any bundled
+     files the Skill ships beside its body. That constant is an **explicit list of every markdown file the
+     bundle vendors** — deliberately a list and not a glob, so a Host App's own docs are never swept in —
+     and a drift guard in the self-tests reds the PR naming anything you left out. Adding the files is the
+     fix; excluding the subtree is not.
    - **Pin the floor + add its self-test** if the Skill is a baseline member: add its name to
      `REQUIRED_SKILLS` in [`scripts/parity_check.rb`](../../scripts/parity_check.rb) (the one line that
-     grows per Skill) and a matching self-test in [`test/parity_check_test.rb`](../../test/parity_check_test.rb)
+     grows per Skill) and a matching self-test in `test/parity_check_test.rb`
      asserting **both** the non-zero exit **and** the specific error string — per the floor-then-shape rule
      in [`authoring-the-bundle.md`](../../docs/guides/authoring-the-bundle.md); no new floor entry ships
      without its self-test.
@@ -123,8 +145,10 @@ never do.
 Before opening the PR — and before the run is complete: the new Skill has a **canonical body** with
 `name:` frontmatter and a **thin shim** whose link contains the literal `skills/<name>/SKILL.md`; the
 body is **business- and stack-neutral** (no host-specific token — grep it before committing); the Skill
-is **referenced in `AGENTS.md`** and the count prose is updated in `AGENTS.md`, `README.md`,
-`docs/guides/usage.md`, and `CLAUDE.md`; a baseline Skill is **pinned into `REQUIRED_SKILLS` with a matching self-test**;
+is **referenced in `AGENTS.md`** and the count prose is updated **where it is actually written**
+(`AGENTS.md` and `docs/guides/usage.md`), with a `CONTEXT.md` glossary term if the Skill is a new category
+and a sentinel-gated step in `.github/workflows/parity.yml` if it ships a self-test; a baseline Skill is
+**pinned into `REQUIRED_SKILLS` with a matching self-test**;
 an adapted Skill carries its **`## Provenance` credit** (body) and `> **Upstream:**` echo (shim); and the
 host's *Quality Checks* are **green**. The output is a **reviewable PR**, **never a direct commit** to a
 protected branch. Sign every lifecycle-host comment with the footer from [`PROJECT.md`](../../PROJECT.md)

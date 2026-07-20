@@ -22,7 +22,7 @@ established by `check_rules`, `check_guardrails`, and `check_skills`:
 Keep the checker **stdlib-only** (no gems, no bundler — [ADR 0008](../adr/0008-structural-parity-check-not-model-in-the-loop.md)),
 assert **section/heading presence, not content**, so a host freely extends a file's body without
 reddening CI, and keep all `puts`/`warn` output **ASCII** (`rules/scripting.md`). Every new check needs a
-matching self-test in [`test/parity_check_test.rb`](../../test/parity_check_test.rb): one happy path plus
+matching self-test in `test/parity_check_test.rb`: one happy path plus
 one case per failure mode, each asserting **both** the non-zero exit **and** the specific error string, so
 the check can never become a silent false green.
 
