@@ -202,6 +202,47 @@ class AiConfigSyncTest < Minitest::Test
     end
   end
 
+  # ---- host-owned test/ tree: vendoring must neither touch it nor imply bundle self-tests ----
+  # Regression for the PR #101 Codex review finding: a Host App commonly owns an unrelated test/
+  # tree (Rails, Minitest). Vendoring must leave it alone AND copy none of the bundle's self-tests
+  # into it — the pair of facts the workflow's sentinel gating (below) relies on.
+  def test_vendoring_into_host_with_own_test_tree_leaves_it_alone
+    Dir.mktmpdir do |src|
+      Dir.mktmpdir do |dst|
+        build_source(src)
+        FileUtils.mkdir_p(File.join(dst, "test"))
+        host_test = "# host-owned test\n"
+        File.write(File.join(dst, "test/host_app_test.rb"), host_test)
+
+        out, status = sync(dst, from: src)
+        assert_equal 0, status, out
+        assert_equal host_test, File.read(File.join(dst, "test/host_app_test.rb")),
+                     "host-owned test file must be untouched"
+        refute File.exist?(File.join(dst, "test/ai_config_sync_test.rb")),
+               "bundle self-tests must NOT be vendored into a host-owned test/ tree"
+      end
+    end
+  end
+
+  # The REAL workflow must gate every test/-running step on the EXACT file it runs (a repo-only
+  # sentinel), never on `test/` existing — a host's own test/ directory would flip a directory
+  # gate to true and send CI hunting for un-vendored bundle files (issue #95 reintroduced).
+  def test_workflow_self_test_steps_are_sentinel_gated
+    require "yaml"
+    workflow = YAML.safe_load(File.read(File.join(REPO_ROOT, ".github/workflows/parity.yml")))
+    steps = workflow.fetch("jobs").fetch("parity").fetch("steps")
+    gated = steps.select { |s| s["run"]&.match?(%r{\btest/}) }
+    refute_empty gated, "expected the workflow to carry test/ self-test steps"
+    gated.each do |step|
+      file = step["run"][%r{test/[\w.-]+}]
+      cond = step["if"].to_s
+      assert_includes cond, "hashFiles('#{file}')",
+                      "step #{step['name'].inspect} must be gated on its exact sentinel #{file}, " \
+                      "got if: #{cond.inspect}"
+      refute_match(/\[\s*-d\s+test\s*\]/, cond, "directory-presence gates are forbidden")
+    end
+  end
+
   # ---- link integrity: a copy of the REAL bundle passes its own parity check in-host ----
   def test_vendored_copy_passes_parity_check
     Dir.mktmpdir do |dst|
