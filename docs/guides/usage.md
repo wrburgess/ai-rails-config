@@ -14,7 +14,10 @@ lifecycle from any of the five configured agents (Claude, Codex, Copilot, Antigr
 ## 1. Vendor the baseline in
 
 Copy the baseline into your Host App — distributed by **copying files in**, no submodule/package/upstream
-tracking ([ADR 0001](../adr/0001-distribute-as-copy-in-sync-script.md)). From a clone of this repo:
+tracking ([ADR 0001](../adr/0001-distribute-as-copy-in-sync-script.md)). The `ai-config-sync`
+script is never vendored into a Host App, so these commands always run **from a clone of the
+ai-config bundle repo** (if you are reading a vendored copy of this guide inside a Host App, that
+means your upstream ai-config clone, not this repo):
 
 ```bash
 # Preview what would be copied (writes nothing):
@@ -29,6 +32,13 @@ ruby bin/ai-config-sync /path/to/host-app
 - Does **not** copy this repo's meta files (`README.md`, `LICENSE`, `.gitignore`, `test/`, the
   `ai-config-sync` script itself), and never touches your Host App's own `.gitignore`.
 - Preserves your Host App's own `PROJECT.md` and `bin/setup` on a re-sync (see §6).
+
+**Vendoring into a brand-new (zero-commit) repository?** Create the PR base first: make an empty
+root commit on the default branch and push it (`git checkout -b main && git commit --allow-empty
+-m "Initial commit" && git push -u origin main`), then do all vendoring work on a feature branch.
+Without this, the first feature-branch push becomes the repository's default branch and no PR can
+ever target it. This bootstrap push is the **one sanctioned direct push to a protected branch**: it
+carries no content and happens before §2 activates the guardrails that would block it.
 
 ## 2. Activate the guardrails
 
@@ -67,7 +77,13 @@ split is what keeps future updates mergeable.
    Patterns and Anti-Patterns, kept separate from the baseline starters
    ([ADR 0004](../adr/0004-two-tier-rules-layer-progressive-context.md)). Heavy, subsystem-specific case
    studies go in the deferred Tier-2 deep docs (`docs/rules/`), read on demand via the trigger table.
-3. **Leave [`AGENTS.md`](../../AGENTS.md) and the Adapters as the baseline** so every tool stays in
+3. **Keep the bundle glossary and your domain glossary separate.** The vendored
+   [`CONTEXT.md`](../../CONTEXT.md) is the *config-layer context* — the bundle's own vocabulary that
+   `AGENTS.md` links to. When your host's first domain term crystallises (typically in a `distill`
+   session), do **not** extend or overwrite that file: add a root `CONTEXT-MAP.md` and give the
+   domain its own `CONTEXT.md` (see `skills/distill/CONTEXT-FORMAT.md` → *Single vs multi-context
+   repos*).
+4. **Leave [`AGENTS.md`](../../AGENTS.md) and the Adapters as the baseline** so every tool stays in
    lockstep. Host values flow in through `PROJECT.md`, not by forking the Canonical Source — the parity
    check (§5) enforces this.
 
@@ -169,7 +185,8 @@ dropping a link target or rewriting content on copy would break a host silently.
 ## 6. Update / re-sync
 
 Updating is a **re-run of the sync followed by a manual merge**
-([ADR 0001](../adr/0001-distribute-as-copy-in-sync-script.md)):
+([ADR 0001](../adr/0001-distribute-as-copy-in-sync-script.md)) — again from a clone of the
+ai-config bundle repo, since the script is not vendored:
 
 ```bash
 ruby bin/ai-config-sync /path/to/host-app
