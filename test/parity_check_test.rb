@@ -691,6 +691,22 @@ class ParityCheckTest < Minitest::Test
     end
   end
 
+  def test_case_variant_merge_value_fails_as_a_typo_not_as_self_merge
+    # A capitalization slip is a typo, not a policy claim. `Required` is still invalid (values are
+    # matched exactly, never coerced), but reporting it as "no Host App may express self-merge" accuses
+    # the host of something it did not write and hides the real fix. The accusation is reserved for a
+    # genuine `auto`; everything else gets the generic allowed-values message.
+    with_bundle do |dir|
+      add_human_gates(dir, merge: "Required")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/unknown value `Required` for `merge`/, out)
+      assert_match(/allowed values are `required`/, out)
+      refute_match(/self-merge/, out, "a capitalization typo was reported as a self-merge claim")
+      refute_match(/NOT configurable/, out)
+    end
+  end
+
   def test_unknown_plan_approval_value_fails_with_allowed_values
     with_bundle do |dir|
       add_human_gates(dir, plan: "sometimes")

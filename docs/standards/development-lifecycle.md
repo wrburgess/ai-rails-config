@@ -178,8 +178,13 @@ a Host App says otherwise both gates wait for the HC:
   memory, and the pre-`final` context check still applies. `auto` removes the *wait*, not the context
   firebreak — a stage is still not done until its terminal artifact exists.
 - **`ship`'s emergency stops** (below) are unconditional.
-- **`listen`'s "after the HC chooses"** and **"the HC decides when to compress"** are outside this
-  setting's scope and remain mandatory.
+- **`listen`'s "after the HC chooses"** is outside this setting's scope and remains mandatory.
+- **"The HC decides when to compress"** remains mandatory for every row of
+  [*When to skip or compress stages*](#when-to-skip-or-compress-stages) **but one**. `auto` waives
+  exactly three pauses: the Stage-1 option pick, the Stage-2 plan approval, and — because it is a
+  Plan-stage choice about *how to plan*, not about skipping a stage — the **exploratory
+  (spike-then-plan) election**. The trivial-fix, bug-fix, documentation-only and large-change rows all
+  compress away a *stage*, and those stay the HC's call under either setting.
 - **The intake/authoring "a human disposes" gates** (`scout`, `clip`, `follow`, `restock`,
   `create-skill`) are outside its scope too — `auto` is not licence to auto-merge their review PRs.
 

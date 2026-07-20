@@ -1,6 +1,6 @@
 ---
 name: ship
-description: The hands-off orchestrator. Sequences the six lifecycle skills (assess → devise → invoke → verify → listen → final) end to end while keeping a lean orchestrator context — delegating output-heavy work to discardable sub-agents and protecting the two mandatory human gates. Use to run the whole development lifecycle for one issue in a single driven flow.
+description: The hands-off orchestrator. Sequences the six lifecycle skills (assess → devise → invoke → verify → listen → final) end to end while keeping a lean orchestrator context — delegating output-heavy work to discardable sub-agents and honoring the human gates as PROJECT.md declares them — merge is always human, and plan approval is host-settable (`required` by default). Use to run the whole development lifecycle for one issue in a single driven flow.
 ---
 
 <what-to-do>

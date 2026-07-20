@@ -13,9 +13,9 @@ severities, the quality-check commands, and the **human-gate policy** — from
 [`PROJECT.md`](../../PROJECT.md). Never hardcode them here. **Baseline: plan approval is `required`,
 and it covers this stage's option pick** — the AC posts the assessment and does not proceed without a
 chosen option. A Host App may set it to `auto` in `PROJECT.md` → *Human Gates*; read that section
-before writing the Next Step. Name the lifecycle *verb* ("read the issue", "post the assessment to the issue"); the concrete
-mechanism (which platform, which command) is set in `PROJECT.md` → *Lifecycle Host* (GitHub is the
-default).
+before writing the Next Step. Name the lifecycle *verb* ("read the issue", "post the assessment to the
+issue"); the concrete mechanism (which platform, which command) is set in `PROJECT.md` →
+*Lifecycle Host* (GitHub is the default).
 
 </what-to-do>
 

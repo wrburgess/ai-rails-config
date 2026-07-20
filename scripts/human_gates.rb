@@ -11,9 +11,15 @@
 #   - the settings are authored as a markdown table between that H2 and the next line starting `## `
 #   - a row is identified by its FIRST cell starting with the gate's label ("Plan approval", "Merge"),
 #     ignoring markdown emphasis
-#   - the value is the first `backticked` token in that row's SECOND cell. Only the second cell is
-#     read, so the "Allowed values" cell and any backticked prose elsewhere in the section can never be
-#     mistaken for the setting.
+#   - the FIRST row matching a gate is that gate's authored setting; later matching rows are ignored.
+#     This mirrors `protected_branches.rb`, which breaks on the first matching line, and it is what
+#     makes the parse fail-SAFE: a second gate-shaped row later in the section (an illustrative
+#     example, a copy/paste leftover) can never override the authored one.
+#   - the value is the first `backticked` token in that row's SETTING cell, located by the header cell
+#     named "Setting" and falling back to the SECOND cell when no header names it. Only that one cell
+#     is read, so the "Allowed values" cell and any backticked prose elsewhere in the section can never
+#     be mistaken for the setting, and reordering the table's columns does not silently change the
+#     parse.
 #
 # Fail-SAFE, not fail-closed: when the section (or a row) is absent, the SHIPPED DEFAULT is returned
 # rather than [] or nil. The section is additive — an already-vendored Host App whose PROJECT.md
@@ -35,6 +41,10 @@ module HumanGates
   # First-cell labels that identify each gate's row.
   ROW_LABELS = { plan_approval: "Plan approval", merge: "Merge" }.freeze
 
+  # The header cell that names the value column, and the position assumed when no header names it.
+  SETTING_HEADER = "setting"
+  DEFAULT_SETTING_COLUMN = 1
+
   BACKTICKED = /`([^`]+)`/.freeze
 
   module_function
@@ -47,17 +57,30 @@ module HumanGates
     start = lines.index { |l| l.strip == SECTION }
     return gates unless start
 
+    column = DEFAULT_SETTING_COLUMN
+    authored = {}
+
     lines[(start + 1)..].each do |l|
       break if l.start_with?("## ") # the next H2 ends the section
 
       cells = table_cells(l)
       next if cells.nil?
 
+      header = setting_column(cells)
+      if header
+        column = header # this table names its value column; rows below are read from it
+        next
+      end
+
       key = ROW_LABELS.keys.find { |k| labelled?(cells[0], ROW_LABELS[k]) }
       next unless key
+      next if authored[key] # FIRST match wins - a later row never overrides the authored one
 
-      value = cells[1][BACKTICKED, 1]
-      gates[key] = value.strip if value
+      authored[key] = true
+      value = cells[column] && cells[column][BACKTICKED, 1]
+      gates[key] = value.strip if value # a malformed cell leaves the shipped default in place
+
+      break if authored.length == ROW_LABELS.length
     end
     gates
   end
@@ -83,6 +106,12 @@ module HumanGates
 
     cells = stripped.sub(/\A\|/, "").sub(/\|\z/, "").split("|").map(&:strip)
     cells.length >= 2 ? cells : nil
+  end
+
+  # The index of this row's `Setting` header cell, or nil when the row is not a header naming it. A
+  # header row is what binds the value column, so a host may reorder the table's columns freely.
+  def setting_column(cells)
+    cells.index { |c| c.gsub(/[*`]/, "").strip.downcase == SETTING_HEADER }
   end
 
   # True when a row's first cell names this gate — emphasis/backticks stripped, case-insensitive.

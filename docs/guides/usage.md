@@ -62,8 +62,11 @@ Author host-specific content as **Customization**, never by editing the baseline
 split is what keeps future updates mergeable.
 
 1. **Edit [`PROJECT.md`](../../PROJECT.md)** — the single Customization surface the agents read. Replace
-   the business-neutral placeholders in its sections (the parity check requires the first five; the
-   rest are additive and each has a shipped default):
+   the business-neutral placeholders in its sections. The parity check requires five of them — *Quality
+   Checks*, *Attribution & Model Declaration*, *Branch & PR Policy*, *Review Severity Framework*,
+   *Lifecycle Host* — and the rest are additive: omitting *Human Gates* falls back to the shipped strict
+   policy, while omitting *Intake Pipeline* or *Tool Roster* leaves `scout`/`restock` with no artifact
+   locations, so author those two if you use those skills:
    - **Quality Checks** — the real commands an agent must run green before "done" (lint, tests,
      security, dependency audit).
    - **Attribution & Model Declaration** — the per-agent tool + model for commit trailers and comment

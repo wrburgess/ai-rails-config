@@ -1,6 +1,6 @@
 ---
 name: invoke
-description: Stage 3 of the development lifecycle. Execute the approved plan on a feature branch, run the host's quality checks to green, and open the PR. Use after the HC approves the plan. This is the only stage that creates a PR; commit is not done — the open PR is.
+description: Stage 3 of the development lifecycle. Execute the approved plan on a feature branch, run the host's quality checks to green, and open the PR. Use once the posted plan has cleared its approval gate — the HC approves it by default, or the AC proceeds on its own posted plan where PROJECT.md → Human Gates sets plan approval to `auto`. This is the only stage that creates a PR; commit is not done — the open PR is.
 ---
 
 <what-to-do>

@@ -138,6 +138,10 @@ class ParityCheck
   # policy a host overrode, and Copilot (which does not follow links) still receives the instruction.
   GATE_AWARE_SKILLS = %w[assess devise invoke ship final].freeze
   GATE_REFERENCE = "Human Gates"
+  # The one merge value that literally expresses self-merge, and so the only one that earns the
+  # policy-boundary message. Every other out-of-set value - `Required`, `optional`, a typo - is a
+  # mistake, not a claim, and gets the generic allowed-values message instead of an accusation.
+  SELF_MERGE_VALUE = "auto"
 
   # Branch-protection guardrails (ADR 0009). Checked only for a bundle that ships them — signalled by
   # the derived sidecar's presence — so minimal fixture bundles are unaffected.
@@ -269,22 +273,26 @@ class ParityCheck
   # generic Skill bodies read it instead of hardcoding a policy. Two invariants, both value-level (the
   # per-body "does it NAME the value" invariant lives in check_skills, behind the skills/ gate):
   #   (1) MERGE IS NOT CONFIGURABLE - `required` is its only legal value, so no Host App can express
-  #       self-merge. This gets its own message because it is a policy boundary, not a typo.
+  #       self-merge. Declaring `auto` gets its own message because it is a policy boundary, not a
+  #       typo. Any OTHER bad merge value - including a case slip like `Required` - is a typo, so it
+  #       takes the generic message below: a capitalization mistake must never be reported as if the
+  #       host had claimed the right to self-merge.
   #   (2) Any other out-of-set value is reported with the allowed set, never coerced to a default.
   # A PROJECT.md with no `## Human Gates` section parses to the shipped strict defaults and passes.
   def check_human_gates
     return unless exist?(PROJECT_CONFIG)
 
     gates = HumanGates.extract(read(PROJECT_CONFIG))
+    self_merge = gates[:merge] == SELF_MERGE_VALUE
 
-    if gates[:merge] != HumanGates::DEFAULTS[:merge]
+    if self_merge
       err("Human-gate policy: the merge gate is NOT configurable - #{PROJECT_CONFIG} declares " \
           "`merge: #{gates[:merge]}` but `#{HumanGates::DEFAULTS[:merge]}` is its only allowed value " \
           "(no Host App may express self-merge; a human always merges)")
     end
 
     HumanGates.invalid(gates).each do |key, value|
-      next if key == :merge # already reported above, with the specific non-configurable message
+      next if key == :merge && self_merge # already reported above, with the specific message
 
       allowed = HumanGates::ALLOWED[key].map { |v| "`#{v}`" }.join(", ")
       err("Human-gate policy: #{PROJECT_CONFIG} declares an unknown value `#{value}` for " \

@@ -1,6 +1,6 @@
 ---
 name: devise
-description: Stage 2 of the development lifecycle. Turn the HC's chosen option into a right-sized plan — a concrete, ordered implementation plan with its testing strategy decided up front for well-understood work, or an HC-elected exploratory spike/re-plan plan (a plan to learn) whose production test strategy is decided in the post-spike re-plan. Use after the HC picks an option and before writing any code.
+description: Stage 2 of the development lifecycle. Turn the chosen option into a right-sized plan — a concrete, ordered implementation plan with its testing strategy decided up front for well-understood work, or an exploratory spike/re-plan plan (a plan to learn) whose production test strategy is decided in the post-spike re-plan. Use after an option is picked and before writing any code; who picks the option, and who elects the exploratory path, follows PROJECT.md → Human Gates (the HC by default).
 ---
 
 <what-to-do>
@@ -148,6 +148,7 @@ Before posting, self-review: is every task specific enough to implement without 
 testing strategy cover the full definition of done in [`rules/testing.md`](../../rules/testing.md) —
 including edge and sad paths? Would a critical reviewer find a missing scenario or an unstated risk? If
 the plan is exploratory, is the spike the *smallest* experiment that resolves the uncertainty, is the
-re-plan checkpoint explicit, and did the HC elect this path (not the AC)?
+re-plan checkpoint explicit, and was the path elected by whoever the gate setting says elects it — the
+HC under the baseline `required`, the AC (with its rationale stated) only under `auto`?
 
 </output>

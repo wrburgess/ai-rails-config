@@ -130,8 +130,13 @@ a Host App that never touches this section behaves exactly as it did before the 
 - **[`ship`](skills/ship/SKILL.md)'s four emergency stops** — an unresolvable check failure; a discovery
   that the change touches core logic the plan did not anticipate; an architectural or ambiguous review
   comment; a handoff verdict the orchestrator cannot resolve — always stop and ask the HC.
-- **[`listen`](skills/listen/SKILL.md)'s "wait for the HC to choose" and the lifecycle's "the HC decides
-  when to compress"** are out of scope for this setting and remain mandatory.
+- **[`listen`](skills/listen/SKILL.md)'s "wait for the HC to choose"** is out of scope for this setting
+  and remains mandatory.
+- **The lifecycle's "the HC decides when to compress"** remains mandatory for every row of its
+  *When to skip or compress stages* table **but one**: `auto` waives exactly three pauses — the Stage-1
+  option pick, the Stage-2 plan approval, and the **exploratory (spike-then-plan) election** named
+  above, which chooses *how to plan* rather than skipping a stage. The trivial-fix, bug-fix,
+  documentation-only and large-change rows each compress away a *stage* and stay the HC's call.
 - **The intake and authoring "a human disposes" gates** — [`scout`](skills/scout/SKILL.md),
   [`clip`](skills/clip/SKILL.md), [`follow`](skills/follow/SKILL.md),
   [`restock`](skills/restock/SKILL.md), [`create-skill`](skills/create-skill/SKILL.md)

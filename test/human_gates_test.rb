@@ -145,6 +145,93 @@ class HumanGatesTest < Minitest::Test
     assert_empty HumanGates.invalid(gates)
   end
 
+  # --- row precedence: the FIRST authored row wins ------------------------------------------------
+
+  def test_first_matching_row_wins_for_a_gate
+    # THE fail-safe invariant. The extractor must mirror `protected_branches.rb`, which breaks on the
+    # FIRST matching line. If a later row could reassign, any second gate-shaped row in the section -
+    # an illustrative example, a copy/paste leftover, a malicious edit - would silently override the
+    # authored setting, and it would fail in the UNSAFE direction (`required` quietly becoming `auto`).
+    rows = "| **Plan approval** — the authored row | `required` | `required` · `auto` |\n" \
+           "| **Merge** — the authored row | `required` | `required` |\n" \
+           "| **Plan approval** — a later row | `auto` | `required` · `auto` |"
+    gates = HumanGates.extract(project_md(rows))
+    assert_equal "required", gates[:plan_approval], "a later row overrode the first authored row"
+    assert_equal "required", gates[:merge]
+  end
+
+  def test_second_illustrative_table_cannot_override_the_authored_one
+    # The realistic shape of the bug: prose in the section documents what a different host WOULD
+    # declare, in a second table. The authored first table must still be the policy.
+    md = <<~MD
+      # Project Config
+      ## Human Gates
+
+      | Gate | Setting | Allowed values |
+      |------|---------|----------------|
+      | **Plan approval** — the pick | `required` | `required` · `auto` |
+      | **Merge** — the merge | `required` | `required` (not configurable) |
+
+      An overnight autonomous track would instead declare:
+
+      | Gate | Setting | Allowed values |
+      |------|---------|----------------|
+      | **Plan approval** — the pick | `auto` | `required` · `auto` |
+      | **Merge** — the merge | `required` | `required` (not configurable) |
+      ## Intake Pipeline
+    MD
+    assert_equal({ plan_approval: "required", merge: "required" }, HumanGates.extract(md),
+                 "an illustrative second table overrode the authored first table")
+  end
+
+  def test_value_cell_without_backticks_falls_back_to_that_rows_default
+    # An unbackticked cell is malformed, not an authored value. It reads as the shipped default (the
+    # safe direction) rather than picking up the bare word or bleeding to a later row.
+    rows = "| **Plan approval** — the pick | auto | `required` · `auto` |\n" \
+           "| **Merge** — the merge | `required` | `required` |"
+    gates = HumanGates.extract(project_md(rows))
+    assert_equal "required", gates[:plan_approval], "a bare, unbackticked cell was read as a value"
+    assert_empty HumanGates.invalid(gates)
+  end
+
+  # --- the Setting column is located by its header, not by position ------------------------------
+
+  def test_setting_column_is_located_by_its_header
+    # A host that reorders the table's columns must not silently get the wrong value. The column is
+    # keyed off the header cell named "Setting"; here that is the THIRD column, and the second column
+    # (allowed values) leads with `required` - which is exactly what a positional read would return.
+    md = <<~MD
+      # Project Config
+      ## Human Gates
+
+      | Gate | Allowed values | Setting |
+      |------|----------------|---------|
+      | **Plan approval** — the pick | `required` · `auto` | `auto` |
+      | **Merge** — the merge | `required` (not configurable) | `required` |
+      ## Intake Pipeline
+    MD
+    gates = HumanGates.extract(md)
+    assert_equal "auto", gates[:plan_approval], "read the wrong column when the host reordered them"
+    assert_equal "required", gates[:merge]
+    assert_empty HumanGates.invalid(gates)
+  end
+
+  def test_column_falls_back_to_the_second_when_no_header_names_setting
+    # Fail-safe for a host that renamed the header: the documented default position still applies, so
+    # a renamed header degrades to the old behavior instead of losing the value entirely.
+    md = <<~MD
+      # Project Config
+      ## Human Gates
+
+      | Gate | Value |
+      |------|-------|
+      | **Plan approval** — the pick | `auto` |
+      | **Merge** — the merge | `required` |
+      ## Intake Pipeline
+    MD
+    assert_equal({ plan_approval: "auto", merge: "required" }, HumanGates.extract(md))
+  end
+
   # --- data contract: the REAL shipped PROJECT.md ------------------------------------------------
 
   def test_real_project_md_ships_the_strict_defaults
