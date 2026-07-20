@@ -5,8 +5,11 @@ The **Project Config**: the one place a Host App declares its host-specific valu
 does not edit `AGENTS.md` to change them. This file ships with **business-neutral placeholders** —
 replace them during Customization.
 
-> Section headings below are a contract: the parity check (`scripts/parity_check.rb`) asserts each of
-> the five `##` sections is present. Rename them and the check fails.
+> Section headings below are a contract: the parity check (`scripts/parity_check.rb`) asserts the
+> **five required** `##` sections are present — *Quality Checks*, *Attribution & Model Declaration*,
+> *Branch & PR Policy*, *Review Severity Framework*, *Lifecycle Host*. Rename one and the check fails.
+> This file ships **more** sections than that floor (*Human Gates*, *Intake Pipeline*, *Tool Roster*);
+> those are additive, so a Host App that predates one of them stays green.
 
 ## Quality Checks
 
@@ -90,6 +93,56 @@ definitions.
   and `.github/copilot-instructions.md` is a discovery marker. Set to `render` (a byte-for-byte
   `parity:render` block in `.github/copilot-instructions.md`) only if the host drives work through a
   legacy in-editor Copilot IDE; the parity check enforces the render matches `AGENTS.md`.
+
+## Human Gates
+
+Which lifecycle pauses require a human, declared here so a generic Skill body names the *gate* instead
+of hardcoding a policy a host would otherwise have to fork the file to change
+([ADR 0025](docs/adr/0025-human-gate-policy-is-a-project-config-value.md), the same argument shape as
+the host-platform value in [ADR 0006](docs/adr/0006-baseline-skill-set-and-github-default-lifecycle-host.md)).
+The Generic Baseline ships the **strict** policy, and every Skill body states that default inline — so
+a Host App that never touches this section behaves exactly as it did before the section existed.
+
+| Gate | Setting | Allowed values |
+|------|---------|----------------|
+| **Plan approval** — covers both the Stage-1 option pick and the Stage-2 plan approval | `required` | `required` · `auto` |
+| **Merge** — the HC merges the delivered PR | `required` | `required` (not configurable) |
+
+- **`required`** (shipped default) — the AC stops and waits for the HC: it does not proceed past the
+  assessment without a chosen option, and it does not write code without an approved plan.
+- **`auto`** — a host may set the **plan-approval** row (and only that row) to `auto`. The AC then
+  proceeds on **its own stated recommendation** rather than waiting. It still **posts** the assessment
+  and the plan to the lifecycle host — under `auto` those comments are the *only* durable audit trail
+  of what was decided, so posting them becomes more load-bearing, not less — and it **names in the
+  posted comment** that it self-selected under `auto`. Under `auto` the AC may likewise elect the
+  exploratory (spike-then-plan) path itself, stating its rationale in the plan.
+- **Merge is not configurable.** `required` is the only allowed value: **no Host App may express
+  self-merge.** The parity check hard-fails any other value. `final` posts the SOW; a human merges.
+
+**Unconditional, whatever this section says:**
+
+- **Merge is always human** (above).
+- **The plan gate is also a session boundary, and the boundary survives the pause being waived.**
+  "Plan posted" ends a session under either setting: [`invoke`](skills/invoke/SKILL.md) **begins by
+  re-reading the posted plan from the issue** and never continues on conversational memory, and the
+  pre-[`final`](skills/final/SKILL.md) context check still applies. `auto` removes the *wait*; it never
+  removes the context firebreak.
+- **[`ship`](skills/ship/SKILL.md)'s four emergency stops** — an unresolvable check failure; a discovery
+  that the change touches core logic the plan did not anticipate; an architectural or ambiguous review
+  comment; a handoff verdict the orchestrator cannot resolve — always stop and ask the HC.
+- **[`listen`](skills/listen/SKILL.md)'s "wait for the HC to choose"** is out of scope for this setting
+  and remains mandatory.
+- **The lifecycle's "the HC decides when to compress"** remains mandatory for every row of its
+  *When to skip or compress stages* table **but one**: `auto` waives exactly three pauses — the Stage-1
+  option pick, the Stage-2 plan approval, and the **exploratory (spike-then-plan) election** named
+  above, which chooses *how to plan* rather than skipping a stage. The trivial-fix, bug-fix,
+  documentation-only and large-change rows each compress away a *stage* and stay the HC's call.
+- **The intake and authoring "a human disposes" gates** — [`scout`](skills/scout/SKILL.md),
+  [`clip`](skills/clip/SKILL.md), [`follow`](skills/follow/SKILL.md),
+  [`restock`](skills/restock/SKILL.md), [`create-skill`](skills/create-skill/SKILL.md)
+  ([ADR 0014](docs/adr/0014-manual-drop-inbox-for-unfetchable-sources.md),
+  [ADR 0016](docs/adr/0016-interactive-sequential-disposition-scout.md)) — are out of scope too.
+  `auto` is **not** licence to auto-merge any of their review PRs.
 
 ## Intake Pipeline
 

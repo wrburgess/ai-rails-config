@@ -58,8 +58,11 @@ codebase trace is offloaded to a read-only sub-agent that returns a compact **ex
 **Quality gate:** HC sends the assessment to the Reviewer (missing options, incorrect codebase
 assumptions, requirements gaps, architectural concerns).
 
-**Terminal artifact:** the assessment posted on the issue. **Exit:** HC picks an option; the AC does
-not proceed without a chosen option.
+**Terminal artifact:** the assessment posted on the issue. **Exit:** an option is chosen. Plan approval
+is **`required`** in the shipped baseline, so the **HC** picks it and the AC does not proceed without a
+chosen option. A Host App may set plan approval to `auto` in [`PROJECT.md`](../../PROJECT.md) → *Human
+Gates*; the AC then proceeds on its **own stated recommendation** and says so in the posted assessment.
+The assessment is posted either way — under `auto` it is the only record of what was chosen.
 
 ### Stage 2: Plan (`devise`)
 
@@ -78,17 +81,27 @@ Implement (Stage 3) and its PR follow only once that final plan clears this gate
 **Quality gate:** HC sends the plan to the Reviewer (steps too vague to implement, missing edge cases,
 patterns that don't match the codebase, unaddressed requirements).
 
-**Terminal artifact:** the plan posted on the issue. **This is the first mandatory human gate.**
-**Exit:** HC approves the plan (or asks for revisions). The AC does not write code without an approved
-plan. An approved plan is **revisable direction, not a frozen contract** — a mid-`invoke` discovery that
-it was wrong loops back through this gate to re-plan, an expected outcome rather than a failure
+**Terminal artifact:** the plan posted on the issue. **This is the first human gate.** It is
+**`required`** in the shipped baseline; a Host App may set it to `auto` in
+[`PROJECT.md`](../../PROJECT.md) → *Human Gates*.
+**Exit:** under `required`, the HC approves the plan (or asks for revisions) and the AC does not write
+code without an approved plan. Under `auto`, the AC proceeds on the plan it just posted, naming in the
+comment that it self-selected under `auto`; the plan is still posted, and it may also elect the
+exploratory path itself, stating its rationale. **The gate's session-boundary role is unconditional:**
+whatever the setting, "plan posted" ends the session and Stage 3 re-reads the plan from the issue (see
+*The two human gates* below). An approved plan is **revisable direction, not a frozen contract** — a
+mid-`invoke` discovery that it was wrong loops back through this gate to re-plan, an expected outcome
+rather than a failure
 ([ADR 0020](../adr/0020-right-size-plan-revisable-direction.md)).
 
 ### Stage 3: Implement (`invoke`)
 
-**Trigger:** HC approves the plan.
+**Trigger:** the plan is approved (by the HC under `required`; by the AC's own posted plan under `auto`).
 
-**AC does:** creates the feature branch (the branch-protection guardrails block writes on a protected
+**AC does:** **re-reads the posted plan from the issue first** — unconditionally, whatever the *Human
+Gates* setting says, because the plan gate is a session boundary and Stage 3 must never run on
+conversational memory of a plan it cannot re-quote; then creates the feature branch (the
+branch-protection guardrails block writes on a protected
 branch — see [`PROJECT.md`](../../PROJECT.md) → *Branch & PR Policy*); implements the plan step by
 step; writes the tests the plan's strategy defined, following [`rules/testing.md`](../../rules/testing.md);
 runs the Host App's checks from [`PROJECT.md`](../../PROJECT.md) → *Quality Checks* and iterates to
@@ -138,16 +151,42 @@ coverage; Reviewer findings + resolutions; known limitations; follow-ups) and a 
 issue.
 
 **Both operate on the existing PR — they never open one. `final` does not self-merge.** **Terminal
-artifact:** the SOW on the PR + the reference link on the issue. **This is the second mandatory human
-gate.** **Exit:** no open must-fix findings, SOW posted; **HC merges.**
+artifact:** the SOW on the PR + the reference link on the issue. **This is the second human gate, and
+it is not configurable** — no *Human Gates* setting can waive it. **Exit:** no open must-fix findings,
+SOW posted; **HC merges.**
 
 ## The two human gates
 
-Two gates are mandatory and never bypassed, on any tool or track:
+Two gates punctuate the lifecycle. Which of them *pauses* for a human is declared in
+[`PROJECT.md`](../../PROJECT.md) → *Human Gates*; the shipped baseline is the strict policy, so unless
+a Host App says otherwise both gates wait for the HC:
 
-1. **Plan approval** — after `devise` (and any Reviewer plan review), before any code.
-2. **Merge** — after `final` posts the SOW with a green gate and no open must-fix findings. The AC
-   never merges.
+1. **Plan approval** — after `devise` (and any Reviewer plan review), before any code. Shipped as
+   **`required`**: the AC does not write code without an approved plan. A host may set it to `auto`,
+   and the AC then proceeds on its own stated recommendation — still **posting** the assessment and the
+   plan (under `auto` they are the sole audit trail) and naming in the comment that it self-selected.
+2. **Merge** — after `final` posts the SOW with a green gate and no open must-fix findings. **`required`
+   is its only legal value: merge is not configurable and the AC never merges.** No Host App may
+   express self-merge; the parity check hard-fails any attempt to.
+
+### What holds whatever the setting says
+
+- **Merge is always human** (gate 2 above).
+- **Gate-as-session-boundary is separate from gate-as-approval, and survives the approval being
+  waived.** "Plan posted" is a hard session boundary under `required` *and* under `auto`: Stage 3
+  (`invoke`) **begins by re-reading the posted plan from the issue**, never continuing on conversational
+  memory, and the pre-`final` context check still applies. `auto` removes the *wait*, not the context
+  firebreak — a stage is still not done until its terminal artifact exists.
+- **`ship`'s emergency stops** (below) are unconditional.
+- **`listen`'s "after the HC chooses"** is outside this setting's scope and remains mandatory.
+- **"The HC decides when to compress"** remains mandatory for every row of
+  [*When to skip or compress stages*](#when-to-skip-or-compress-stages) **but one**. `auto` waives
+  exactly three pauses: the Stage-1 option pick, the Stage-2 plan approval, and — because it is a
+  Plan-stage choice about *how to plan*, not about skipping a stage — the **exploratory
+  (spike-then-plan) election**. The trivial-fix, bug-fix, documentation-only and large-change rows all
+  compress away a *stage*, and those stay the HC's call under either setting.
+- **The intake/authoring "a human disposes" gates** (`scout`, `clip`, `follow`, `restock`,
+  `create-skill`) are outside its scope too — `auto` is not licence to auto-merge their review PRs.
 
 An **approved plan is revisable direction, not a frozen contract.** When an Implement-stage discovery
 shows the plan was wrong — including a `ship` emergency stop for core logic the plan didn't anticipate
@@ -165,14 +204,18 @@ past it. Re-planning *upholds* the gate, it does not weaken or bypass it
 | Large change (many files / independent subsystems) | Full lifecycle, parallel agents if the host supports them |
 | Documentation-only change | Implement → Deliver |
 
-**The HC decides when to compress. The AC does not self-select a compressed workflow.**
+**The HC decides when to compress. The AC does not self-select a compressed workflow** — the one
+exception being a host that has set plan approval to `auto` in [`PROJECT.md`](../../PROJECT.md) →
+*Human Gates*, where the AC may elect the exploratory (spike-then-plan) row itself and must state its
+rationale in the posted plan. Compressing away a *stage* is still the HC's call.
 
 ## Automated / streamlined track (`ship`)
 
 A Host App can run the whole lifecycle hands-off with the [`ship`](../../skills/ship/SKILL.md)
 orchestrator skill that sequences
 `assess → devise → invoke → verify → listen → final`, replacing the per-stage "wait for HC" pauses with
-exactly the **two human gates** above, plus unconditional emergency stops (a check that can't be
+exactly the **two human gates** above — honored as [`PROJECT.md`](../../PROJECT.md) → *Human Gates*
+declares them, strict by default — plus unconditional emergency stops (a check that can't be
 auto-resolved; a discovery that the change touches core logic the plan didn't anticipate; an
 architectural or ambiguous review comment).
 
@@ -181,8 +224,11 @@ Its design **offloads output-heavy work and protects judgment**
 exploration, the `invoke` code+check+fix loop, the `verify` full-diff review, and the `listen` fetch-and-fix
 churn are delegated to sub-agents whose context is discarded (each returns a compact handoff contract —
 `exploration-summary`, `check-result`, `drift-report`); assessment synthesis, plan authoring, `listen`
-severity calls, and the `final` merge-readiness call stay in a clean orchestrator context. The plan
-gate doubles as a session boundary; state is externalized to the issue/PR so a fresh phase re-reads it.
+severity calls, and the `final` merge-readiness call stay in a clean orchestrator context.
+
+**The plan gate doubles as a session boundary, and that role is unconditional** — it holds whether or
+not the gate pauses for a human (*Human Gates* may waive the pause; it never waives the boundary).
+State is externalized to the issue/PR so a fresh phase re-reads it rather than trusting context.
 On tools without sub-agent fan-out the same phases run inline with a "compact between phases" fallback
 (ADR 0003) — mechanism degrades, bar does not.
 
@@ -195,11 +241,11 @@ On tools without sub-agent fan-out the same phases run inline with a "compact be
 | Stage | Skill | Terminal artifact |
 |-------|-------|-------------------|
 | Assess | `assess` | Assessment on the issue |
-| Plan | `devise` | Plan on the issue (gate 1: plan approval) |
+| Plan | `devise` | Plan on the issue (gate 1: plan approval — `required` by default, host-settable to `auto`) |
 | Implement | `invoke` | Open PR |
 | Verify | `verify` | Self-review comment on the PR |
 | Review response | `listen` | Replies on the PR review threads |
-| Deliver | `final` | SOW on the PR + reference on the issue (gate 2: merge) |
+| Deliver | `final` | SOW on the PR + reference on the issue (gate 2: merge — always human, not configurable) |
 | Full hands-off run | `ship` | Sequences all stages with the two human gates |
 
 Each skill's canonical body is `skills/<name>/SKILL.md`; how each tool invokes it is documented in

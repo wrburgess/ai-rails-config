@@ -46,8 +46,10 @@ the roadmap.
    - Six lifecycle Skills — `/assess → /devise → /invoke → /verify → /listen → /final` — carry an issue
      to a merged PR, with `/distill` to sharpen the plan first and `/ship` to run the whole sequence
      hands-off.
-   - **Plan approval** and **merge** are mandatory human gates that are never bypassed
-     ([ADR 0006](docs/adr/0006-baseline-skill-set-and-github-default-lifecycle-host.md)).
+   - **Plan approval** and **merge** are the two human gates
+     ([ADR 0006](docs/adr/0006-baseline-skill-set-and-github-default-lifecycle-host.md)). **Merge is
+     never bypassed**; plan approval ships mandatory and is the one gate a host may set to `auto` in
+     `PROJECT.md` ([ADR 0025](docs/adr/0025-human-gate-policy-is-a-project-config-value.md)).
    - `/ship` stays lean by offloading output-heavy work to discardable sub-agents while keeping the
      judgment calls in a clean orchestrator
      ([ADR 0005](docs/adr/0005-ship-hybrid-delegation-offload-retrieval-protect-judgment.md)).

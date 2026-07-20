@@ -1,6 +1,6 @@
 ---
 name: ship
-description: The hands-off orchestrator. Sequences the six lifecycle skills (assess → devise → invoke → verify → listen → final) end to end while keeping a lean orchestrator context — delegating output-heavy work to discardable sub-agents and protecting the two mandatory human gates. Use to run the whole development lifecycle for one issue in a single driven flow.
+description: The hands-off orchestrator. Sequences the six lifecycle skills (assess → devise → invoke → verify → listen → final) end to end while keeping a lean orchestrator context — delegating output-heavy work to discardable sub-agents and honoring the human gates as PROJECT.md declares them — merge is always human, and plan approval is host-settable (`required` by default). Use to run the whole development lifecycle for one issue in a single driven flow.
 ---
 
 <what-to-do>
@@ -16,8 +16,11 @@ phase's canonical body, which `ship` reads and follows in order. What `ship` own
 faithfulness backstop.
 
 Read host-specific values — the lifecycle host and its artifact map, the branch/PR policy, the
-quality-check commands, the review severities, the attribution/model — from
-[`PROJECT.md`](../../PROJECT.md). Never hardcode them here.
+quality-check commands, the review severities, the attribution/model, and the **human-gate policy** —
+from [`PROJECT.md`](../../PROJECT.md). Never hardcode them here. **Baseline: plan approval is
+`required` and merge is `required`**; a Host App may set *plan approval* to `auto` in `PROJECT.md` →
+*Human Gates*, and **merge is never configurable**. Read that section at the start of a run so the
+gates below are honored as the host declares them.
 
 **Design goal: a lean main-thread context** ([ADR 0005](../../docs/adr/0005-ship-hybrid-delegation-offload-retrieval-protect-judgment.md)).
 `ship` reaches it by delegating **output-heavy, signal-light** work to sub-agents whose context is
@@ -83,8 +86,11 @@ Run the phases in order, following each phase's canonical body for its steps and
    and folding the returned `exploration-summary` into the assessment you synthesize. Post the
    assessment to the issue.
 2. **Plan** — follow [`devise`](../../skills/devise/SKILL.md) **in the orchestrator** (no offload). Post
-   the plan to the issue. **→ Human gate 1 (plan approval).**
-3. **Implement** — follow [`invoke`](../../skills/invoke/SKILL.md): the orchestrator owns branch setup and
+   the plan to the issue. **→ Human gate 1 (plan approval).** Baseline `required`: stop and wait for
+   the HC. If the host set it to `auto` (`PROJECT.md` → *Human Gates*), proceed on the posted plan and
+   say so in the comment — but still **end the session here** (see *Gates as session boundaries*).
+3. **Implement** — follow [`invoke`](../../skills/invoke/SKILL.md), which **re-reads the posted plan
+   from the issue first** (unconditional): the orchestrator owns branch setup and
    all lifecycle-host I/O; the code + check + fix loop is delegated, returning a `check-result`.
    Reconcile git state, gate on `verdict`, then commit → push → open the PR.
 4. **Verify** — follow [`verify`](../../skills/verify/SKILL.md): delegate the full-diff review, consume
@@ -94,17 +100,26 @@ Run the phases in order, following each phase's canonical body for its steps and
    summarize for the HC before any change is applied.
 6. **Deliver** — follow [`final`](../../skills/final/SKILL.md) **in the orchestrator**: re-verify the
    PR is green with no open must-fix findings, post the Statement of Work, link it from the issue.
-   **→ Human gate 2 (merge).**
+   **→ Human gate 2 (merge) — always human, never configurable.**
 
-## The two human gates (never bypassed)
+## The two human gates
 
-`ship` replaces every per-stage "wait for the HC" pause with exactly **two** mandatory human gates,
-per the [development lifecycle](../../docs/standards/development-lifecycle.md):
+`ship` replaces every per-stage "wait for the HC" pause with exactly **two** gates, per the
+[development lifecycle](../../docs/standards/development-lifecycle.md). Which of them *pauses* is
+declared in [`PROJECT.md`](../../PROJECT.md) → *Human Gates*; **the shipped baseline is the strict
+policy — both `required` — so unless a host says otherwise, both wait for the HC**:
 
-1. **Plan approval** — after `devise` (and any Reviewer plan review), before any code. `ship` does not
-   write code without an approved plan.
-2. **Merge** — after `final` posts the SOW with a green gate and no open must-fix findings. **`ship`
-   never merges** — merge is the HC's.
+1. **Plan approval** — after `devise` (and any Reviewer plan review), before any code. Baseline
+   **`required`**: `ship` does not write code without an approved plan. A host may set it to `auto`,
+   and `ship` then proceeds on the plan it just posted, **naming in that comment** that it
+   self-selected under `auto`. The assessment and plan are posted either way — under `auto` they are
+   the only audit trail of what was decided.
+2. **Merge** — after `final` posts the SOW with a green gate and no open must-fix findings. **`required`
+   is its only legal value: merge is not configurable and `ship` never merges** — merge is the HC's.
+
+`auto` waives a *pause*, nothing else: the emergency stops below, the session boundaries below,
+`listen`'s "wait for the HC to choose", and the intake/authoring skills' "a human disposes" gates all
+still apply in full.
 
 ## Emergency stops (unconditional)
 
@@ -117,15 +132,23 @@ works around them:
 - Any handoff contract returns a `needs_human_call` / `failing` verdict the orchestrator cannot
   resolve from context.
 
-## Gates as session boundaries
+## Gates as session boundaries (unconditional)
 
-To keep the orchestrator lean through the delegated heavy ops, treat the gates as **session
-boundaries** and **externalize state** to the issue / PR / git rather than carrying it in context:
+A gate does two separate jobs: it **pauses for a human** (gate-as-approval, configurable per *Human
+Gates*) and it **ends a session** (gate-as-boundary, a context firebreak). **Only the pause is ever
+waived.** Under `auto`, `ship` still stops the session at "plan posted" — it just does not wait for a
+reply. Waiving the pause must never delete the firebreak: that is precisely the failure where a run
+carries a half-remembered plan straight into implementation.
 
-- Run **assess + plan in one clean session**; the plan gate is a natural boundary.
+To keep the orchestrator lean through the delegated heavy ops, **externalize state** to the issue / PR
+/ git rather than carrying it in context:
+
+- Run **assess + plan in one clean session**; "plan posted" is the boundary — under `required` *and*
+  under `auto`.
 - Run **build (`invoke` → `final`) in a fresh session** so the orchestrator starts lean before the
-  delegated code/verify/review churn.
-- A **pre-`final` context check** offers another reset before the merge-readiness judgment.
+  delegated code/verify/review churn. `invoke` opens by **re-reading the posted plan from the issue**.
+- A **pre-`final` context check** offers another reset before the merge-readiness judgment — also
+  unconditional.
 - On resume, a fresh phase **re-reads its durable artifacts** (the issue, the plan comment, the PR)
   rather than trusting a compaction summary — a stage is not done until its terminal artifact exists
   (see the [development lifecycle](../../docs/standards/development-lifecycle.md)).
@@ -147,7 +170,10 @@ reachable**, the backstop **degrades to "stop and ask the HC"** — it is never 
 severity discipline, and `final`'s merge-readiness. A weaker tool degrades the delegation *mechanism*
 (inline + compact between phases), never a gate.
 
-Before declaring a `ship` run complete: both human gates were honored; no emergency stop is
+Before declaring a `ship` run complete: both human gates were honored **as
+[`PROJECT.md`](../../PROJECT.md) → *Human Gates* declares them** (baseline: both `required`; merge is
+`required` always — a run that merged its own PR is a failed run regardless of the setting), and each
+gate's **session boundary** was observed even where the pause was waived; no emergency stop is
 outstanding; every delegated phase returned and was reconciled against its handoff contract; the
 terminal artifact of each phase exists (assessment, plan, PR, self-review, review replies, SOW). Sign
 every lifecycle-host comment with the attribution footer from [`PROJECT.md`](../../PROJECT.md) →

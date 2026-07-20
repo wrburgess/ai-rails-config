@@ -11,11 +11,18 @@ Finalize the existing PR named in the invocation and prepare it for merge. This 
 Read host-specific values — the quality-check commands from [`PROJECT.md`](../../PROJECT.md) →
 *Quality Checks*, the review severities from *Review Severity Framework*, the branch/PR/issue-linking
 policy from *Branch & PR Policy*, the lifecycle host from *Lifecycle Host*, the attribution/model from
-*Attribution & Model Declaration*. Never hardcode them.
+*Attribution & Model Declaration*, the gate policy from *Human Gates*. Never hardcode them.
 
 **This stage operates on the PR that already exists — it never opens one, and it never self-merges.**
-Merge is the second mandatory human gate. If there is no PR, a prior stage's terminal artifact was
-skipped: stop and recheck.
+Merge is the second human gate, and **it is not configurable.** `PROJECT.md` → *Human Gates* declares
+the gate policy, but merge's only allowed value is `required`: **no Host App can express self-merge**,
+and the parity check hard-fails any attempt to set it otherwise. A host that has set *plan approval* to
+`auto` has changed nothing here — merge is still human. If there is no PR, a prior stage's terminal
+artifact was skipped: stop and recheck.
+
+A **pre-`final` context check** — a fresh session before the merge-readiness judgment — applies under
+every setting, for the same reason the plan gate is a session boundary: this call must be made on
+context you actually re-read (the PR, its checks, its review threads), not on a compaction summary.
 
 </what-to-do>
 
@@ -80,7 +87,8 @@ skipped: stop and recheck.
 Sign every lifecycle-host comment with the attribution footer from [`PROJECT.md`](../../PROJECT.md) →
 *Attribution & Model Declaration*.
 
-**Do NOT merge the PR yourself — wait for the HC to merge.**
+**Do NOT merge the PR yourself — wait for the HC to merge.** This is not a default that a host can
+relax: merge is the one gate [`PROJECT.md`](../../PROJECT.md) → *Human Gates* cannot make automatic.
 
 **Terminal artifact:** the SOW on the PR + the reference link on the issue.
 
