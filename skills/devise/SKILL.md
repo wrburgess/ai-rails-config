@@ -130,8 +130,10 @@ record the next stage re-reads. **This is the first human gate (plan approval).*
 does not write code without an approved plan; a host may set it to `auto`, and the AC then proceeds on
 this plan, naming that in the comment.
 
-**The gate is also a session boundary, and that role is unconditional.** "Plan posted" ends the session
-under `required` *and* under `auto` — `auto` waives the *wait*, never the context firebreak.
+**The gate is also a context boundary, and that role is unconditional.** "Plan posted" forces a context
+reset under `required` *and* under `auto` — a session boundary under `required`, `ship`'s own context
+reset under `auto` ([ADR 0028](../../docs/adr/0028-context-reset-boundary-resumable-stops-autonomous-listen.md));
+`auto` waives the *wait*, never the context firebreak.
 [`invoke`](../../skills/invoke/SKILL.md) begins by re-reading this plan from the issue rather than
 carrying it in conversational memory.
 

@@ -15,7 +15,7 @@ the gate policy from *Human Gates*. Never hardcode a stack's commands, branch na
 here.
 
 **Start by re-reading the posted plan from the issue — Step 1 below, and it is unconditional.** The
-plan gate is a **session boundary** as well as an approval: `invoke` is the phase that begins right
+plan gate is a **context boundary** as well as an approval: `invoke` is the phase that begins right
 after it, so it must reconstruct the plan from the durable artifact, never from conversational memory.
 This holds **whatever [`PROJECT.md`](../../PROJECT.md) → *Human Gates* says.** The baseline is plan
 approval `required`; a host may set it to `auto`, which waives the *wait* for a human — it does **not**
@@ -79,8 +79,8 @@ change with no code to lint) — checks are **not applicable, not skipped**; sta
    its comments through the lifecycle host and read the plan comment
    [`devise`](../../skills/devise/SKILL.md) posted, plus the chosen option in the assessment and the
    agent strategy. Work from **that text**, not from what this session remembers: the plan gate is a
-   session boundary, so the plan may have been authored in a session that no longer exists, and it may
-   have been revised at the gate. Confirm before proceeding that you can name, from the artifact you
+   context boundary, so the plan was authored before a context reset — a prior session under `required`,
+   or the pre-reset context under `auto` — and it may have been revised at the gate. Confirm before proceeding that you can name, from the artifact you
    just read: the ordered tasks, the testing strategy, and the branch. If **no plan comment exists**,
    Stage 2's terminal artifact was skipped — **stop and recheck; do not infer a plan.**
 

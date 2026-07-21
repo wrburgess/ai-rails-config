@@ -201,16 +201,16 @@ a Host App that never touches this section behaves exactly as it did before the 
 **Unconditional, whatever this section says:**
 
 - **Merge is always human** (above).
-- **The plan gate is also a session boundary, and the boundary survives the pause being waived.**
-  "Plan posted" ends a session under either setting: [`invoke`](skills/invoke/SKILL.md) **begins by
-  re-reading the posted plan from the issue** and never continues on conversational memory, and the
-  pre-[`final`](skills/final/SKILL.md) context check still applies. `auto` removes the *wait*; it never
-  removes the context firebreak.
+- **The plan gate is also a context boundary, and the reset survives the pause being waived.**
+  "Plan posted" forces a context reset under either setting — a session boundary under `required` (the
+  human crosses), `ship`'s own context reset under `auto`
+  ([ADR 0028](docs/adr/0028-context-reset-boundary-resumable-stops-autonomous-listen.md)):
+  [`invoke`](skills/invoke/SKILL.md) **begins by re-reading the posted plan from the issue** and never
+  continues on conversational memory, and the pre-[`final`](skills/final/SKILL.md) context check still
+  applies. `auto` removes the *wait*; it never removes the context firebreak.
 - **[`ship`](skills/ship/SKILL.md)'s four emergency stops** — an unresolvable check failure; a discovery
   that the change touches core logic the plan did not anticipate; an architectural or ambiguous review
   comment; a handoff verdict the orchestrator cannot resolve — always stop and ask the HC.
-- **[`listen`](skills/listen/SKILL.md)'s "wait for the HC to choose"** is out of scope for this setting
-  and remains mandatory.
 - **The lifecycle's "the HC decides when to compress"** remains mandatory for every row of its
   *When to skip or compress stages* table **but one**: `auto` waives exactly three pauses — the Stage-1
   option pick, the Stage-2 plan approval, and the **exploratory (spike-then-plan) election** named

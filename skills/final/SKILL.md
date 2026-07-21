@@ -20,8 +20,8 @@ and the parity check hard-fails any attempt to set it otherwise. A host that has
 `auto` has changed nothing here — merge is still human. If there is no PR, a prior stage's terminal
 artifact was skipped: stop and recheck.
 
-A **pre-`final` context check** — a fresh session before the merge-readiness judgment — applies under
-every setting, for the same reason the plan gate is a session boundary: this call must be made on
+A **pre-`final` context check** — a fresh context before the merge-readiness judgment — applies under
+every setting, for the same reason the plan gate is a context boundary: this call must be made on
 context you actually re-read (the PR, its checks, its review threads), not on a compaction summary.
 
 </what-to-do>
