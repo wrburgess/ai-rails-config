@@ -137,17 +137,27 @@ and an unanswerable "did the primary respond?". (The *plan*-gate summons is a se
 with the HC while plan approval is `required` — see the ADR.)
 
 Read the chain from [`PROJECT.md`](../../PROJECT.md) → *Reviewer*: the **primary**, the **fallback
-order**, the **bounded window**, and the **degradation floor**. **Baseline: the floor is
-`stop-and-ask`, and it is not configurable** — a run that cannot obtain an independent review may not
-certify itself.
+order**, the **bounded window**, and the **degradation floor**. **Baseline — primary `Codex`,
+fallback order `Copilot`, bounded window `30m`, degradation floor `stop-and-ask`.** A Host App
+overrides the first three there; **the floor is not configurable** — a run that cannot obtain an
+independent review may not certify itself.
+
+Those four values are written out here, not left behind the pointer, because this procedure has to be
+executable by a reader who cannot open `PROJECT.md` — the resident-default rule in
+[`rules/skills.md`](../../rules/skills.md). They are the Generic Baseline's **placeholders**: whatever
+*Reviewer* declares wins, and the values above are what applies when it declares nothing.
 
 After posting the self-review, take each chain entry in order:
 
 1. **No *Invocation paths* row → the entry is UNREACHABLE, not slow.** That table is the membership
    list: an entry with no row has no summons mechanism, so there is nothing to issue and nothing to
-   wait for. Fall back **immediately** — do not start the window. This covers the whole chain when the
-   host's `PROJECT.md` has no *Reviewer* section at all: a vendored copy that predates it inherits the
-   chain values but **no** mechanism, so every entry is unreachable and the run lands on the floor
+   wait for. Fall back **immediately** — do not start the window.
+
+   **No *Reviewer* section at all → every entry is unreachable, so go straight to step 7 and apply
+   the floor: stop and ask the HC.** Do not summon anything and do not start a window. A vendored
+   `PROJECT.md` that predates the section supplies no *Invocation paths* table, and the baseline
+   values above name *who* the chain would try without naming *how* to reach any of them — the
+   baseline ships placeholder harnesses, never a summons command it could not honor
    ([ADR 0027](../../docs/adr/0027-reviewer-chain-validated-against-invocation-paths.md)).
 2. **The entry names the harness you are running as → also unreachable; fall back.** An AC cannot be
    its own independent backstop, and a same-model review that *appears* to run is worse than none.

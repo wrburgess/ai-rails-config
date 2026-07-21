@@ -633,8 +633,8 @@ class ReviewerTest < Minitest::Test
   def test_an_alignment_marked_separator_row_is_not_a_harness
     # The separator skip is STRUCTURAL, not a side effect of its dashes tripping the no-summons rule.
     # GitHub-flavored markdown allows alignment colons (`|:---|:---:|`), and `:---:` is not a dash
-    # run — so a separator recognized only by its Summons cell would leak a harness named `:---` and,
-    # by prefix matching, quietly satisfy nothing while cluttering the declared set.
+    # run — so a separator recognized only by its Summons cell would leak a harness named `:---`,
+    # which satisfies nothing while cluttering the declared set.
     md = <<~MD
       # Project Config
       ## Reviewer
@@ -655,10 +655,15 @@ class ReviewerTest < Minitest::Test
   end
 
   def test_a_blank_harness_cell_does_not_silence_the_whole_check
-    # THE SILENCE DETECTOR, and the reason the blank-harness skip exists at all.
-    # `"anything".start_with?("")` is TRUE, so a single half-finished row with a populated Summons
-    # cell would make EVERY chain entry match it — the entire reachability check goes quiet while
-    # parity stays green, which is exactly the false-green class this work exists to close.
+    # THE SILENCE DETECTOR, and the reason the blank-harness skip exists at all. Under the prefix
+    # matching this seam originally shipped, `"anything".start_with?("")` is TRUE, so a single
+    # half-finished row with a populated Summons cell made EVERY chain entry match it — the whole
+    # reachability check went quiet while parity stayed green.
+    #
+    # Exact matching (ADR 0027 decision 8) has since defanged that: a blank name matches only a blank
+    # entry, and `chain` drops those. The skip is kept and this test with it, because the membership
+    # list is a PUBLIC answer other callers may read, and a `""` in it is wrong regardless of who
+    # currently compares against it — the assertion below is on `invocation_paths` for that reason.
     md = with_paths("|  | mention on the PR | app installed | — |\n" \
                     "| Codex | mention on the PR | app installed | — |",
                     settings: "| **Primary** | `Codex` |\n| **Fallback order** | `Nope` |")
@@ -748,6 +753,497 @@ class ReviewerTest < Minitest::Test
                    "a `#{hashes.strip}` heading must end the sub-table - a harness-shaped table under " \
                    "one must never join the chain's membership list"
     end
+  end
+
+  # --- input class: FENCED CODE BLOCKS ------------------------------------------------------------
+  #
+  # A ```` ```markdown ```` block is how a doc SHOWS a host what to author. Parsed as data it DECLARES
+  # instead of illustrating. Each test below names one fence rule, because a clean mutation sweep
+  # cannot reach these: they are input-partition errors, not branch-coverage gaps (rules/testing.md:26).
+
+  def test_a_fenced_example_declares_nothing
+    # The base case. The ONLY `### Invocation paths` in the file is inside a fence, so there is no
+    # membership list at all — and the chain, which is genuinely undeclared, reports unreachable.
+    # Before this the fenced heading bound as the anchor and `Phantom` entered the membership list.
+    md = <<~MD
+      # Project Config
+      ## Reviewer
+
+      | Field | Setting |
+      |-------|---------|
+      | **Primary** | `Codex` |
+      | **Fallback order** | `Copilot` |
+
+      A host authors the sub-table like this:
+
+      ```markdown
+      ### Invocation paths
+
+      | Harness | Summons |
+      |---------|---------|
+      | Phantom | summon it |
+      ```
+
+      ## Human Gates
+    MD
+    assert_empty Reviewer.invocation_paths(md)
+    assert_equal %w[Codex Copilot], Reviewer.unsummonable(md),
+                 "an illustration must not declare a harness, and the real chain must still report"
+  end
+
+  def test_a_fenced_example_above_the_real_table_does_not_shadow_it
+    # THE WORSE HALF of the same defect, and the reason the fence rule cannot just skip fenced ROWS.
+    # Bound to the FENCED heading, the scan never reached the real sub-table and ran on through the
+    # settings table, returning `["Phantom", "Field", "Primary", "Fallback order"]` — a membership
+    # list built entirely out of a code sample and a settings grid.
+    md = <<~MD
+      # Project Config
+      ## Reviewer
+
+      A host authors the sub-table like this:
+
+      ```markdown
+      ### Invocation paths
+
+      | Harness | Summons |
+      |---------|---------|
+      | Phantom | summon it |
+      ```
+
+      | Field | Setting |
+      |-------|---------|
+      | **Primary** | `Codex` |
+      | **Fallback order** | `Copilot` |
+
+      ### Invocation paths
+
+      | Harness | Summons |
+      |---------|---------|
+      | Codex | mention it |
+      | Copilot | request it |
+
+      ## Human Gates
+    MD
+    assert_equal %w[Codex Copilot], Reviewer.invocation_paths(md)
+    assert_empty Reviewer.unsummonable(md)
+  end
+
+  def test_a_tilde_fence_hides_its_contents_too
+    # CommonMark's OTHER fence character. Recognizing only backticks leaves the identical hole open to
+    # any host that writes `~~~`, which is the conventional choice precisely when the sample itself
+    # contains backticks.
+    md = <<~MD
+      # Project Config
+      ## Reviewer
+
+      | Field | Setting |
+      |-------|---------|
+      | **Primary** | `Codex` |
+      | **Fallback order** | `none` |
+
+      ~~~markdown
+      ### Invocation paths
+
+      | Harness | Summons |
+      |---------|---------|
+      | Phantom | summon it |
+      ~~~
+
+      ## Human Gates
+    MD
+    assert_empty Reviewer.invocation_paths(md)
+    assert_equal %w[Codex], Reviewer.unsummonable(md)
+  end
+
+  def test_a_shorter_backtick_run_does_not_close_a_longer_fence
+    # The fence-LENGTH rule. A four-backtick fence is exactly how a sample containing a three-backtick
+    # fence is written, so treating ANY run as a closer ends the block at the inner fence and
+    # re-exposes everything after it — here the `Phantom` heading and table — as live declaration.
+    #
+    # The inner block is deliberately a COMPLETE ```bash pair: an unbalanced one would leave the decoy
+    # inside a second fence and hide it by accident, and the mutant would survive.
+    md = <<~MD
+      # Project Config
+      ## Reviewer
+
+      | Field | Setting |
+      |-------|---------|
+      | **Primary** | `Codex` |
+      | **Fallback order** | `none` |
+
+      ````markdown
+      Summon it with:
+
+      ```bash
+      gh pr comment --body "@phantom review"
+      ```
+
+      ### Invocation paths
+
+      | Harness | Summons |
+      |---------|---------|
+      | Phantom | summon it |
+      ````
+
+      ## Human Gates
+    MD
+    assert_empty Reviewer.invocation_paths(md)
+    assert_equal %w[Codex], Reviewer.unsummonable(md)
+  end
+
+  def test_a_backtick_run_does_not_close_a_tilde_fence
+    # The fence-CHARACTER rule, which nothing else reaches: a closer must be the same character as its
+    # opener. Tildes are the conventional choice precisely BECAUSE the sample contains backtick
+    # fences, so a character-blind closer breaks the one case tildes exist for — the sample's inner
+    # ``` ends the block and everything below it becomes declaration.
+    #
+    # The inner opener carries an info string (```bash) deliberately. With a BARE opener a
+    # character-blind closer would consume the first ``` and then treat the second as a fresh opener,
+    # re-hiding the decoy by accident — the mutant survives and the test proves nothing. An info
+    # string makes the opener ineligible as a closer, so exactly one backtick run is left to leak.
+    md = <<~MD
+      # Project Config
+      ## Reviewer
+
+      | Field | Setting |
+      |-------|---------|
+      | **Primary** | `Codex` |
+      | **Fallback order** | `none` |
+
+      ~~~markdown
+      Summon it with:
+
+      ```bash
+      gh pr comment --body "@phantom review"
+      ```
+
+      ### Invocation paths
+
+      | Harness | Summons |
+      |---------|---------|
+      | Phantom | summon it |
+      ~~~
+
+      ## Human Gates
+    MD
+    assert_empty Reviewer.invocation_paths(md)
+    assert_equal %w[Codex], Reviewer.unsummonable(md)
+  end
+
+  def test_a_fenced_row_below_the_real_table_is_not_a_declaration
+    # The fence rule inside the ROW SCAN, isolated from the anchor rule. Every other fence test puts
+    # the fence where it competes for the anchor; here the anchor is legitimately bound first and the
+    # fence appears after it, so only the row-level skip can keep the sample out. A doc showing "a
+    # host adding Grok writes this row" must not thereby declare Grok.
+    md = <<~MD
+      # Project Config
+      ## Reviewer
+
+      | Field | Setting |
+      |-------|---------|
+      | **Primary** | `Codex` |
+      | **Fallback order** | `none` |
+
+      ### Invocation paths
+
+      | Harness | Summons |
+      |---------|---------|
+      | Codex | mention it |
+
+      A host adding another harness appends a row like:
+
+      ```markdown
+      | Phantom | summon it |
+      ```
+
+      ## Human Gates
+    MD
+    assert_equal %w[Codex], Reviewer.invocation_paths(md)
+  end
+
+  def test_a_fence_line_carrying_an_info_string_does_not_close_a_block
+    # The closer must be BARE. A second ```` ```ruby ```` line inside an open block is content, not a
+    # closer; accepting it ends the block at the wrong line and hands the rest of the sample to the
+    # parser as data.
+    md = <<~MD
+      # Project Config
+      ## Reviewer
+
+      | Field | Setting |
+      |-------|---------|
+      | **Primary** | `Codex` |
+      | **Fallback order** | `none` |
+
+      ```
+      ```ruby
+      ### Invocation paths
+
+      | Harness | Summons |
+      |---------|---------|
+      | Phantom | summon it |
+      ```
+
+      ## Human Gates
+    MD
+    assert_empty Reviewer.invocation_paths(md)
+    assert_equal %w[Codex], Reviewer.unsummonable(md)
+  end
+
+  def test_a_backtick_run_whose_info_string_holds_a_backtick_is_not_a_fence
+    # The OPPOSITE failure direction, and the reason this rule earns its keep: over-eager fence
+    # detection is not merely safe. CommonMark forbids a backtick in a backtick fence's info string,
+    # so this line is prose. Treated as an opener it masks everything below it, the real sub-table
+    # vanishes, and a fully-declared chain reports unreachable — a false RED on a correct file.
+    md = <<~MD
+      # Project Config
+      ## Reviewer
+
+      | Field | Setting |
+      |-------|---------|
+      | **Primary** | `Codex` |
+      | **Fallback order** | `none` |
+
+      ```markdown` is not a fence opener
+
+      ### Invocation paths
+
+      | Harness | Summons |
+      |---------|---------|
+      | Codex | mention it |
+
+      ## Human Gates
+    MD
+    assert_equal %w[Codex], Reviewer.invocation_paths(md)
+    assert_empty Reviewer.unsummonable(md)
+  end
+
+  def test_a_fenced_h2_does_not_end_the_reviewer_section
+    # The section BOUNDARY is fence-aware too, not just the row scan. A sample showing a neighbouring
+    # `## ` heading would otherwise truncate the section body at the illustration, so the real
+    # sub-table below it is never in scope and the whole chain reports unreachable.
+    md = <<~MD
+      # Project Config
+      ## Reviewer
+
+      | Field | Setting |
+      |-------|---------|
+      | **Primary** | `Codex` |
+      | **Fallback order** | `none` |
+
+      ```markdown
+      ## Human Gates
+      ```
+
+      ### Invocation paths
+
+      | Harness | Summons |
+      |---------|---------|
+      | Codex | mention it |
+
+      ## Human Gates
+    MD
+    assert_equal %w[Codex], Reviewer.invocation_paths(md)
+    assert_empty Reviewer.unsummonable(md)
+  end
+
+  # --- input class: LEADING INDENTATION -----------------------------------------------------------
+  #
+  # CommonMark allows 0-3 leading spaces on an ATX heading and a table row; FOUR or more makes the
+  # line an indented code block. Anchoring every rule at column 0 was fail-OPEN in one direction and
+  # blind in the other.
+
+  def test_an_indented_heading_still_ends_the_sub_table
+    # Reproduced verbatim: `  #### Notes` is a legal heading, but `\A#\{1,6\}` did not match it, so the
+    # scan ran on and admitted the table beneath — `invocation_paths` returned `["Codex", "Phantom"]`
+    # and a chain entry named only under that heading read as reachable.
+    (1..3).each do |spaces|
+      md = <<~MD
+        # Project Config
+        ## Reviewer
+
+        ### Invocation paths
+
+        | Harness | Summons |
+        |---------|---------|
+        | Codex | mention it |
+
+        #{" " * spaces}#### Notes
+
+        | Harness | Summons |
+        |---------|---------|
+        | Phantom | summon it |
+
+        ## Human Gates
+      MD
+      assert_equal %w[Codex], Reviewer.invocation_paths(md),
+                   "a heading indented #{spaces} space(s) is still a heading and must end the scan"
+    end
+  end
+
+  def test_a_heading_indented_four_spaces_does_not_anchor_the_sub_table
+    # The same rule at the ANCHOR, and the reason it is not merely symmetry: with fences handled, an
+    # indented code block is the remaining way to write a fake sub-table. Four spaces makes the
+    # heading code, so it anchors nothing and the authored chain reports unreachable — fail-CLOSED.
+    #
+    # THE ROWS SIT AT COLUMN 0 ON PURPOSE. Indenting them too would let `invocation_cells`' own guard
+    # reject them, and this test would pass with the anchor rule deleted — proving nothing about the
+    # branch it is named for. Column-0 rows leave the anchor as the only thing standing between a
+    # code-block heading and a `Phantom` declaration.
+    md = <<~MD
+      # Project Config
+      ## Reviewer
+
+      | Field | Setting |
+      |-------|---------|
+      | **Primary** | `Codex` |
+      | **Fallback order** | `none` |
+
+      An example:
+
+          ### Invocation paths
+
+      | Harness | Summons |
+      |---------|---------|
+      | Phantom | summon it |
+
+      ## Human Gates
+    MD
+    assert_empty Reviewer.invocation_paths(md)
+    assert_equal %w[Codex], Reviewer.unsummonable(md)
+  end
+
+  def test_a_table_row_indented_four_spaces_is_code_not_a_row
+    # The row half of the same rule. Without it the heading rule is incoherent: a sample's heading is
+    # correctly skipped as code while the rows under it are still read as live declaration.
+    md = <<~MD
+      # Project Config
+      ## Reviewer
+
+      ### Invocation paths
+
+      | Harness | Summons |
+      |---------|---------|
+      | Codex | mention it |
+
+      A host might add:
+
+          | Phantom | summon it |
+
+      ## Human Gates
+    MD
+    assert_equal %w[Codex], Reviewer.invocation_paths(md)
+  end
+
+  def test_an_indented_h2_still_ends_the_reviewer_section
+    # The section BOUNDARY's own 0-3 allowance, which nothing else covers: inside the sub-table scan
+    # any indented heading already stops things, so this is only observable at the SCOPING layer —
+    # a decoy `### Invocation paths` under a later, INDENTED H2. Read as still-inside `## Reviewer`,
+    # that decoy binds and declares `Phantom` for a host that declared nothing (#118's shape, one
+    # indent level down).
+    md = <<~MD
+      # Project Config
+      ## Reviewer
+
+      | Field | Setting |
+      |-------|---------|
+      | **Primary** | `Codex` |
+      | **Fallback order** | `none` |
+
+        ## Some Other Section
+
+      ### Invocation paths
+
+      | Harness | Summons |
+      |---------|---------|
+      | Phantom | summon it |
+    MD
+    assert_empty Reviewer.invocation_paths(md)
+    assert_equal %w[Codex], Reviewer.unsummonable(md)
+  end
+
+  # --- input class: ESCAPED PIPES -----------------------------------------------------------------
+
+  def test_an_escaped_pipe_is_cell_content_not_a_column_delimiter
+    # `\\|` is how GFM writes a literal `|` inside a cell — a shell pipeline in a Check cell is the
+    # obvious case. Split on it, every later cell shifted one position left: the fragment
+    # `grep ok\\`` landed in the bound Summons index, the row's real em-dash Summons cell was never
+    # read, and a placeholder harness reported as REACHABLE.
+    md = <<~'MD'
+      # Project Config
+      ## Reviewer
+
+      | Field | Setting |
+      |-------|---------|
+      | **Primary** | `Phantom` |
+      | **Fallback order** | `none` |
+
+      ### Invocation paths
+
+      | Harness | Check | Summons |
+      |---------|-------|---------|
+      | Phantom | run `printf ok \| grep ok` | — |
+
+      ## Human Gates
+    MD
+    assert_empty Reviewer.invocation_paths(md),
+                 "the em-dash Summons cell declares NO mechanism; the escaped pipe must not hide it"
+    assert_equal %w[Phantom], Reviewer.unsummonable(md)
+  end
+
+  def test_an_escaped_pipe_does_not_hide_a_real_summons_either
+    # The same rule in the opposite direction, so the fix cannot be "read one cell further left".
+    # Here the shifted read would have found the Check cell's tail where the Summons belongs; the row
+    # is genuinely summonable and must be declared, with its harness name intact.
+    md = <<~'MD'
+      # Project Config
+      ## Reviewer
+
+      | Field | Setting |
+      |-------|---------|
+      | **Primary** | `Codex` |
+      | **Fallback order** | `none` |
+
+      ### Invocation paths
+
+      | Harness | Check | Summons |
+      |---------|-------|---------|
+      | Codex | run `a \| b` | mention it on the PR |
+
+      ## Human Gates
+    MD
+    assert_equal %w[Codex], Reviewer.invocation_paths(md)
+    assert_empty Reviewer.unsummonable(md)
+  end
+
+  def test_an_escaped_pipe_in_a_harness_name_is_matched_as_rendered
+    # The RESTORATION half of the escaped-pipe rule, which the two tests above cannot reach: they only
+    # prove the escape is not a delimiter, and would still pass if the cell kept its backslash.
+    #
+    # It has to be restored because the membership list is matched against what the HOST WROTE in its
+    # chain, and a host reads the RENDERED table, where `A \| B` is `A | B`. Leaving the backslash in
+    # makes the two spellings unequal and reports a declared harness unreachable — a false RED on a
+    # correct file, the same failure direction as an over-eager fence.
+    #
+    # ASSERTED ON `invocation_paths` ALONE, not on `unsummonable`, and the reason is a real limitation
+    # worth writing down: the SETTINGS table is parsed by `table_cells`, which is contract-identical
+    # with scripts/human_gates.rb and still splits on `\|`. A chain entry containing an escaped pipe
+    # is therefore mis-read before `unsummonable` ever compares it, so no round-trip fixture can be
+    # written here. That weakness is shared and pre-existing (ADR 0027 decision 8, Consequences);
+    # fixing it means changing both readers at once.
+    md = <<~'MD'
+      # Project Config
+      ## Reviewer
+
+      ### Invocation paths
+
+      | Harness | Summons |
+      |---------|---------|
+      | A \| B | mention it |
+
+      ## Human Gates
+    MD
+    assert_equal ["A | B"], Reviewer.invocation_paths(md),
+                 "the membership list must name the harness as the table RENDERS it"
   end
 
   def test_a_decoy_invocation_heading_under_an_unrelated_h2_does_not_satisfy_membership
@@ -843,7 +1339,7 @@ class ReviewerTest < Minitest::Test
     # HEADER_CELLS has two entries and each must be separately provable. Here NO cell reads
     # "Summons", so nothing binds the mechanism column and only the `Harness` cell can identify this
     # row as the header — without that entry it is read as a data row declaring a harness called
-    # "Harness", which a chain entry named `Harness…` would then match by prefix.
+    # "Harness", which a chain entry a host happened to name `Harness` would then match.
     md = <<~MD
       # Project Config
       ## Reviewer
@@ -880,8 +1376,8 @@ class ReviewerTest < Minitest::Test
 
   def test_invocation_paths_ignores_the_settings_table_above_it
     # The scan anchors on the H3, not on `## Reviewer`. A scan that merely walked the H2 would return
-    # `Primary` and `Degradation floor` as if they were harnesses — and since matching is by prefix,
-    # a chain entry named `Primary reviewer` would then read as reachable.
+    # `Primary` and `Degradation floor` as if they were harnesses, so a host whose chain happened to
+    # name either would read as reachable off its own settings table.
     md = with_paths("| Codex | mention on the PR | app installed | — |")
     paths = Reviewer.invocation_paths(md)
     assert_equal %w[Codex], paths
@@ -1102,25 +1598,56 @@ class ReviewerTest < Minitest::Test
     refute Reviewer.section?(md)
   end
 
-  def test_an_entry_matches_its_row_by_prefix
-    # A host may name a model-qualified entry while the invocation row names the bare harness.
+  def test_an_entry_matches_its_row_exactly
+    # The happy path of the matching rule, and the negative control for the three tests below: an
+    # entry naming the harness its row names is reachable.
     md = with_paths("| Codex | mention on the PR | x | — |",
-                    settings: "| **Primary** | `Codex (GPT-5)` |\n| **Fallback order** | `none` |")
+                    settings: "| **Primary** | `Codex` |\n| **Fallback order** | `none` |")
     assert_empty Reviewer.unsummonable(md)
   end
 
-  def test_prefix_matching_is_a_known_collision
-    # Pins a REAL hazard rather than leaving it to be discovered, in the file's existing
-    # known-limitation style. `start_with?` is `labelled?`'s idiom, and it cuts both ways: it lets
-    # `Codex (GPT-5)` resolve to a `Codex` row, and it equally lets a `Codex` row satisfy a
-    # `Codex Cloud` entry a host meant as a DISTINCT harness — silently declaring reachable something
-    # nobody can summon. Not fixed here: tightening the rule belongs with `labelled?`, in
-    # scripts/reviewer.rb and scripts/human_gates.rb at once, with its own issue.
+  def test_a_bare_harness_row_does_not_satisfy_a_longer_entry
+    # THE DEFECT prefix matching shipped. A lone `Codex` row satisfied a `Codex Cloud` fallback, and
+    # the declaration was broken under BOTH readings: distinct harnesses means the fallback has no
+    # mechanism, the same harness means the chain falls back to itself. `unsummonable` said nothing
+    # and `invalid`'s self-reference check said nothing, so a chain nobody could run shipped green.
     md = with_paths("| Codex | mention on the PR | x | — |",
-                    settings: "| **Primary** | `Codex Cloud` |\n| **Fallback order** | `none` |")
-    assert_empty Reviewer.unsummonable(md),
-                 "prefix matching resolves `Codex Cloud` to the `Codex` row today - if this starts " \
-                 "failing, the matching rule was tightened; do it in human_gates.rb too"
+                    settings: "| **Primary** | `Codex` |\n| **Fallback order** | `Codex Cloud` |")
+    assert_equal ["Codex Cloud"], Reviewer.unsummonable(md),
+                 "a `Codex` row is not a mechanism for a harness the host named `Codex Cloud`"
+  end
+
+  def test_a_model_qualified_entry_does_not_resolve_to_its_bare_harness_row
+    # The cost of exactness, asserted rather than left to be discovered — and the correct reading, not
+    # a regression. *Primary*'s allowed values are "any harness with a row in *Invocation paths*", and
+    # ADR 0027 decision 7 already amended the field to name a HARNESS ONLY, precisely because
+    # resolving `Codex (GPT-5)` to a `Codex` row leaned on a documented limitation. The host is now
+    # told to write the bare harness instead of being quietly understood.
+    md = with_paths("| Codex | mention on the PR | x | — |",
+                    settings: "| **Primary** | `Codex (GPT-5)` |\n| **Fallback order** | `none` |")
+    assert_equal ["Codex (GPT-5)"], Reviewer.unsummonable(md)
+  end
+
+  def test_an_entry_shorter_than_its_row_is_not_a_match_either
+    # The reverse direction, pinned so a future "fix" cannot restore prefix matching by flipping which
+    # side is the prefix. A `Codex Cloud` row is a mechanism for `Codex Cloud`, not for `Codex`.
+    md = with_paths("| Codex Cloud | mention on the PR | x | — |",
+                    settings: "| **Primary** | `Codex` |\n| **Fallback order** | `none` |")
+    assert_equal %w[Codex], Reviewer.unsummonable(md)
+  end
+
+  def test_harness_matching_normalizes_before_comparing
+    # Exact does NOT mean byte-identical. Emphasis, backticks, surrounding space and case are all
+    # authoring noise on both sides, and `plain` is what removes them — the same normalization
+    # `invalid`'s self-reference check compares through, so the two seams cannot disagree about
+    # whether two spellings are the same harness (the emphasis split that closed PR #117).
+    #
+    # The row and the entry differ in CASE as well as emphasis on purpose. `invocation_paths` already
+    # strips `*` and backticks when it reads a harness name, so an emphasis-only fixture passes even
+    # with the comparison-time normalization deleted — case is the half only `plain` supplies here.
+    md = with_paths("| **`CODEX`** | mention on the PR | x | — |",
+                    settings: "| **Primary** | `codex` |\n| **Fallback order** | `none` |")
+    assert_empty Reviewer.unsummonable(md)
   end
 
   def test_section_distinguishes_authored_from_absent

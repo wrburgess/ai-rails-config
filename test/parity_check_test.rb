@@ -1579,10 +1579,12 @@ class ParityCheckTest < Minitest::Test
   # settings-table-only fixture this helper used to write is the authored-but-INCOMPLETE state, not
   # the valid one. Every caller asserting exit 0 depends on the sub-table being present; pass
   # `invocation: false` only to build the incomplete case deliberately.
+  # `paths:` replaces the sub-table wholesale, for fixtures whose defect is in the sub-table's own
+  # MARKUP (a fenced example, an indented heading) rather than in a field value.
   def add_reviewer(dir, floor: "stop-and-ask", window: "30m", primary: "Codex", fallback: "Copilot",
-                   invocation: true)
-    paths = if invocation
-              <<~SUB
+                   invocation: true, paths: nil)
+    paths ||= if invocation
+                <<~SUB
                 ### Invocation paths
 
                 | Harness | Summons | Precondition | Check |
@@ -1590,9 +1592,9 @@ class ParityCheckTest < Minitest::Test
                 | Codex | mention it on the PR | app installed | *(host-supplied)* |
                 | Copilot | request a review via the API | review enabled | *(host-supplied)* |
               SUB
-            else
-              ""
-            end
+              else
+                ""
+              end
     project = File.read(File.join(dir, "PROJECT.md"))
     File.write(File.join(dir, "PROJECT.md"), <<~MD)
       #{project}
@@ -1656,6 +1658,46 @@ class ParityCheckTest < Minitest::Test
       assert_equal 1, code
       assert_match(/names `Codex` in the reviewer chain but .*no summons mechanism/, out)
       assert_match(/names `Copilot` in the reviewer chain but .*no summons mechanism/, out)
+    end
+  end
+
+  def test_a_fenced_example_sub_table_does_not_satisfy_the_gate
+    # The extractor-level fence tests have a parity-level twin for the same reason
+    # test_no_unsummonable_error_fires_without_a_reviewer_section does: this is the layer a host
+    # actually meets. A `` ```markdown `` block showing how to author the sub-table is documentation —
+    # parsed as the live declaration it made an undeclared chain read as fully reachable and shipped
+    # green, which is the #118 false green re-created inside the fix for it.
+    with_bundle do |dir|
+      add_reviewer(dir, paths: <<~SUB)
+        A host authors the sub-table like this:
+
+        ```markdown
+        ### Invocation paths
+
+        | Harness | Summons |
+        |---------|---------|
+        | Codex | mention it on the PR |
+        | Copilot | request a review via the API |
+        ```
+      SUB
+      code, out = run_check(dir)
+      assert_equal 1, code, out
+      assert_match(/names `Codex` in the reviewer chain but .*no summons mechanism/, out)
+      assert_match(/names `Copilot` in the reviewer chain but .*no summons mechanism/, out)
+    end
+  end
+
+  def test_a_fallback_that_only_PREFIXES_an_invocation_row_fails
+    # Finding 3 at the parity layer. `Codex Cloud` resolved to the `Codex` row by prefix match, so
+    # both `unsummonable` and the self-reference check stayed silent and a chain that is broken under
+    # either reading — distinct harness with no mechanism, or a fallback to the primary itself —
+    # passed the gate.
+    with_bundle do |dir|
+      add_reviewer(dir, fallback: "Codex Cloud")
+      code, out = run_check(dir)
+      assert_equal 1, code, out
+      assert_match(/names `Codex Cloud` in the reviewer chain but .*no summons mechanism/, out)
+      refute_match(/names `Codex` in/, out, "the primary HAS its own row and must not be reported")
     end
   end
 

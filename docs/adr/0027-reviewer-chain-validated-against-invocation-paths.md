@@ -122,14 +122,41 @@ harness is not the same as being able to reach one.
      convention exists to keep the two APART, and a harness+model compound in a harness-named field is
      the conflation it forbids. It also breaks decision 1 above — membership is checked against
      *Invocation paths*, whose rows are harnesses — so a model-qualified primary was resolving to its
-     harness row only by `unsummonable`'s prefix match, which is a documented limitation, not a
-     contract to build on. The shipped value is now bare `Codex`, and the allowed-values cell reads
+     harness row only by `unsummonable`'s prefix match, which was a documented limitation, not a
+     contract to build on. Decision 8 has since removed that prefix match, so a model-qualified entry
+     no longer resolves at all; this amendment is what makes that the correct outcome rather than a
+     regression. The shipped value is now bare `Codex`, and the allowed-values cell reads
      "any harness with a row in *Invocation paths*" rather than "any harness in *Attribution & Model
      Declaration*".
    - **The invocation table's *Check* column is optional, so decision 1's "*and its
      precondition-check command*" no longer holds as a requirement of the table.** This is the
      table-shape half of decision 4 above; both shipped *Check* cells now read host-supplied. Decision
      4 relaxes the procedure, and this relaxes the declaration the procedure reads.
+
+8. **Membership is matched EXACTLY on the normalized harness name, and the sub-table is parsed as
+   markdown rather than as lines that look like markdown.** Decisions 1-7 were implemented against a
+   scan that a second-model review then broke three ways; each is closed here, and each was an
+   input-partition error a branch-coverage sweep could not have reached.
+
+   - **Exact matching replaces prefix matching.** `entry.start_with?(harness)` was borrowed from
+     `labelled?` and pinned as a known limitation. It was not survivable: a lone `Codex` row satisfied
+     a `Codex Cloud` fallback, which is broken under *both* readings — distinct harnesses means the
+     fallback has no mechanism, the same harness means the chain falls back to itself — and neither
+     `unsummonable` nor `invalid`'s self-reference check reported it. `labelled?` is deliberately left
+     alone in both readers: a descriptive setting-row LABEL and a harness IDENTITY are different
+     grammars, and a prefix rule that is the point in the first is a collision in the second.
+   - **A fenced code block is never data.** A ```` ```markdown ```` example showing a host how to
+     author the sub-table was parsed as the live declaration — and when the fence sat above the
+     settings table, the scan bound the fenced heading and ran on to return the settings rows as
+     harnesses. Documentation could declare a reviewer.
+   - **Headings and rows honour CommonMark's 0-3 space indent.** A legal `  #### Notes` did not
+     terminate the scan, so a harness-shaped table beneath it joined the membership list. Four or more
+     spaces is an indented code block and now declares nothing, which keeps the fence rule from being
+     trivially bypassed.
+   - **An escaped `\|` is cell content.** Splitting on it shifted every later cell one position left,
+     so a row's real em-dash *Summons* cell went unread and a placeholder harness reported as
+     reachable. This needed a reviewer-only cell splitter: `table_cells` is contract-identical with
+     `scripts/human_gates.rb` and could not move.
 
    Recorded as its own decision because a scope statement claiming "every other decision in ADR 0026
    stands unmodified" was *false about this ADR's own diff* — exactly the documented-vs-shipped split
@@ -165,9 +192,19 @@ harness is not the same as being able to reach one.
 - **Independence remains unenforced at the model level.** This is now written down with its reasoning
   rather than implied by silence. A future host wanting real enforcement needs runtime identity it can
   audit, which the config layer does not have.
-- **`unsummonable` matches by case-insensitive prefix**, so `Codex (GPT-5)` resolves to a `Codex` row —
-  and a `Codex` row equally satisfies a `Codex Cloud` entry a host meant as distinct. Pinned as a known
-  limitation in the source, sharing `labelled?`'s matching rule; tightening it belongs in
-  `scripts/reviewer.rb` and `scripts/human_gates.rb` at once.
+- **`unsummonable` matches EXACTLY on the normalized name** (emphasis and backticks stripped, trimmed,
+  casefolded). Emphasis and case are authoring noise; anything else is a different harness. The cost is
+  that a model-qualified entry such as `Codex (GPT-5)` no longer resolves to its bare `Codex` row — it
+  is reported, and the report names the fix. That is the reading decision 7 already committed to when
+  it made *Primary* a harness-only field, so the two are now consistent instead of one leaning on a
+  limitation of the other.
+- **The parse is markdown-aware within the section, not line-shaped.** Fenced blocks, CommonMark's 0-3
+  space heading indent, and escaped pipes are all handled (decision 8), so a documentation example
+  cannot declare a harness and a legal heading cannot fail to end the scan.
+- **Two weaknesses are SHARED with `scripts/human_gates.rb` and deliberately not fixed here.**
+  `table_cells` splits on escaped pipes, and both readers locate `## Reviewer` with a scan that a fence
+  opened earlier in the file would fool. Both live in the contract-identical helpers the two files hold
+  byte-for-byte in common, so changing either belongs in one change touching both readers and both test
+  suites — not inside a Reviewer-only fix.
 - **The plan gate is now known to be doubly blocked** — no owner and no mechanism — instead of singly.
   #115 inherits both.

@@ -50,7 +50,32 @@ module Reviewer
   # there read as reachable while parity stayed green.
   #
   # `\#` escapes Ruby's `#{` interpolation — the pattern is a `#` repeated 1-6 times, then whitespace.
-  HEADING = /\A\#{1,6}\s/.freeze
+  #
+  # UP TO THREE LEADING SPACES, per CommonMark: an ATX heading indented 0-3 spaces is still a heading,
+  # and four or more is an indented code block. Anchored at column 0 the rule was FAIL-OPEN — a legal
+  # `  #### Notes` did not terminate the scan, so a harness-shaped table beneath it was admitted to
+  # the membership list and a chain entry named only there read as reachable (Reviewer finding,
+  # PR #119). `INDENT` is the shared 0-3 allowance; every heading and boundary rule below uses it.
+  INDENT = " {0,3}"
+  HEADING = /\A#{INDENT}\#{1,6}\s/.freeze
+
+  # The next H2, which ends the `## Reviewer` section. Same 0-3 space allowance, and DELIBERATELY
+  # tighter than the bare `l.start_with?("## ")` that `extract`/`unreadable` use inline: those two are
+  # kept byte-identical with scripts/human_gates.rb and may not change here. The divergence is
+  # fail-CLOSED — `section_lines` ends the section EARLIER than `extract` does, so the sub-table scan
+  # can only see FEWER lines, never more.
+  H2_BOUNDARY = /\A#{INDENT}## /.freeze
+
+  # A fenced code block's delimiter: 0-3 spaces, then a run of 3+ backticks or 3+ tildes, then the
+  # rest of the line (an info string on an opener, whitespace only on a closer).
+  #
+  # FENCED CONTENT IS NEVER DATA. Without this, a ```` ```markdown ```` block illustrating how a host
+  # should author its rows was parsed as the live declaration: the fenced `### Invocation paths`
+  # bound as the anchor, its `Phantom` row entered the membership list, and — when the fence sat
+  # ABOVE the settings table — the scan ran straight on through the real table and returned
+  # `["Phantom", "Field", "Primary", "Fallback order"]`. A documentation example must not be able to
+  # declare a reviewer (Reviewer finding, PR #119).
+  FENCE = /\A#{INDENT}(`{3,}|~{3,})(.*)\z/.freeze
 
   # The Generic Baseline's shipped declaration, and the answer for any absent section/row. The floor
   # is the load-bearing one: absent everything, a run still stops rather than self-certifying.
@@ -305,12 +330,51 @@ module Reviewer
   # Empty when the section is absent. The section boundary is the same one `extract` and `unreadable`
   # walk inline; this returns it so `invocation_paths` can look for its H3 INSIDE the section rather
   # than anywhere in the file.
+  # FENCE-AWARE at its boundary: a `## `-looking line INSIDE a fenced code block is illustration, not
+  # the next section, so it does not end the body. The section START anchor is deliberately left as
+  # the shared `l.strip == SECTION` idiom `extract` and `section?` use — a fence opened ABOVE
+  # `## Reviewer` is a pre-existing, SHARED weakness of those two readers, not one this seam may
+  # silently diverge on (recorded for follow-up, PR #119).
   def section_lines(text)
     lines = text.to_s.lines.map(&:chomp)
     start = lines.index { |l| l.strip == SECTION }
     return [] unless start
 
-    lines[(start + 1)..].take_while { |l| !l.start_with?("## ") }
+    body = lines[(start + 1)..]
+    fenced = fenced_mask(body)
+    body.each_with_index.take_while { |l, i| fenced[i] || !l.match?(H2_BOUNDARY) }.map(&:first)
+  end
+
+  # Which of `lines` are fenced-code-block lines — the delimiters themselves included — as a parallel
+  # array of booleans. Fence state starts fresh at index 0, so the mask of a PREFIX of `lines` is the
+  # matching prefix of this mask; `invocation_paths` relies on that to re-derive the mask over the
+  # section body `section_lines` already truncated.
+  #
+  # Follows CommonMark closely enough for the hazard: a closer must use the SAME character as its
+  # opener, be at least as LONG, and carry nothing but whitespace after it — so ```` ``` ```` inside a
+  # ```` ~~~~ ```` block does not close it, and a ```` ```ruby ```` line is an opener rather than a
+  # closer. A backtick opener may not carry a backtick in its info string (CommonMark forbids it), or
+  # an inline-code span on a prose line would open a phantom block and swallow the rest of the
+  # section. An UNCLOSED fence masks to the end, which is the fail-CLOSED direction: unparsed, never
+  # mis-parsed.
+  def fenced_mask(lines)
+    open_char = nil
+    open_len = 0
+
+    lines.map do |line|
+      m = line.match(FENCE)
+      if open_char
+        # Inside a block: only a matching, long-enough, bare closer ends it.
+        open_char = nil if m && m[1][0] == open_char && m[1].length >= open_len && m[2].strip.empty?
+        true
+      elsif m && !(m[1][0] == "`" && m[2].include?("`"))
+        open_char = m[1][0]
+        open_len = m[1].length
+        true
+      else
+        false
+      end
+    end
   end
 
   # The harness names that declare a summons mechanism in `### Invocation paths`, in table order.
@@ -329,20 +393,28 @@ module Reviewer
   #     return `Primary`/`Fallback order` as if they were harnesses.
   # The scan then ends at the next heading of ANY level (see HEADING).
   #
-  # Deliberately reuses `table_cells` READ-ONLY and touches none of `extract`/`unreadable`/`labelled?`/
-  # `setting_column`, whose table contract is kept byte-identical with scripts/human_gates.rb.
+  # Splits its rows with the reviewer-only `invocation_cells` and touches none of `extract`/
+  # `unreadable`/`table_cells`/`labelled?`/`setting_column`, whose table contract is kept
+  # byte-identical with scripts/human_gates.rb.
+  #
+  # FENCE-AWARE end to end. The anchor is only bound OUTSIDE a fenced block, and fenced lines are
+  # neither headings nor data rows, so a ```` ```markdown ```` example showing a host how to author
+  # this very table cannot declare a harness.
   def invocation_paths(text)
     found = []
     body = section_lines(text)
-    start = body.index { |l| l.strip == INVOCATION_SECTION }
+    fenced = fenced_mask(body)
+    start = body.each_index.find { |i| !fenced[i] && invocation_heading?(body[i]) }
     return found unless start
 
     column = DEFAULT_SUMMONS_COLUMN
 
-    body[(start + 1)..].each do |l|
+    body[(start + 1)..].each_with_index do |l, offset|
+      next if fenced[start + 1 + offset] # illustration inside a code fence, never a heading or a row
+
       break if l.match?(HEADING) # the next heading of ANY level ends the sub-section
 
-      cells = table_cells(l)
+      cells = invocation_cells(l)
       next if cells.nil?
       next if cells.all? { |c| c.match?(SEPARATOR_CELL) } # the `|---|---|` separator row
 
@@ -356,10 +428,11 @@ module Reviewer
       # Returned AS AUTHORED (emphasis stripped, trimmed) rather than folded, so a caller reporting
       # one names it the way the host wrote it. Case folding happens at comparison time.
       harness = cells[0].to_s.gsub(/[*`]/, "").strip
-      # A BLANK harness cell is skipped, and this is load-bearing rather than tidiness:
-      # `"anything".start_with?("")` is TRUE, so one half-finished row would make every chain entry
-      # look summonable and silence the entire check while the parity gate stayed green - precisely
-      # the false-green shape this seam exists to close.
+      # A BLANK harness cell is skipped. Under the prefix matching this seam originally shipped this
+      # was load-bearing rather than tidiness - `"anything".start_with?("")` is TRUE, so one
+      # half-finished row made every chain entry look summonable and silenced the entire check while
+      # the parity gate stayed green. Exact matching (see `unsummonable`) defangs that, but the skip
+      # stays: the membership list is a public answer, and a `""` in it is wrong whoever reads it.
       next if harness.empty?
       next if no_summons?(cells[column])
 
@@ -444,18 +517,30 @@ module Reviewer
   # REQUIRED_PROJECT_SECTIONS). An AUTHORED section with no sub-table is the opposite case - a host
   # claiming the chain and leaving it unreachable - and reports every entry.
   #
-  # KNOWN LIMITATION, pinned rather than discovered: matching is emphasis-stripped, case-insensitive
-  # `entry.start_with?(harness)`, the same idiom as `labelled?`. That is what lets `Codex (GPT-5)`
-  # resolve to a `Codex` row, and it is equally what lets a `Codex` row satisfy a `Codex Cloud` entry
-  # a host meant as a distinct harness. Tightening it belongs with `labelled?`, in both readers at once.
+  # MATCHING IS EXACT on the normalized name — emphasis and backticks stripped, trimmed, casefolded,
+  # then `==`. It was `entry.start_with?(harness)`, borrowed from `labelled?`, and that prefix rule
+  # broke the authored contract in both directions at once. A lone `Codex` row satisfied a
+  # `Codex Cloud` fallback: read as DISTINCT harnesses the fallback has no mechanism, read as the SAME
+  # harness the chain falls back to itself — and neither `unsummonable` nor `invalid`'s self-reference
+  # check said a word, so a chain nobody could run shipped green (Reviewer finding, PR #119).
+  #
+  # `labelled?` IS LEFT ALONE, deliberately, and this is not the shared-contract exception it looks
+  # like: descriptive setting-row LABELS and harness IDENTITIES are different grammars. `labelled?`
+  # matches a row whose first cell is prose around a field name (`**Primary** — summoned first`), where
+  # a prefix rule is the point; a harness name is an identity, where a prefix rule is a collision. The
+  # reviewer.rb <-> human_gates.rb table contract covers the former and has nothing to say about the
+  # latter, so tightening here needs no change there.
+  #
+  # The cost is that a model-qualified entry (`Codex (GPT-5)`) no longer resolves to its bare `Codex`
+  # row. That is the correct reading, not a regression: *Primary*'s own allowed-values cell says "any
+  # harness with a row in *Invocation paths*", and ADR 0027 decision 7 already amended the field to
+  # name a HARNESS ONLY for exactly this reason. Such an entry is now reported, and the report names
+  # the fix (write the bare harness, or add a row).
   def unsummonable(text)
     return [] unless section?(text)
 
-    declared = invocation_paths(text).map(&:downcase)
-    chain(extract(text)).reject do |entry|
-      name = plain(entry)
-      declared.any? { |harness| name.start_with?(harness) }
-    end
+    declared = invocation_paths(text).map { |harness| plain(harness) }
+    chain(extract(text)).reject { |entry| declared.include?(plain(entry)) }
   end
 
   def from_file(path)
@@ -492,6 +577,53 @@ module Reviewer
 
   # --- Invocation-paths helpers. NEW and independent: none of the five helpers above is touched, so
   # --- the reviewer.rb <-> human_gates.rb table contract stays byte-identical.
+
+  # True when this line is the `### Invocation paths` anchor. 0-3 leading spaces, per CommonMark and
+  # per HEADING/H2_BOUNDARY: a line indented FOUR or more is an indented code block, and binding the
+  # anchor to one would reopen the same illustration-as-declaration hole the fence rule closes — with
+  # the fence gone, an indented example is the remaining way to write a fake sub-table. Not bound at
+  # all ⇒ no membership list ⇒ every entry of an authored chain reports unreachable, which is the
+  # fail-CLOSED direction.
+  def invocation_heading?(line)
+    line.match?(/\A#{INDENT}\S/) && line.strip == INVOCATION_SECTION
+  end
+
+  # `table_cells` for the invocation sub-table ONLY, differing in exactly two ways — and NEW rather
+  # than a change to `table_cells`, because that helper's contract is byte-identical with
+  # scripts/human_gates.rb and may not move (see this file's header).
+  #
+  #   1. AN ESCAPED PIPE IS CONTENT, NOT A DELIMITER. `\|` is how GFM writes a literal `|` inside a
+  #      cell, and splitting on it shifted every later cell one position left: a legal Check cell such
+  #      as ``run `printf ok \| grep ok` `` pushed a fragment into the bound Summons index, so the row's
+  #      real em-dash Summons cell was never read and a placeholder harness reported as REACHABLE
+  #      (Reviewer finding, PR #119). The escape is restored as the literal `|` GFM renders.
+  #   2. A ROW INDENTED FOUR OR MORE SPACES IS NOT A ROW. Same CommonMark rule as `invocation_heading?`
+  #      above; keeping the two consistent is what stops a `  #### Notes` heading being skipped as
+  #      code while the table under it is still read as data.
+  #
+  # Returns nil when the line is not a data row, matching `table_cells`.
+  #
+  # The split is a NEGATIVE LOOKBEHIND for the escaping backslash rather than a placeholder
+  # substitution, so no sentinel character is ever introduced into cell text.
+  #
+  # `table_cells` strips the TRAILING `|` before splitting; this does not, and needs no equivalent.
+  # Ruby's `split` already drops trailing EMPTY fields, so `| A | B |` yields the same two cells
+  # either way — while a row whose last cell ENDS in an escaped pipe (`| A | B \|`, the trailing
+  # delimiter omitted as GFM allows) keeps that pipe instead of losing it to the strip. Dropping the
+  # step is what keeps this branch-for-branch testable rather than adding a guard no fixture can kill.
+  UNESCAPED_PIPE = /(?<!\\)\|/.freeze
+
+  def invocation_cells(line)
+    return nil unless line.match?(/\A#{INDENT}\S/)
+
+    stripped = line.strip
+    return nil unless stripped.start_with?("|")
+
+    cells = stripped.sub(/\A\|/, "")
+                    .split(UNESCAPED_PIPE)
+                    .map { |c| c.gsub("\\|", "|").strip }
+    cells.length >= 2 ? cells : nil
+  end
 
   # The index of this row's `Summons` header cell, or nil when the row is not a header naming it.
   # Mirrors `setting_column` deliberately, including its column-0 guard: column 0 is the HARNESS label
