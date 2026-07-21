@@ -567,7 +567,7 @@ class ParityCheck
     if !declared.is_a?(String) || declared.strip.empty?
       err("#{subject} lacks YAML frontmatter with a `name:` key")
     elsif declared.strip != name
-      err("#{subject} declares `name: #{declared.strip}` but lives in #{SKILLS_DIR}/#{name}/ (a body " \
+      err("#{subject} declares `name: #{ascii_safe(declared.strip)}` but lives in #{SKILLS_DIR}/#{name}/ (a body " \
           "whose frontmatter name disagrees with its directory no longer describes the same Skill as " \
           "its shim, and tools select by that name)")
     end
@@ -658,6 +658,20 @@ class ParityCheck
     data.is_a?(Hash) ? [:ok, data] : [:non_mapping, data.class.name]
   rescue Psych::Exception => e
     [:invalid, e.message]
+  end
+
+  # Renders an AUTHOR-CONTROLLED value safe for stdout (ADR 0011 / `rules/scripting.md`). A
+  # frontmatter `name:` is authored text and may legitimately carry non-ASCII, but a Host App or CI
+  # runner on a non-UTF-8 locale raises `invalid byte sequence` the moment it reads or matches the
+  # output. `String#dump` escapes every non-ASCII character to a `\u{...}` form, so the value stays
+  # diagnostic (the author can still see which name was declared) while the stream stays ASCII.
+  #
+  # Scoped deliberately to values this check newly puts on stdout. Interpolated PATHS are not routed
+  # through it: every `err` in this file already interpolates a rel path, so a non-ASCII path is a
+  # pre-existing, repo-wide exposure rather than one introduced here, and widening this fix to ~30
+  # call sites belongs to its own change.
+  def ascii_safe(value)
+    value.ascii_only? ? value : value.dump
   end
 
   # The malformed-frontmatter message shared by both frontmattered surfaces (a Skill body and its

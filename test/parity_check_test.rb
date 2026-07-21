@@ -782,6 +782,25 @@ class ParityCheckTest < Minitest::Test
     end
   end
 
+  def test_shim_non_mapping_frontmatter_fails
+    # An empty block parses cleanly to nil, so it reaches the shim's permissive path without ever
+    # raising. Found by mutating the shim's :non_mapping branch away and watching every test stay
+    # green — the same shape of hole as the :unterminated false green, on the same surface.
+    with_bundle do |dir|
+      add_skills(dir)
+      File.write(File.join(dir, ".claude/commands/distill.md"), <<~MD)
+        ---
+        ---
+
+        Read and follow [`skills/distill/SKILL.md`](../../skills/distill/SKILL.md).
+      MD
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(%r{Claude Invocation Shim \.claude/commands/distill\.md frontmatter is not a key.value mapping}, out)
+      assert_match(/parsed as an empty block/, out)
+    end
+  end
+
   def test_shim_frontmatter_without_description_fails
     # A shim that opens a block at all must say what it invokes; omitting the block entirely is the
     # supported way to say nothing (test_shim_without_frontmatter_passes).
@@ -797,6 +816,31 @@ class ParityCheckTest < Minitest::Test
       code, out = run_check(dir)
       assert_equal 1, code
       assert_match(/carries frontmatter but no non-empty `description:`/, out)
+    end
+  end
+
+  def test_name_mismatch_error_with_non_ascii_name_stays_ascii
+    # The name-mismatch message is the one place this check interpolates AUTHOR-CONTROLLED frontmatter
+    # into stdout, and a `name:` may legitimately carry non-ASCII. Without escaping, the checker's own
+    # output breaks the ASCII rule (ADR 0011) that this same change added the first test for. The
+    # parse-failure fixture below cannot catch this: Psych reports line/column and never echoes source,
+    # so only a value we interpolate ourselves can leak.
+    with_bundle do |dir|
+      add_skills(dir)
+      File.write(File.join(dir, "skills/distill/SKILL.md"), <<~MD)
+        ---
+        name: café-skill
+        description: A portable skill.
+        ---
+
+        Body.
+      MD
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(%r{but lives in skills/distill/}, out)
+      assert out.ascii_only?, "parity_check stdout must stay ASCII (ADR 0011); got: #{out.inspect}"
+      # Still diagnostic: the escaped form names the offending value rather than hiding it.
+      assert_match(/caf/, out)
     end
   end
 
