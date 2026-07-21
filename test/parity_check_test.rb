@@ -114,8 +114,9 @@ class ParityCheckTest < Minitest::Test
 
   # Writes one skill: body + shim + AGENTS.md reference. The default body carries `name:` frontmatter,
   # references PROJECT.md (satisfying the lifecycle-Skill positive check), names the `Human Gates` host
-  # value (satisfying the gate-aware check for assess/devise/invoke/ship/final — ADR 0025), and names
-  # no host-specific token. `body:` overrides it (used by the neutrality failure tests); `shim:`
+  # value (satisfying the gate-aware check for assess/devise/invoke/ship/final — ADR 0025), names the
+  # `*Reviewer*` host value (satisfying the reviewer-aware check for verify/listen/final/ship —
+  # ADR 0026), and names no host-specific token. `body:` overrides it (used by the neutrality failure tests); `shim:`
   # overrides the shim the same way (used by the shim-frontmatter tests). The default shim is
   # deliberately fence-less, so every pre-existing test also stands as a standing assertion that
   # absent shim frontmatter stays permitted.
@@ -130,7 +131,8 @@ class ParityCheckTest < Minitest::Test
       description: A portable skill.
       ---
 
-      Skill body. Reads host values from PROJECT.md, including the Human Gates policy.
+      Skill body. Reads host values from PROJECT.md, including the Human Gates policy
+      and the *Reviewer* declaration.
     MD
     # The shim's relative link contains body_rel as a substring, satisfying the reference invariant.
     File.write(File.join(dir, shim_rel), shim || "Read and follow [`#{body_rel}`](../../#{body_rel}).\n")
@@ -1564,6 +1566,124 @@ class ParityCheckTest < Minitest::Test
       assert_equal 1, code
       assert_match(/Gate-aware Skill ship: skills\/ship\/SKILL\.md does not name the `Human Gates`/, out)
     end
+  end
+
+  # --- Reviewer declaration (ADR 0026) -----------------------------------------------------------
+
+  # Appends a `## Reviewer` section to the baseline fixture's PROJECT.md. Additive for the same reason
+  # add_human_gates is: test_baseline_without_reviewer_section_passes depends on build_baseline
+  # staying free of the section, as the vendored-host regression guard.
+  def add_reviewer(dir, floor: "stop-and-ask", window: "30m")
+    project = File.read(File.join(dir, "PROJECT.md"))
+    File.write(File.join(dir, "PROJECT.md"), <<~MD)
+      #{project}
+      ## Reviewer
+
+      | Field | Setting | Allowed values |
+      |-------|---------|----------------|
+      | **Primary** — summoned first | `Codex` | any harness |
+      | **Fallback order** — tried in turn | `Copilot` | comma-separated, or `none` |
+      | **Bounded window** — wait before falling back | `#{window}` | `<integer><unit>` |
+      | **Degradation floor** — chain exhausted | `#{floor}` | `stop-and-ask` (not configurable) |
+    MD
+  end
+
+  def test_baseline_without_reviewer_section_passes
+    # The additive / non-breaking contract, mirroring the Human Gates guard: `## Reviewer` is NOT in
+    # REQUIRED_PROJECT_SECTIONS, so an already-vendored PROJECT.md that predates it must still pass —
+    # the parser supplies the shipped defaults.
+    with_bundle do |dir|
+      refute_includes File.read(File.join(dir, "PROJECT.md")), "## Reviewer"
+      code, out = run_check(dir)
+      assert_equal 0, code, out
+    end
+  end
+
+  def test_valid_reviewer_section_passes
+    with_bundle do |dir|
+      add_reviewer(dir)
+      code, out = run_check(dir)
+      assert_equal 0, code, out
+    end
+  end
+
+  def test_downgraded_degradation_floor_fails_as_non_configurable
+    # The safety invariant, on the same footing as the merge gate: no Host App may declare that a run
+    # with no reachable Reviewer delivers anyway. It must fail with its OWN policy-boundary message.
+    with_bundle do |dir|
+      add_reviewer(dir, floor: "flag-in-sow")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/degradation floor is NOT configurable/, out)
+      assert_match(/may not certify itself/, out)
+    end
+  end
+
+  def test_unparseable_bounded_window_fails
+    # PR #109 specified the window as prose ("for example, 30 minutes"), which no AC could execute.
+    # A window that does not parse is not a bounded wait, so it must redden rather than ship.
+    with_bundle do |dir|
+      add_reviewer(dir, window: "30 minutes")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/unparseable bounded window/, out)
+    end
+  end
+
+  def test_reviewer_aware_skill_not_naming_the_host_value_fails
+    # The resident-default rule (ADR 0026, mirroring ADR 0025): a body that summons, consumes or
+    # reports the second-model review must NAME the host value rather than name a reviewer harness.
+    with_bundle do |dir|
+      add_skills(dir)
+      write_skill(dir, "verify", body: "---\nname: verify\ndescription: x\n---\n\nSelf-review the PR; read host values from PROJECT.md and the Human Gates policy.\n")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(%r{Reviewer-aware Skill verify: skills/verify/SKILL\.md does not name the}, out)
+    end
+  end
+
+  def test_bare_word_reviewer_does_not_satisfy_the_reference
+    # THE anti-false-green test, and the reason REVIEWER_REFERENCE is the emphasized pointer form.
+    # "Reviewer" is ordinary prose throughout this repo — every one of the four reviewer-aware bodies
+    # says it many times over. Had the check asserted the bare word, it would have passed on all four
+    # the moment it was written: green on arrival, and blind to the reference ever being dropped.
+    # This body mentions the Reviewer repeatedly and still must redden.
+    with_bundle do |dir|
+      add_skills(dir)
+      write_skill(dir, "ship", body: <<~MD)
+        ---
+        name: ship
+        description: x
+        ---
+
+        Sequence the phases. Reads host values from PROJECT.md and the Human Gates policy.
+        The Reviewer gives an independent second-model review; when the Reviewer responds,
+        fold the Reviewer's findings in. A Reviewer is not optional.
+      MD
+      code, out = run_check(dir)
+      assert_equal 1, code, "a body naming the Reviewer only as prose must not satisfy the reference"
+      assert_match(%r{Reviewer-aware Skill ship: skills/ship/SKILL\.md does not name the}, out)
+    end
+  end
+
+  def test_reviewer_aware_skills_membership_is_pinned
+    # Pins the list itself, the way the eight REQUIRED_SKILLS pins do. Without this, a later trim
+    # could quietly drop `listen` or `final` from REVIEWER_AWARE_SKILLS with the whole suite still
+    # green — the invisible-trim bug class (#96), and the green-but-blind class (#103). Each name is
+    # asserted individually so a diff shows exactly which coverage a change removes.
+    %w[verify listen final ship].each do |name|
+      assert_includes ParityCheck::REVIEWER_AWARE_SKILLS, name,
+                      "#{name} acts on the second-model review, so its body must be reference-checked"
+    end
+    assert_equal 4, ParityCheck::REVIEWER_AWARE_SKILLS.length,
+                 "adding a reviewer-aware skill is fine — do it deliberately, and pin it here too"
+  end
+
+  def test_reviewer_reference_is_the_emphasized_pointer_form
+    # Pins the CHOICE, not just the value: the bare word would make the check green-but-blind (see
+    # test_bare_word_reviewer_does_not_satisfy_the_reference). If someone "simplifies" this constant
+    # to "Reviewer", that test and this one both fail, naming the reason.
+    assert_equal "*Reviewer*", ParityCheck::REVIEWER_REFERENCE
   end
 
   # --- CLI wiring smoke (subprocess: proves the `exit` path, not just the class) -----------------

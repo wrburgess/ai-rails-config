@@ -19,9 +19,22 @@ over time is which gates require external review vs. self-review; what changes a
 - **HC** — Human Contributor. Makes decisions, approves gates, owns the product.
 - **AC** — AI Contributor. Does the work, self-reviews, responds to feedback.
 - **Reviewer** — an **independent second model** that gives unbiased critique at the plan and PR
-  gates. The Host App names its reviewer tool (and wires it into CI if desired); this lifecycle only
-  requires that it is *a different model from the AC*. If no second model is reachable, the gate
-  **degrades to "stop and ask the HC"** — it is never silently dropped.
+  gates. The Host App declares its reviewer chain — primary, fallback order, bounded window, and
+  degradation floor — in [`PROJECT.md`](../../PROJECT.md) → *Reviewer*; this lifecycle only requires
+  that it is *a different model from the AC*.
+
+  **At the PR gate the AC summons the Reviewer, not the HC**
+  ([ADR 0026](../adr/0026-reviewer-is-a-project-config-value-ac-summons-floor-preserved.md)), so a run
+  still gets its backstop with no human in the loop. [`verify`](../../skills/verify/SKILL.md) is the
+  **sole owner** of that summons; it checks each harness's declared **precondition before** summoning,
+  so an unreachable reviewer fails immediately into the fallback instead of burning the window on a
+  summons nobody receives. If the whole chain is exhausted, the gate **degrades to "stop and ask the
+  HC"** — `stop-and-ask` is the floor's only allowed value, it is never silently dropped, and a run
+  may not certify itself by delivering unreviewed.
+
+  **At the plan gate the HC still forwards** the assessment and plan (Stages 1–2 below). That is
+  consistent while plan approval is `required` — a human is already at that gate. A host running
+  `auto` has nobody there, so the plan-gate summons needs an owner before that combination is used.
 
 ## The lifecycle host
 
@@ -55,7 +68,7 @@ HC where requirements are ambiguous (ask, don't guess). For any non-trivial issu
 codebase trace is offloaded to a read-only sub-agent that returns a compact **exploration-summary**
 (ADR 0005) — degrading to inline reads on tools without sub-agents.
 
-**Quality gate:** HC sends the assessment to the Reviewer (missing options, incorrect codebase
+**Quality gate:** the assessment goes to the Reviewer (missing options, incorrect codebase
 assumptions, requirements gaps, architectural concerns).
 
 **Terminal artifact:** the assessment posted on the issue. **Exit:** an option is chosen. Plan approval
@@ -78,7 +91,7 @@ files to create/modify (used to size single-agent vs. parallel work). For an exp
 is run *to learn* — its terminal artifact is the re-planned, re-approved production plan, **not a PR**;
 Implement (Stage 3) and its PR follow only once that final plan clears this gate.
 
-**Quality gate:** HC sends the plan to the Reviewer (steps too vague to implement, missing edge cases,
+**Quality gate:** the plan goes to the Reviewer (steps too vague to implement, missing edge cases,
 patterns that don't match the codebase, unaddressed requirements).
 
 **Terminal artifact:** the plan posted on the issue. **This is the first human gate.** It is
@@ -133,11 +146,12 @@ be offloaded to a read-only sub-agent that returns a **drift-report**; findings 
 adversarial ones) are classified by the [`PROJECT.md`](../../PROJECT.md) → *Review Severity Framework*.
 
 **Operates on the existing PR — it never opens one.** **Terminal artifact:** the self-review comment
-on the PR. **Exit:** self-review passes; HC is notified the PR is ready for the Reviewer.
+on the PR. **Exit:** self-review passes and `verify` summons the Reviewer per `PROJECT.md` ->
+*Reviewer* (it owns the summons; see *Roles* above).
 
 ### Stage 5: Deliver (`final`) + review-response (`listen`)
 
-**Trigger:** HC sends the PR to the Reviewer.
+**Trigger:** the Reviewer has responded to the summons `verify` issued.
 
 **AC responds to Reviewer feedback (`listen`):** fetches all review threads via the lifecycle host,
 classifies each by the *Review Severity Framework*, summarizes for the HC, and — **after the HC

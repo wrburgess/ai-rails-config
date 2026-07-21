@@ -155,10 +155,19 @@ To keep the orchestrator lean through the delegated heavy ops, **externalize sta
 
 ## Faithfulness backstop
 
-The plan gate and the PR each get an **independent second-model review** (the Reviewer named in
-[`PROJECT.md`](../../PROJECT.md) → *Lifecycle Host* / the lifecycle's Reviewer role) so a delegated
-summary the orchestrator never saw cannot silently steer the outcome. If **no second model is
-reachable**, the backstop **degrades to "stop and ask the HC"** — it is never silently dropped.
+The plan gate and the PR each get an **independent second-model review** — the chain declared in
+[`PROJECT.md`](../../PROJECT.md) → *Reviewer* — so a delegated summary the orchestrator never saw
+cannot silently steer the outcome.
+
+**[`verify`](../../skills/verify/SKILL.md) owns the summons; `ship` does not issue one.** `ship` adds
+no phase procedure of its own, and a second summons would produce two review requests, two windows,
+and an unanswerable "did the primary respond?" ([ADR 0026](../../docs/adr/0026-reviewer-is-a-project-config-value-ac-summons-floor-preserved.md)).
+`ship`'s job here is only to **honor the outcome `verify` carries forward**: proceed when a reviewer
+answered, and treat an exhausted chain as an emergency stop.
+
+If **the whole chain is exhausted**, the backstop applies its degradation floor: **`stop-and-ask` is
+the shipped default and is not configurable** — the orchestrator stops and asks the HC. It is never
+silently dropped, and a run may not certify itself by delivering unreviewed with a footnote.
 
 </procedure>
 

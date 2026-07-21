@@ -23,6 +23,7 @@ require "optparse"
 require "yaml"
 require_relative "protected_branches"
 require_relative "human_gates"
+require_relative "reviewer"
 
 class ParityCheck
   CANONICAL = "AGENTS.md"
@@ -123,6 +124,7 @@ class ParityCheck
     "docs/adr/0023-tool-roster-facts-tracker-sibling-to-intake.md",
     "docs/adr/0024-harness-model-naming-convention.md",
     "docs/adr/0025-human-gate-policy-is-a-project-config-value.md",
+    "docs/adr/0026-reviewer-is-a-project-config-value-ac-summons-floor-preserved.md",
     # Standards
     "docs/standards/development-lifecycle.md",
     # Out-of-band research (the per-tool discovery re-verification AGENTS.md cites) and Stack Overlays
@@ -291,6 +293,20 @@ class ParityCheck
   # mistake, not a claim, and gets the generic allowed-values message instead of an accusation.
   SELF_MERGE_VALUE = "auto"
 
+  # Reviewer declaration (ADR 0026). Same pattern as the gate policy above: the value is a Project
+  # Config value read through Reviewer, which returns the shipped defaults when `## Reviewer` is
+  # absent, and these Skill bodies act on it so each must NAME it.
+  #
+  # `verify` owns the summons; `listen` consumes what the Reviewer produced; `final` reports the
+  # backstop's status in the SOW; `ship` sequences all three and states the faithfulness backstop.
+  REVIEWER_AWARE_SKILLS = %w[verify listen final ship].freeze
+  # The EMPHASIZED POINTER FORM, deliberately - not the bare word. "Reviewer" appears throughout this
+  # repo's prose (the lifecycle role is named constantly), so asserting the bare word would pass on
+  # any body that merely MENTIONS the role: green on arrival, and blind to the reference actually
+  # being dropped. The emphasized form is what a PROJECT.md pointer looks like here
+  # (`PROJECT.md` -> *Reviewer*), so it only appears when a body really routes at the host value.
+  REVIEWER_REFERENCE = "*Reviewer*"
+
   # Branch-protection guardrails (ADR 0009). Checked only for a bundle that ships them — signalled by
   # the derived sidecar's presence — so minimal fixture bundles are unaffected.
   SIDECAR = ".githooks/protected-branches"
@@ -322,6 +338,7 @@ class ParityCheck
     check_rendered_regions
     check_project_sections
     check_human_gates
+    check_reviewer
     check_rules
     check_skills
     check_guardrails
@@ -459,6 +476,36 @@ class ParityCheck
     end
   end
 
+  # Reviewer declaration (ADR 0026). PROJECT.md declares the independent second-model reviewer the
+  # lifecycle summons; the generic Skill bodies read it instead of naming a harness. Two invariants,
+  # both value-level (the per-body "does it NAME the value" invariant lives in check_skills):
+  #   (1) THE DEGRADATION FLOOR IS NOT CONFIGURABLE - `stop-and-ask` is its only legal value, so no
+  #       Host App can express "deliver unreviewed". It gets its own message because it is a policy
+  #       boundary, not a typo: a run that cannot obtain an independent review must not be able to
+  #       certify itself (ADR 0026 decision 3, affirming ADR 0005's faithfulness backstop).
+  #   (2) The bounded window must be a positive integer + unit, so "wait for the window" is executable.
+  #       A window that cannot be parsed is the defect that closed PR #109: prose where a value belongs.
+  # A PROJECT.md with no `## Reviewer` section parses to the shipped defaults and passes.
+  def check_reviewer
+    return unless exist?(PROJECT_CONFIG)
+
+    fields = Reviewer.extract(read(PROJECT_CONFIG))
+    bad = Reviewer.invalid(fields)
+
+    if bad.key?(:degradation_floor)
+      err("Reviewer declaration: the degradation floor is NOT configurable - #{PROJECT_CONFIG} " \
+          "declares `degradation-floor: #{fields[:degradation_floor]}` but " \
+          "`#{Reviewer::FLOOR_VALUE}` is its only allowed value (a run that cannot obtain an " \
+          "independent review may not certify itself; the AC stops and asks the HC)")
+    end
+
+    if bad.key?(:bounded_window)
+      err("Reviewer declaration: #{PROJECT_CONFIG} declares an unparseable bounded window " \
+          "`#{fields[:bounded_window]}` - expected a positive integer plus a unit of `s`, `m` or `h` " \
+          "(e.g. `30m`); a window the AC cannot parse is not a bounded wait")
+    end
+  end
+
   # Tier-1 Rules Layer (ADR 0004). Runs only when the bundle ships a rules/ tree, so a minimal bundle
   # without the Rules Layer is unaffected (the same gate stance as check_guardrails). Three invariants
   # per rule file: (1) it exists, (2) AGENTS.md references it (the Lean Core must be reachable from the
@@ -551,6 +598,16 @@ class ParityCheck
         err("Gate-aware Skill #{name}: #{body_rel} does not name the `#{GATE_REFERENCE}` host value " \
             "(a body that acts on a human gate must state the shipped default inline AND read the " \
             "override from #{PROJECT_CONFIG} -> #{GATE_REFERENCE}, never hardcode a gate policy)")
+      end
+
+      # … and every reviewer-aware Skill must NAME the Reviewer host value (ADR 0026). Same shape and
+      # same limit as the gate assertion above: this verifies the REFERENCE, not that the body's prose
+      # agrees with the declaration.
+      if REVIEWER_AWARE_SKILLS.include?(name) && !body.include?(REVIEWER_REFERENCE)
+        err("Reviewer-aware Skill #{name}: #{body_rel} does not name the `#{REVIEWER_REFERENCE}` host " \
+            "value (a body that summons, consumes or reports the second-model review must state the " \
+            "shipped default inline AND read the override from #{PROJECT_CONFIG} -> Reviewer, never " \
+            "name a reviewer harness)")
       end
     end
   end

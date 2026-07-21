@@ -94,6 +94,55 @@ definitions.
   `parity:render` block in `.github/copilot-instructions.md`) only if the host drives work through a
   legacy in-editor Copilot IDE; the parity check enforces the render matches `AGENTS.md`.
 
+## Reviewer
+
+The **independent second-model Reviewer** the lifecycle summons at the plan and PR gates — declared
+here so a generic Skill body names the *role* while the host names the *identity*
+([ADR 0026](docs/adr/0026-reviewer-is-a-project-config-value-ac-summons-floor-preserved.md), the same
+argument shape as the lifecycle host in [ADR 0006](docs/adr/0006-baseline-skill-set-and-github-default-lifecycle-host.md)
+and the gate policy in [ADR 0025](docs/adr/0025-human-gate-policy-is-a-project-config-value.md)).
+Ships **business-neutral placeholders**; a Host App names its real reviewer during Customization.
+
+Like *Human Gates*, this heading is deliberately **absent from the parity check's required sections**,
+so an already-vendored Host App whose `PROJECT.md` predates it keeps parsing to the shipped defaults
+and stays green.
+
+| Field | Setting | Allowed values |
+|-------|---------|----------------|
+| **Primary** — the reviewer summoned first | `Codex (GPT - host sets model)` | any harness in *Attribution & Model Declaration* |
+| **Fallback order** — tried in turn when the primary is unreachable or silent | `Copilot` | comma-separated harnesses, or `none` |
+| **Bounded window** — how long to wait for a response before falling back | `30m` | `<integer><unit>`, unit one of `s` · `m` · `h` |
+| **Degradation floor** — what happens when the whole chain is exhausted | `stop-and-ask` | `stop-and-ask` (not configurable) |
+
+- **The degradation floor is not configurable.** `stop-and-ask` is its only allowed value and the
+  parity check hard-fails any other, on the same footing as merge: a run that cannot obtain an
+  independent review must not be able to certify itself. The AC stops and asks the HC — it never
+  delivers unreviewed with a footnote ([ADR 0026](docs/adr/0026-reviewer-is-a-project-config-value-ac-summons-floor-preserved.md)
+  decision 3, affirming [ADR 0005](docs/adr/0005-ship-hybrid-delegation-offload-retrieval-protect-judgment.md)).
+- **The AC summons the Reviewer, not the HC**, and [`verify`](skills/verify/SKILL.md) is the **sole
+  owner** of the summons. No other Skill issues one — a duplicated summons produces two review
+  requests and two windows, and makes "did the primary respond?" unanswerable.
+- **A response** is a reply on **any** of the three surfaces — an issue-level PR comment, an **inline
+  diff thread**, or a **review body**. Reading only the first makes an automated inline review
+  invisible.
+- **Timeout and unreachable are distinct outcomes**, carried forward separately: "no second model
+  exists" and "the second model is slow" call for different HC responses, and collapsing them loses
+  information the SOW cannot reconstruct.
+
+### Invocation paths
+
+The mechanism for summoning each harness, and the **precondition that must be verified first**. The
+precondition is *checked*, not merely documented — an unmet one fails immediately into the fallback
+rather than burning the window on a summons nobody receives
+([ADR 0026](docs/adr/0026-reviewer-is-a-project-config-value-ac-summons-floor-preserved.md)
+decision 4). A Host App replaces these rows with its real commands during Customization.
+
+| Harness | Summons | Precondition | Check |
+|---------|---------|--------------|-------|
+| Codex | mention `@codex review` on the PR | its GitHub app is installed on the repository | list the repo's installed apps and confirm the slug is present |
+| Copilot | request a PR review via the host platform's API | the account has Copilot code review enabled | request returns success rather than a not-enabled error |
+| *(host adds its own)* | — | — | — |
+
 ## Human Gates
 
 Which lifecycle pauses require a human, declared here so a generic Skill body names the *gate* instead
