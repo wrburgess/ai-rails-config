@@ -26,9 +26,13 @@ over time is which gates require external review vs. self-review; what changes a
   **At the PR gate the AC summons the Reviewer, not the HC**
   ([ADR 0026](../adr/0026-reviewer-is-a-project-config-value-ac-summons-floor-preserved.md)), so a run
   still gets its backstop with no human in the loop. [`verify`](../../skills/verify/SKILL.md) is the
-  **sole owner** of that summons; it checks each harness's declared **precondition before** summoning,
-  so an unreachable reviewer fails immediately into the fallback instead of burning the window on a
-  summons nobody receives. If the whole chain is exhausted, the gate **degrades to "stop and ask the
+  **sole owner** of that summons. A chain entry with **no row in *Invocation paths*** has no summons
+  mechanism at all: it is **unreachable**, and `verify` falls past it immediately rather than starting
+  a window. A declared **Check** cell is host-supplied and run before summoning; where none is
+  declared — as on the baseline — the **summons itself is the probe**, and the outcome is carried
+  forward as `unreachable (precondition unverified)` rather than as a clean timeout
+  ([ADR 0027](../adr/0027-reviewer-chain-validated-against-invocation-paths.md), narrowly superseding
+  ADR 0026 decision 4). If the whole chain is exhausted, the gate **degrades to "stop and ask the
   HC"** — `stop-and-ask` is the floor's only allowed value, it is never silently dropped, and a run
   may not certify itself by delivering unreviewed.
 

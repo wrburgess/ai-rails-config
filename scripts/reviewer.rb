@@ -37,10 +37,20 @@
 module Reviewer
   SECTION = "## Reviewer"
 
+  # The sub-section declaring HOW each harness is summoned. Parsed by `invocation_paths` on its own
+  # independent scan (anchored on this H3), never by `extract`/`unreadable`.
+  INVOCATION_SECTION = "### Invocation paths"
+
   # The Generic Baseline's shipped declaration, and the answer for any absent section/row. The floor
   # is the load-bearing one: absent everything, a run still stops rather than self-certifying.
+  #
+  # `primary` names a HARNESS ONLY, per ADR 0024's harness/model naming convention: the field's own
+  # allowed-values cell says "any harness with a row in *Invocation paths*", and a harness+model
+  # compound in a harness field is exactly the conflation that ADR forbids. This literal is mirrored
+  # in PROJECT.md and the two must change together — `test_shipped_defaults_match_what_the_real_
+  # project_md_declares` reddens on a half-edit.
   DEFAULTS = {
-    primary: "Codex (GPT - host sets model)",
+    primary: "Codex",
     fallback_order: "Copilot",
     bounded_window: "30m",
     degradation_floor: "stop-and-ask"
@@ -75,6 +85,32 @@ module Reviewer
   # The header cell that names the value column, and the position assumed when no header names it.
   SETTING_HEADER = "setting"
   DEFAULT_SETTING_COLUMN = 1
+
+  # The *Invocation paths* sub-table's own header contract, deliberately the same SHAPE as the
+  # settings table's (bind by header, fall back to a position, never bind column 0) so a host may
+  # reorder either table's columns without changing what is read.
+  SUMMONS_HEADER = "summons"
+  DEFAULT_SUMMONS_COLUMN = 1
+
+  # The cells that identify a row as this sub-table's HEADER, checked in ANY position. Position-blind
+  # on purpose: `summons_column` refuses to bind column 0 (it is the harness LABEL column), so a host
+  # table headed `| Summons | Harness |` gets no binding — and would then be read as a data row
+  # declaring a harness called "Summons". Recognizing the header by its cells closes that.
+  HEADER_CELLS = %w[harness summons].freeze
+
+  # A cell declaring NO summons mechanism: empty, or dashes only. The shipped placeholder row uses
+  # U+2014 (EM DASH), so an ASCII-hyphen-only rule would read `—` as a real mechanism and report the
+  # placeholder harness as summonable. En dash is covered for the same reason.
+  NO_SUMMONS = /\A[—–\-]+\z/.freeze
+
+  # A markdown table separator row (`|---|:--:|`). Skipped structurally rather than relying on its
+  # dashes tripping NO_SUMMONS, which would only hold while the separator is dashes in EVERY column.
+  SEPARATOR_CELL = /\A:?-{2,}:?\z/.freeze
+
+  # `none` is a SHAPE token in `fallback_order`, never a harness name: it is how a host declares "no
+  # fallback at all". It is therefore never a chain entry — a `none` mixed in with real entries is a
+  # malformed declaration reported by `invalid`, not a harness to look up.
+  NONE = "none"
 
   BACKTICKED = /`([^`]+)`/.freeze
 
@@ -170,8 +206,81 @@ module Reviewer
     bad
   end
 
+  # True when the host AUTHORED a `## Reviewer` section at all, as opposed to inheriting the shipped
+  # defaults from its absence. `extract` cannot express this difference — it answers with DEFAULTS
+  # either way — and the difference is the whole vendored-host compatibility contract: an absent
+  # section is a PROJECT.md that predates the feature (silently defaulted, never an error), while an
+  # authored one is a host stating "this chain is mine", where an incomplete declaration IS a mistake
+  # worth reporting. Every incompleteness check is gated on this.
+  def section?(text)
+    text.to_s.lines.any? { |l| l.chomp.strip == SECTION }
+  end
+
+  # The harness names that declare a summons mechanism in `### Invocation paths`, in table order.
+  # Empty when the sub-section is absent — which, for an AUTHORED section, means no chain entry is
+  # reachable at all, not that every entry is fine.
+  #
+  # An INDEPENDENT scan, anchored on the H3 rather than on `## Reviewer`, and terminating at the next
+  # `## ` or `### `. Anchoring matters: the settings table sits above this one in the shipped file, so
+  # a scan that merely walked the H2 would return `Primary`/`Fallback order` as if they were harnesses.
+  #
+  # Deliberately reuses `table_cells` READ-ONLY and touches none of `extract`/`unreadable`/`labelled?`/
+  # `setting_column`, whose table contract is kept byte-identical with scripts/human_gates.rb.
+  def invocation_paths(text)
+    found = []
+    lines = text.to_s.lines.map(&:chomp)
+    start = lines.index { |l| l.strip == INVOCATION_SECTION }
+    return found unless start
+
+    column = DEFAULT_SUMMONS_COLUMN
+
+    lines[(start + 1)..].each do |l|
+      break if l.start_with?("## ") || l.start_with?("### ")
+
+      cells = table_cells(l)
+      next if cells.nil?
+      next if cells.all? { |c| c.match?(SEPARATOR_CELL) } # the `|---|---|` separator row
+
+      header = summons_column(cells)
+      if header
+        column = header # this table names its Summons column; rows below are read from it
+        next
+      end
+      next if header_row?(cells) # a header row no `Summons` cell could bind (see HEADER_CELLS)
+
+      # Returned AS AUTHORED (emphasis stripped, trimmed) rather than folded, so a caller reporting
+      # one names it the way the host wrote it. Case folding happens at comparison time.
+      harness = cells[0].to_s.gsub(/[*`]/, "").strip
+      # A BLANK harness cell is skipped, and this is load-bearing rather than tidiness:
+      # `"anything".start_with?("")` is TRUE, so one half-finished row would make every chain entry
+      # look summonable and silence the entire check while the parity gate stayed green - precisely
+      # the false-green shape this seam exists to close.
+      next if harness.empty?
+      next if no_summons?(cells[column])
+
+      found << harness
+    end
+    found
+  end
+
+  # The reviewer chain in the order it is tried: the primary, then each `fallback_order` element.
+  # Blank elements and the `none` shape token are dropped — both are malformed-or-empty DECLARATIONS
+  # reported by `invalid`, not harnesses anyone could summon, and re-reporting them as unreachable
+  # would name the same defect twice under a message that misdescribes it.
+  def chain(fields)
+    entries = []
+    primary = fields[:primary].to_s.strip
+    entries << primary unless primary.empty?
+    entries.concat(fallback_entries(fields[:fallback_order]))
+  end
+
   # The fields whose value is outside their allowed set (or malformed), as { key => value }. Empty
   # when all are valid. Separated from `extract` so an unknown value is REPORTED rather than coerced.
+  #
+  # Each chain-SHAPE fault gets its OWN key rather than a shared `:fallback_order` one. That is not
+  # cosmetic: the issue's own repro `none, , Nope` satisfies two predicates at once, so a single key
+  # would let either branch be deleted with the other still setting it - two mutants, both unkillable
+  # (the rules/testing.md:23 trap). Distinct keys are what make each branch separately provable.
   def invalid(fields)
     bad = {}
     fields.each do |key, value|
@@ -180,7 +289,54 @@ module Reviewer
     end
     window = fields[:bounded_window]
     bad[:bounded_window] = window unless window.to_s.match?(WINDOW)
+
+    primary = fields[:primary].to_s.strip
+    bad[:primary_blank] = fields[:primary].to_s if primary.empty?
+
+    raw = fields[:fallback_order].to_s
+    # `split(",", -1)` KEEPS a trailing empty element: Ruby's default drops it, so `Copilot,` - an
+    # edit abandoned mid-word - would otherwise read as a clean single-entry fallback.
+    parts = raw.split(",", -1).map(&:strip)
+    if parts.length > 1
+      bad[:fallback_order_blank_element] = raw if parts.any?(&:empty?)
+      bad[:fallback_order_none_mixed] = raw if parts.any? { |p| p.downcase == NONE }
+    end
+
+    # A chain that falls back to its own primary is not a fallback. This is the machine-checkable
+    # SHADOW of the independence requirement, not the requirement itself: it catches the same-harness
+    # case only, and a model-qualified restatement of the same harness escapes it (see `unsummonable`
+    # for the matching-rule limitation this shares). ADR 0027 records why the rest is unverifiable.
+    unless primary.empty?
+      repeat = fallback_entries(raw).any? { |e| e.downcase == primary.downcase }
+      bad[:fallback_order_self_reference] = primary if repeat
+    end
+
     bad
+  end
+
+  # The chain entries with NO row in `### Invocation paths` — the entries an AC has no mechanism to
+  # summon, in chain order. Empty when every entry is reachable.
+  #
+  # A separate seam from `invalid` because it needs the raw `text`, not the extracted `fields`,
+  # exactly as `unreadable` is separate for the same reason.
+  #
+  # SILENT when the section is absent: a vendored PROJECT.md that predates the feature must keep
+  # parsing to the shipped defaults and stay green (the same contract that keeps `## Reviewer` out of
+  # REQUIRED_PROJECT_SECTIONS). An AUTHORED section with no sub-table is the opposite case - a host
+  # claiming the chain and leaving it unreachable - and reports every entry.
+  #
+  # KNOWN LIMITATION, pinned rather than discovered: matching is emphasis-stripped, case-insensitive
+  # `entry.start_with?(harness)`, the same idiom as `labelled?`. That is what lets `Codex (GPT-5)`
+  # resolve to a `Codex` row, and it is equally what lets a `Codex` row satisfy a `Codex Cloud` entry
+  # a host meant as a distinct harness. Tightening it belongs with `labelled?`, in both readers at once.
+  def unsummonable(text)
+    return [] unless section?(text)
+
+    declared = invocation_paths(text).map(&:downcase)
+    chain(extract(text)).reject do |entry|
+      name = plain(entry)
+      declared.any? { |harness| name.start_with?(harness) }
+    end
   end
 
   def from_file(path)
@@ -213,5 +369,41 @@ module Reviewer
   # True when a row's first cell names this field — emphasis/backticks stripped, case-insensitive.
   def labelled?(cell, label)
     cell.gsub(/[*`]/, "").strip.downcase.start_with?(label.downcase)
+  end
+
+  # --- Invocation-paths helpers. NEW and independent: none of the five helpers above is touched, so
+  # --- the reviewer.rb <-> human_gates.rb table contract stays byte-identical.
+
+  # The index of this row's `Summons` header cell, or nil when the row is not a header naming it.
+  # Mirrors `setting_column` deliberately, including its column-0 guard: column 0 is the HARNESS label
+  # column, so binding it would make every row read its own name as its mechanism and report the whole
+  # chain summonable. PROJECT.md openly invites hosts to rewrite these rows, so a positional read
+  # would misparse a host table headed `| Harness | Precondition | Summons | Check |` and report an
+  # entire working chain unreachable.
+  def summons_column(cells)
+    idx = cells.index { |c| plain(c) == SUMMONS_HEADER }
+    idx&.positive? ? idx : nil
+  end
+
+  # True when this row is the sub-table's header rather than a harness row.
+  def header_row?(cells)
+    cells.any? { |c| HEADER_CELLS.include?(plain(c)) }
+  end
+
+  # True when a Summons cell declares no mechanism: absent, or a dash placeholder.
+  def no_summons?(cell)
+    text = cell.to_s.gsub(/[*`]/, "").strip
+    text.empty? || text.match?(NO_SUMMONS)
+  end
+
+  # A cell reduced to its comparable text: emphasis and backticks stripped, trimmed, downcased.
+  def plain(cell)
+    cell.to_s.gsub(/[*`]/, "").strip.downcase
+  end
+
+  # `fallback_order` split into the harnesses it actually names — see `chain` for why `none` and
+  # blank elements are not among them.
+  def fallback_entries(value)
+    value.to_s.split(",", -1).map(&:strip).reject { |e| e.empty? || e.downcase == NONE }
   end
 end

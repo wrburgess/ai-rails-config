@@ -1,0 +1,141 @@
+# The reviewer chain is validated against Invocation paths, and the precondition check is host-supplied
+
+**Status:** accepted
+
+Narrowly supersedes [ADR 0026](0026-reviewer-is-a-project-config-value-ac-summons-floor-preserved.md)
+decision 4. Every other decision in ADR 0026 stands unmodified.
+
+## Context
+
+[ADR 0026](0026-reviewer-is-a-project-config-value-ac-summons-floor-preserved.md) made the Reviewer a
+Project Config value and gave it a parser. An independent review of the implementing PR found three
+holes in what that parser actually guarantees, all reproduced before being recorded
+([#118](https://github.com/wrburgess/ai-config/issues/118)):
+
+1. **A preserved Host App re-syncs to a green but unusable chain.** `PROJECT.md` is preserved across a
+   re-sync, so a host vendored before the section existed gets the reviewer-aware skill bodies —
+   which require an *Invocation paths* table — and no such table. `Reviewer::DEFAULTS` supplies the
+   four field values, but there is **no default for the invocation mechanism**, and nothing in the
+   guides told the host to add one. The parity check passed.
+2. **Chain membership was unvalidated.** `primary: Not A Configured Harness` with
+   `fallback_order: none, , Nope` returned `{}` from `Reviewer.invalid`. A typo, an empty element, or
+   a harness with no summons mechanism all read as a valid chain.
+3. **The shipped precondition checks do not implement "check before summon."** The Codex check needs
+   GitHub App authentication an AC's normal token does not have (401/403), and the Copilot check *is*
+   the summons, so it cannot precede one without a side effect. ADR 0026 decision 4 recorded the
+   requirement **and** named this shortfall, so the ADR did not overclaim — but the procedure in
+   `verify` and the preamble in `PROJECT.md` both still asserted an unconditional check the baseline
+   does not ship.
+
+Underneath all three is one question ADR 0026 left open: **what makes a chain entry real?** Naming a
+harness is not the same as being able to reach one.
+
+## Decision
+
+1. **The *Invocation paths* table is the chain's membership list.** A `primary` or `fallback_order`
+   entry with no row there has no summons mechanism, so it is **unreachable**. `scripts/reviewer.rb`
+   gains `invocation_paths` and `unsummonable`; `scripts/parity_check.rb` reports each unreachable
+   entry.
+
+   Membership is validated against *Invocation paths* rather than against *Attribution & Model
+   Declaration* for two reasons. It needs **no cross-section coupling** — the reviewer extractor stays
+   within its own H2 and never learns to parse another section's table, which is what kept this
+   answerable without first settling "what is the canonical harness list". And it tests **the property
+   that actually matters**: a harness listed under *Attribution* is one this repo signs commits as,
+   which says nothing about whether an AC can summon it. The reachable set is the one the procedure
+   depends on.
+
+2. **The chain's SHAPE is validated, each fault under its own key.** `Reviewer.invalid` gains
+   `:primary_blank`, `:fallback_order_blank_element`, `:fallback_order_none_mixed`, and
+   `:fallback_order_self_reference`. Distinct keys are load-bearing rather than tidy: the repro
+   `none, , Nope` satisfies two predicates at once, so a single shared key would let either branch be
+   deleted with the other still setting it — two defects, both unprovable by test. `rules/testing.md`
+   names that trap; this ADR records that the key layout is the countermeasure.
+
+3. **Independence is procedural and self-reported, and only its same-harness shadow is checkable.**
+   The lifecycle standard requires the Reviewer be *a different model from the AC*. Nothing in a
+   static check can know which model is executing: the AC states its own runtime identity, and a
+   parser reading `PROJECT.md` cannot audit that claim. This sits outside
+   [ADR 0008](0008-structural-parity-check-not-model-in-the-loop.md)'s structural boundary, and adding
+   a model-in-the-loop check to cross it is the thing that ADR rejects.
+
+   Two consequences are accepted deliberately. `verify` performs a **harness**-level check at runtime
+   — if a chain entry names the harness it is running as, it treats the entry as unreachable and falls
+   back — which catches the same-harness case and **not** two different harnesses serving the same
+   model. And the static check is narrower still: `:fallback_order_self_reference` catches only a
+   primary repeated verbatim in its own fallback. Recording the gap is the point; a check that
+   *appears* to enforce independence would be worse than a documented absence.
+
+4. **The precondition *Check* is optional and host-supplied — this narrowly supersedes ADR 0026
+   decision 4.** Declared → run it before summoning, and an unmet one falls back immediately. Absent →
+   **the summons is the probe**, and the outcome is carried forward as
+   `unreachable (precondition unverified)`, never as a clean timeout.
+
+   ADR 0026 decision 4 required an unconditional pre-check and honestly named that the shipped rows do
+   not satisfy it. That honesty fixed the ADR but not the procedure: `verify` and `PROJECT.md` both
+   went on instructing an AC to run a check that does not exist, and neither `parity_check.rb` nor any
+   test reads prose, so the contradiction shipped green. The requirement is therefore relaxed to what
+   the baseline can actually deliver, with the unverified outcome named so the information is not
+   silently laundered into a timeout.
+
+5. **A missing `## Reviewer` section stays silently defaulted, and resolves at RUNTIME to the floor.**
+   It is not a parity error. The alternative — parity flagging "reviewer-aware skills present, no
+   section" — would redden every already-vendored host the moment it re-syncs, which is precisely the
+   compatibility contract the section was kept out of `REQUIRED_PROJECT_SECTIONS` to honor.
+
+   The gap is closed where it belongs instead: `verify` treats an entry with no *Invocation paths* row
+   as unreachable, so a preserved host's chain is unreachable end to end and the run lands on
+   `stop-and-ask` — visibly, at the gate, rather than by appearing to be reviewed. `docs/guides/usage.md`
+   documents both the section and the re-sync hazard, since a preserved `PROJECT.md` may predate any
+   additive section.
+
+6. **The plan gate has no summons MECHANISM, which is a second hole beside the one already recorded.**
+   ADR 0026 decision 2 records the plan-gate summons **owner** as deliberately unsettled, pending
+   [#115](https://github.com/wrburgess/ai-config/issues/115) and
+   [#116](https://github.com/wrburgess/ai-config/issues/116). Auditing *Invocation paths* for this ADR
+   surfaced that ownership is not the only thing missing: **both shipped mechanisms are PR-gate-only**
+   ("mention `@codex review` on the PR", "request a PR review via the host platform's API"). At the
+   plan gate there is no mechanism to invoke *regardless of who owns the summons*.
+
+   These are two separate holes, and recording only the first is how the second stayed invisible — an
+   owner could be assigned tomorrow and the plan gate would still have nothing to call. This ADR
+   **records** the mechanism gap and deliberately does not fix it; it belongs with #115, alongside the
+   ownership question. `PROJECT.md` → *Invocation paths* states it at the point of authorship, where a
+   host adding its own rows will meet it.
+
+## Considered options
+
+- **A — a resident fallback for the whole declaration, invocation paths included.** Rejected: the
+  baseline cannot know any host's real summons command, so the "default" would be an invented
+  mechanism that fails at runtime — the #99 silent-failure shape, re-created inside the fix for it.
+- **B — parity flags a preserved host as needing migration** ("reviewer-aware skills present, no
+  `## Reviewer` section"). Rejected: it reddens every vendored host on re-sync, breaking the additive
+  contract. The section-migration problem is real but general — it applies to all four additive
+  sections — and deserves its own issue rather than a Reviewer-shaped special case.
+- **C — validate membership against *Attribution & Model Declaration*.** Rejected: it couples two
+  Project Config sections, needs the unsettled "canonical harness list" decision first, and checks a
+  weaker property — being a harness this repo signs as, not one the AC can summon.
+- **D — validate against *Invocation paths*, keep the missing section silent, make the precondition
+  host-supplied (chosen).** Closes the reachability hole at the layer that owns it, adds no
+  cross-section coupling, and keeps the vendored-host guarantee intact.
+- **E — declare the shipped checks executable and supply credentials.** Rejected: the Generic Baseline
+  cannot assume GitHub App authentication, and the Copilot check is inseparable from the summons. This
+  is the option ADR 0026 decision 4 was already unable to take.
+
+## Consequences
+
+- **A chain is now provably reachable, not merely well-spelled.** The parity check reports an entry
+  with no summons mechanism, so the #118 repro reddens instead of shipping.
+- **A preserved Host App still passes parity and now degrades honestly.** It resolves to
+  `stop-and-ask` at the PR gate rather than appearing reviewed. The re-sync hazard is documented, but
+  it is documentation, not enforcement — a host that skips the guide still gets an unreviewed-but-
+  stopped run, which is the safe direction.
+- **Independence remains unenforced at the model level.** This is now written down with its reasoning
+  rather than implied by silence. A future host wanting real enforcement needs runtime identity it can
+  audit, which the config layer does not have.
+- **`unsummonable` matches by case-insensitive prefix**, so `Codex (GPT-5)` resolves to a `Codex` row —
+  and a `Codex` row equally satisfies a `Codex Cloud` entry a host meant as distinct. Pinned as a known
+  limitation in the source, sharing `labelled?`'s matching rule; tightening it belongs in
+  `scripts/reviewer.rb` and `scripts/human_gates.rb` at once.
+- **The plan gate is now known to be doubly blocked** — no owner and no mechanism — instead of singly.
+  #115 inherits both.
