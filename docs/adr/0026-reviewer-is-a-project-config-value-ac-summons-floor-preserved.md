@@ -97,11 +97,22 @@ re-tested rather than assumed permanent.
    **A backstop that can be waived by its own failure is not a backstop** — a run that cannot obtain
    an independent review must not be able to certify itself.
 
-4. **The precondition is CHECKED, not documented.** Before summoning, the AC verifies the primary's
-   declared precondition. A knowable, cheaply-verifiable condition that is merely written down leaves
-   #99's actual defect intact: the AC posts into the void and burns the full window. An unreachable
-   primary must fail **immediately** into fallback. A timeout wrapped around a knowable failure is not
-   a fix.
+4. **The precondition is CHECKED, not documented — as a procedure. The shipped example checks do not
+   yet satisfy it.** Before summoning, the AC verifies the primary's declared precondition; a
+   knowable condition that is merely written down leaves #99's defect intact, because the AC posts
+   into the void and burns the full window. An unreachable primary must fail **immediately** into
+   fallback, and a timeout wrapped around a knowable failure is not a fix.
+
+   **This decision records the requirement and explicitly does not claim the baseline meets it.** The
+   two rows shipped in `PROJECT.md` → *Reviewer* → *Invocation paths* are illustrative placeholders
+   and both fall short: the Codex check needs GitHub App authentication an AC's normal token does not
+   have (it returns 401/403), and the Copilot check *is* the summons, so it cannot run before one
+   without a side effect. Closing that gap needs credentials and mechanisms the Generic Baseline
+   cannot assume, so it is tracked separately rather than asserted here.
+
+   Stating the requirement while naming the shortfall is deliberate. Asserting a policy no shipped
+   artifact implements is what closed PR #109, and this ADR must not repeat it in the act of citing
+   it.
 
 5. **"Response" is defined across all three surfaces** — issue-level comment, inline diff thread, and
    review body — because reading only the first makes an inline review invisible (a trap
@@ -183,9 +194,12 @@ standing when the others go.
 
 - A Host App declares its reviewer chain in **one place** and never forks a vendored body to change
   it. The Generic Baseline's behavior is unchanged.
-- **The silent-failure mode is closed at its source.** An uninstalled reviewer app now fails at the
-  precondition check, immediately and legibly, instead of consuming the full window and resolving as
-  "no response."
+- **The silent-failure mode is closed in the procedure, not yet in the shipped example checks.**
+  `verify` runs a precondition check before summoning and falls back immediately when it fails, so a
+  host that declares an *executable* check gets a legible failure instead of a burned window. The two
+  placeholder rows this baseline ships do not provide one (decision 4), so on the shipped config an AC
+  still cannot distinguish "app not installed" from "still thinking." #99's original symptom therefore
+  survives at the **declaration** layer even though the mechanism around it is in place.
 - **A run that cannot reach any reviewer stops.** That is the intended cost. It is affordable only
   because #115 makes a stop a pause; if that reframing is ever reverted, this floor must be revisited
   in the same breath.

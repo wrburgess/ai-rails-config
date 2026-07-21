@@ -308,11 +308,28 @@ class ReviewerTest < Minitest::Test
     assert_equal "never, just deliver", unreadable[:bounded_window]
   end
 
-  def test_empty_cell_is_unauthored_not_unreadable
-    # The fail-safe boundary: an EMPTY setting cell is an unauthored field, not a mistake, so it must
-    # NOT be reported. Only a non-empty cell with no backticked token is a mistake.
+  def test_blank_cell_in_a_present_row_is_unreadable_not_unauthored
+    # THE BOUNDARY, corrected. An earlier version treated a blank Setting cell as "unauthored" and
+    # said nothing — so a PROJECT.md with a labelled **Primary** row and an empty cell passed parity
+    # green while the table an agent reads declared no primary at all (Reviewer finding, PR #117).
+    #
+    # A PRESENT labelled row is the host claiming the field; a blank cell is an unfinished edit, not a
+    # decision to inherit the default. Row ABSENCE is what means unauthored.
     rows = "| **Primary** — summoned first |  | any harness |"
-    assert_empty Reviewer.unreadable(project_md(rows))
+    text = project_md(rows)
+    assert_equal Reviewer::DEFAULTS[:primary], Reviewer.extract(text)[:primary],
+                 "a blank cell must still never ADOPT anything unsafe"
+    assert_equal({ primary: "" }, Reviewer.unreadable(text),
+                 "a present row with a blank cell must be reported, not silently defaulted")
+  end
+
+  def test_an_absent_row_is_unauthored_and_stays_silent
+    # The other side of the boundary, and the vendored-host contract: a field with NO row never
+    # reaches the loop, so it is silently defaulted. This is what keeps a PROJECT.md that predates a
+    # field green rather than reddening on arrival.
+    rows = "| **Primary** — summoned first | `Codex` | any harness |"
+    assert_empty Reviewer.unreadable(project_md(rows)),
+                 "the three unauthored fields have no rows at all and must stay silent"
   end
 
   def test_backticked_values_are_never_reported_as_unreadable

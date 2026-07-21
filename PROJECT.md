@@ -119,9 +119,14 @@ and stays green.
   independent review must not be able to certify itself. The AC stops and asks the HC — it never
   delivers unreviewed with a footnote ([ADR 0026](docs/adr/0026-reviewer-is-a-project-config-value-ac-summons-floor-preserved.md)
   decision 3, affirming [ADR 0005](docs/adr/0005-ship-hybrid-delegation-offload-retrieval-protect-judgment.md)).
-- **The AC summons the Reviewer, not the HC**, and [`verify`](skills/verify/SKILL.md) is the **sole
-  owner** of the summons. No other Skill issues one — a duplicated summons produces two review
-  requests and two windows, and makes "did the primary respond?" unanswerable.
+- **At the PR gate, the AC summons the Reviewer, not the HC**, and [`verify`](skills/verify/SKILL.md)
+  is the **sole owner** of that summons. No other Skill issues it — a duplicated summons produces two
+  review requests and two windows, and makes "did the primary respond?" unanswerable.
+- **At the plan gate the HC still forwards** the assessment and plan. That is consistent while plan
+  approval is `required` (see *Human Gates* below) — a human is already standing at that gate. A host
+  running `auto` has nobody there, so the plan-gate summons needs an owner before that combination is
+  used; [ADR 0026](docs/adr/0026-reviewer-is-a-project-config-value-ac-summons-floor-preserved.md)
+  decision 2 records it as deliberately unsettled.
 - **A response** is a reply on **any** of the three surfaces — an issue-level PR comment, an **inline
   diff thread**, or a **review body**. Reading only the first makes an automated inline review
   invisible.

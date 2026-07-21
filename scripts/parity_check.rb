@@ -517,10 +517,13 @@ class ParityCheck
     # back to the checker while the table the AC actually reads says something else - green, and
     # wrong in the unsafe direction. Reported per field, and deliberately NOT coerced.
     Reviewer.unreadable(text).each do |key, cell|
-      err("Reviewer declaration: #{PROJECT_CONFIG} authors `#{key.to_s.tr('_', '-')}` as " \
-          "`#{safe(cell)}`, which carries no backticked value - the checker therefore read the " \
-          "shipped default `#{safe(Reviewer::DEFAULTS[key])}` while the table an agent reads says " \
-          "otherwise (write the value in backticks, e.g. `#{safe(Reviewer::DEFAULTS[key])}`)")
+      # A blank cell and a prose cell are the same fault - a present row the parser cannot read - but
+      # they read very differently to a human, so the message names which one it found.
+      wrote = cell.empty? ? "leaves its setting cell blank" : "sets it to `#{safe(cell)}`"
+      err("Reviewer declaration: #{PROJECT_CONFIG} authors a `#{key.to_s.tr('_', '-')}` row but " \
+          "#{wrote}, which carries no backticked value - the checker therefore read the shipped " \
+          "default `#{safe(Reviewer::DEFAULTS[key])}` while the table an agent reads says otherwise " \
+          "(write the value in backticks, e.g. `#{safe(Reviewer::DEFAULTS[key])}`)")
     end
   end
 

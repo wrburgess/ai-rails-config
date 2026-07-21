@@ -128,7 +128,14 @@ module Reviewer
   # `| **Degradation floor** | deliver-unreviewed with a footnote |` - no backticks, which is precisely
   # the prose-where-a-value-belongs form that closed PR #109 - reads back as `stop-and-ask`, reports
   # nothing, and passes green, while the human-readable table the AC actually follows says the
-  # opposite. An EMPTY cell is not a mistake, only an unauthored one, so it is never reported.
+  # opposite.
+  #
+  # WHAT COUNTS AS UNAUTHORED IS ROW ABSENCE, NOT AN EMPTY CELL. A labelled row that is PRESENT is a
+  # host stating "this field is mine to set"; leaving its Setting cell blank is an unfinished edit,
+  # not a decision to inherit the default. Treating blank as unauthored reproduced the same
+  # machine-vs-agent disagreement this method exists to close - parity green while the table an agent
+  # reads has no primary at all (Reviewer finding, PR #117). Absent rows never reach this loop, so
+  # they remain silently defaulted, which is the behavior the vendored-host contract needs.
   def unreadable(text)
     bad = {}
     lines = text.to_s.lines.map(&:chomp)
@@ -156,7 +163,7 @@ module Reviewer
 
       seen[key] = true
       cell = cells[column].to_s.strip
-      bad[key] = cell unless cell.empty? || cell.match?(BACKTICKED)
+      bad[key] = cell unless cell.match?(BACKTICKED)
 
       break if seen.length == ROW_LABELS.length
     end
