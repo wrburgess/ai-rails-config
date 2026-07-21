@@ -115,8 +115,11 @@ class ParityCheckTest < Minitest::Test
   # Writes one skill: body + shim + AGENTS.md reference. The default body carries `name:` frontmatter,
   # references PROJECT.md (satisfying the lifecycle-Skill positive check), names the `Human Gates` host
   # value (satisfying the gate-aware check for assess/devise/invoke/ship/final — ADR 0025), and names
-  # no host-specific token. `body:` overrides it (used by the neutrality failure tests).
-  def write_skill(dir, name, body: nil)
+  # no host-specific token. `body:` overrides it (used by the neutrality failure tests); `shim:`
+  # overrides the shim the same way (used by the shim-frontmatter tests). The default shim is
+  # deliberately fence-less, so every pre-existing test also stands as a standing assertion that
+  # absent shim frontmatter stays permitted.
+  def write_skill(dir, name, body: nil, shim: nil)
     body_rel = "skills/#{name}/SKILL.md"
     shim_rel = ".claude/commands/#{name}.md"
     FileUtils.mkdir_p(File.join(dir, "skills/#{name}"))
@@ -130,7 +133,7 @@ class ParityCheckTest < Minitest::Test
       Skill body. Reads host values from PROJECT.md, including the Human Gates policy.
     MD
     # The shim's relative link contains body_rel as a substring, satisfying the reference invariant.
-    File.write(File.join(dir, shim_rel), "Read and follow [`#{body_rel}`](../../#{body_rel}).\n")
+    File.write(File.join(dir, shim_rel), shim || "Read and follow [`#{body_rel}`](../../#{body_rel}).\n")
     agents = File.read(File.join(dir, "AGENTS.md"))
     File.write(File.join(dir, "AGENTS.md"), "#{agents}\n`#{body_rel}`\n")
   end
@@ -534,6 +537,413 @@ class ParityCheckTest < Minitest::Test
       code, out = run_check(dir)
       assert_equal 1, code
       assert_match(/lacks YAML frontmatter with a `name:` key/, out)
+    end
+  end
+
+  # --- Frontmatter validity (issue #103) -------------------------------------------------------
+  # The checker PARSES both frontmattered surfaces rather than regexing them. A regex proves the text
+  # looks parseable while every consuming tool needs it to be parseable, and that gap ships green.
+  # False red is the live risk here (a too-strict rule blocks every PR in this repo and in any
+  # vendoring Host App), so the permissive boundary is pinned first and explicitly.
+
+  def test_skill_frontmatter_with_quoted_colon_passes
+    # The case authors will legitimately write. A check that reddens a QUOTED colon would be worse
+    # than no check at all, so this happy path is the guard on the whole feature's usefulness.
+    with_bundle do |dir|
+      add_skills(dir)
+      File.write(File.join(dir, "skills/distill/SKILL.md"), <<~MD)
+        ---
+        name: distill
+        description: "Stage 3: grill a plan, one question at a time."
+        ---
+
+        Body.
+      MD
+      code, out = run_check(dir)
+      assert_equal 0, code, out
+    end
+  end
+
+  def test_shim_without_frontmatter_passes
+    # The shim rule is deliberately SOFTER than the body rule: genuinely absent frontmatter stays
+    # allowed, because the bundle never required it and reddening a Host App for a style it was never
+    # asked to adopt is a false red. This pins that boundary after the :unterminated tightening below.
+    with_bundle do |dir|
+      add_skills(dir)
+      File.write(
+        File.join(dir, ".claude/commands/distill.md"),
+        "Read and follow [`skills/distill/SKILL.md`](../../skills/distill/SKILL.md).\n"
+      )
+      code, out = run_check(dir)
+      assert_equal 0, code, out
+    end
+  end
+
+  def test_skill_frontmatter_unparseable_yaml_fails
+    # The exact defect that shipped green on PR #102: an unquoted `": "` inside a prose description.
+    with_bundle do |dir|
+      add_skills(dir)
+      File.write(File.join(dir, "skills/distill/SKILL.md"), <<~MD)
+        ---
+        name: distill
+        description: Stage 3: grill a plan, one question at a time.
+        ---
+
+        Body.
+      MD
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/unparseable YAML frontmatter/, out)
+    end
+  end
+
+  def test_skill_frontmatter_error_reports_the_file_line
+    # Regression guard for the off-by-fence trap. Psych numbers lines within the string it is handed,
+    # so parsing the fence-stripped block alone reports line 2 for what is file line 3 — sending the
+    # author to the wrong line. Without this test the padding could regress silently while every other
+    # frontmatter test stayed green, since they assert only the message text.
+    with_bundle do |dir|
+      add_skills(dir)
+      File.write(File.join(dir, "skills/distill/SKILL.md"), <<~MD)
+        ---
+        name: distill
+        description: Stage 3: grill a plan.
+        ---
+
+        Body.
+      MD
+      code, out = run_check(dir)
+      assert_equal 1, code
+      # The break is on file line 3. Line 2 would mean the padding was dropped.
+      assert_match(/line 3/, out)
+      refute_match(/line 2/, out)
+    end
+  end
+
+  def test_skill_body_unclosed_frontmatter_fails
+    # An opened-but-never-closed block. This is not a false green on the body path (it already exits
+    # 1), but the OLD message told the author their `name:` key was missing while it sat on line 2.
+    # The refute is the point of this test: without it, it would pass against that misleading string.
+    with_bundle do |dir|
+      add_skills(dir)
+      File.write(File.join(dir, "skills/distill/SKILL.md"), <<~MD)
+        ---
+        name: distill
+        description: A portable skill.
+
+        Body with no closing fence.
+      MD
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/opens a frontmatter block with `---` but never closes it/, out)
+      refute_match(/lacks YAML frontmatter with a `name:` key/, out)
+    end
+  end
+
+  def test_skill_frontmatter_non_mapping_root_fails
+    # A list root parses CLEANLY — no exception — so only the explicit Hash assertion catches it.
+    with_bundle do |dir|
+      add_skills(dir)
+      File.write(File.join(dir, "skills/distill/SKILL.md"), "---\n- one\n- two\n---\n\nBody.\n")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/not a key.value mapping \(parsed as a YAML Array\)/, out)
+    end
+  end
+
+  def test_skill_frontmatter_empty_block_fails
+    # `---\n---` parses to nil, which would read as "parsed as NilClass" if the message passed the
+    # class name straight through. Assert it names an empty block instead.
+    with_bundle do |dir|
+      add_skills(dir)
+      File.write(File.join(dir, "skills/distill/SKILL.md"), "---\n---\n\nBody.\n")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/not a key.value mapping \(parsed as an empty block\)/, out)
+      refute_match(/NilClass/, out)
+    end
+  end
+
+  def test_skill_frontmatter_missing_description_fails
+    with_bundle do |dir|
+      add_skills(dir)
+      File.write(File.join(dir, "skills/distill/SKILL.md"), "---\nname: distill\n---\n\nBody.\n")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/lacks a non-empty `description:` in its frontmatter/, out)
+    end
+  end
+
+  def test_skill_frontmatter_whitespace_only_description_fails
+    with_bundle do |dir|
+      add_skills(dir)
+      File.write(File.join(dir, "skills/distill/SKILL.md"), <<~MD)
+        ---
+        name: distill
+        description: "   "
+        ---
+
+        Body.
+      MD
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/lacks a non-empty `description:` in its frontmatter/, out)
+    end
+  end
+
+  def test_skill_frontmatter_whitespace_only_name_fails
+    with_bundle do |dir|
+      add_skills(dir)
+      File.write(File.join(dir, "skills/distill/SKILL.md"), <<~MD)
+        ---
+        name: "   "
+        description: A portable skill.
+        ---
+
+        Body.
+      MD
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/lacks YAML frontmatter with a `name:` key/, out)
+    end
+  end
+
+  def test_skill_frontmatter_non_string_name_fails
+    # `name: 123` parses to an Integer, so a truthiness check would let it through.
+    with_bundle do |dir|
+      add_skills(dir)
+      File.write(File.join(dir, "skills/distill/SKILL.md"), <<~MD)
+        ---
+        name: 123
+        description: A portable skill.
+        ---
+
+        Body.
+      MD
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/lacks YAML frontmatter with a `name:` key/, out)
+    end
+  end
+
+  def test_skill_name_mismatching_directory_fails
+    # The identity assertion, free once the parse has happened: a body whose frontmatter name
+    # disagrees with its directory no longer describes the same Skill as its shim. The rename work
+    # (#73) leaned on this agreement with no gate behind it.
+    with_bundle do |dir|
+      add_skills(dir)
+      File.write(File.join(dir, "skills/distill/SKILL.md"), <<~MD)
+        ---
+        name: wrong
+        description: A portable skill.
+        ---
+
+        Body.
+      MD
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(%r{declares `name: wrong` but lives in skills/distill/}, out)
+    end
+  end
+
+  def test_shim_unparseable_frontmatter_fails
+    # For Claude Code the shim IS the invocation path, so a broken one is a dead slash command —
+    # the surface with more consequence and, until now, no frontmatter assertion at all.
+    with_bundle do |dir|
+      add_skills(dir)
+      File.write(File.join(dir, ".claude/commands/distill.md"), <<~MD)
+        ---
+        description: Stage 3: grill a plan.
+        ---
+
+        Read and follow [`skills/distill/SKILL.md`](../../skills/distill/SKILL.md).
+      MD
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(%r{Claude Invocation Shim \.claude/commands/distill\.md has unparseable YAML frontmatter}, out)
+    end
+  end
+
+  def test_shim_unclosed_frontmatter_fails
+    # The false green a Reviewer caught in this check's own plan: an unterminated block was being
+    # treated as "genuinely absent", which the shim rule permits. Absent and malformed must stay
+    # distinct states, or "allow absent" silently becomes "allow broken".
+    with_bundle do |dir|
+      add_skills(dir)
+      File.write(File.join(dir, ".claude/commands/distill.md"), <<~MD)
+        ---
+        description: Grill a plan.
+
+        Read and follow [`skills/distill/SKILL.md`](../../skills/distill/SKILL.md).
+      MD
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(%r{Claude Invocation Shim \.claude/commands/distill\.md opens a frontmatter block}, out)
+    end
+  end
+
+  def test_shim_non_mapping_frontmatter_fails
+    # An empty block parses cleanly to nil, so it reaches the shim's permissive path without ever
+    # raising. Found by mutating the shim's :non_mapping branch away and watching every test stay
+    # green — the same shape of hole as the :unterminated false green, on the same surface.
+    with_bundle do |dir|
+      add_skills(dir)
+      File.write(File.join(dir, ".claude/commands/distill.md"), <<~MD)
+        ---
+        ---
+
+        Read and follow [`skills/distill/SKILL.md`](../../skills/distill/SKILL.md).
+      MD
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(%r{Claude Invocation Shim \.claude/commands/distill\.md frontmatter is not a key.value mapping}, out)
+      assert_match(/parsed as an empty block/, out)
+    end
+  end
+
+  def test_shim_frontmatter_without_description_fails
+    # A shim that opens a block at all must say what it invokes; omitting the block entirely is the
+    # supported way to say nothing (test_shim_without_frontmatter_passes).
+    with_bundle do |dir|
+      add_skills(dir)
+      File.write(File.join(dir, ".claude/commands/distill.md"), <<~MD)
+        ---
+        name: distill
+        ---
+
+        Read and follow [`skills/distill/SKILL.md`](../../skills/distill/SKILL.md).
+      MD
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/carries frontmatter but no non-empty `description:`/, out)
+    end
+  end
+
+  def test_skill_indented_fence_in_block_scalar_does_not_truncate_validation
+    # Reviewer finding (PR #111). An indented `---` is legal content inside a YAML block scalar. When
+    # the fence matcher stripped indentation, that line closed the block early, the remainder was
+    # never handed to the parser, and malformed YAML *after* it passed the gate — the exact false
+    # green this whole change exists to close, in a new disguise. `broken:` below carries an unquoted
+    # colon-space and MUST be reached.
+    with_bundle do |dir|
+      add_skills(dir)
+      File.write(File.join(dir, "skills/distill/SKILL.md"), <<~MD)
+        ---
+        name: distill
+        description: Valid description.
+        extra: |
+          ---
+        broken: Stage 3: this is invalid YAML
+        ---
+
+        Body.
+      MD
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/unparseable YAML frontmatter/, out)
+    end
+  end
+
+  def test_shim_indented_fence_in_block_scalar_does_not_truncate_validation
+    # The same helper serves both surfaces, so the truncation hid malformed shim frontmatter too —
+    # not just the body case the review demonstrated.
+    with_bundle do |dir|
+      add_skills(dir)
+      File.write(File.join(dir, ".claude/commands/distill.md"), <<~MD)
+        ---
+        description: Valid description.
+        extra: |
+          ---
+        broken: Stage 3: this is invalid YAML
+        ---
+
+        Read and follow [`skills/distill/SKILL.md`](../../skills/distill/SKILL.md).
+      MD
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(%r{Claude Invocation Shim \.claude/commands/distill\.md has unparseable YAML frontmatter}, out)
+    end
+  end
+
+  def test_skill_valid_block_scalar_containing_fence_passes
+    # The companion boundary test the review asked for: tightening the fence rule must not redden a
+    # legitimate block scalar whose *content* is `---`. Under the old matcher this file was a false
+    # RED — the block truncated, `description:` came back empty, and the check errored on a valid file.
+    with_bundle do |dir|
+      add_skills(dir)
+      File.write(File.join(dir, "skills/distill/SKILL.md"), <<~MD)
+        ---
+        name: distill
+        description: |
+          ---
+        ---
+
+        Body.
+      MD
+      code, out = run_check(dir)
+      assert_equal 0, code, out
+    end
+  end
+
+  def test_skill_indented_opening_fence_is_not_frontmatter
+    # Same root cause on the opening fence: an indented `---` is not a frontmatter delimiter, so the
+    # file genuinely has no frontmatter and must route to the existing missing-frontmatter error
+    # rather than being parsed as though it were fenced.
+    with_bundle do |dir|
+      add_skills(dir)
+      File.write(File.join(dir, "skills/distill/SKILL.md"), "  ---\n  name: distill\n  ---\n\nBody.\n")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/lacks YAML frontmatter with a `name:` key/, out)
+    end
+  end
+
+  def test_name_mismatch_error_with_non_ascii_name_stays_ascii
+    # The name-mismatch message is the one place this check interpolates AUTHOR-CONTROLLED frontmatter
+    # into stdout, and a `name:` may legitimately carry non-ASCII. Without escaping, the checker's own
+    # output breaks the ASCII rule (ADR 0011) that this same change added the first test for. The
+    # parse-failure fixture below cannot catch this: Psych reports line/column and never echoes source,
+    # so only a value we interpolate ourselves can leak.
+    with_bundle do |dir|
+      add_skills(dir)
+      File.write(File.join(dir, "skills/distill/SKILL.md"), <<~MD)
+        ---
+        name: café-skill
+        description: A portable skill.
+        ---
+
+        Body.
+      MD
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(%r{but lives in skills/distill/}, out)
+      assert out.ascii_only?, "parity_check stdout must stay ASCII (ADR 0011); got: #{out.inspect}"
+      # Still diagnostic: the escaped form names the offending value rather than hiding it.
+      assert_match(/caf/, out)
+    end
+  end
+
+  def test_frontmatter_errors_are_ascii_only
+    # ADR 0011 makes the ASCII-stdout rule author-owned rather than machine-enforced, and
+    # rules/scripting.md names "a test that asserts a script's captured output" as its natural catch
+    # point — which did not exist anywhere in test/ until now. It matters most here, because the
+    # values being reported on are prose descriptions that legitimately carry em dashes and arrows:
+    # the fixture below is broken YAML whose offending line is non-ASCII, so any message that echoed
+    # the source instead of reporting line/column would fail this assertion.
+    with_bundle do |dir|
+      add_skills(dir)
+      File.write(File.join(dir, "skills/distill/SKILL.md"), <<~MD)
+        ---
+        name: distill
+        description: Grill a plan — one question at a time → sharpen it: relentlessly.
+        ---
+
+        Body.
+      MD
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/unparseable YAML frontmatter/, out)
+      assert out.ascii_only?, "parity_check stdout must stay ASCII (ADR 0011); got: #{out.inspect}"
     end
   end
 

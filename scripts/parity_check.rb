@@ -20,6 +20,7 @@
 #                              (the region between the markers must equal AGENTS.md byte-for-byte)
 
 require "optparse"
+require "yaml"
 require_relative "protected_branches"
 require_relative "human_gates"
 
@@ -235,6 +236,12 @@ class ParityCheck
   # to EVERY skills/<name>/ dir, so those later skills are covered by construction — no rewrite.
   SKILLS_DIR = "skills"
   CLAUDE_COMMANDS_DIR = ".claude/commands"
+  # A frontmatter delimiter, matched at ROOT LEVEL ONLY: `---` in column 0, trailing whitespace (and a
+  # CRLF `\r`) tolerated, leading indentation NOT. The indentation rule is load-bearing, not cosmetic —
+  # an indented `---` is legal content inside a YAML block scalar, and treating it as the closing fence
+  # truncates the block before parsing, hiding any malformed YAML that follows it. That is the very
+  # false green this check exists to close (Reviewer finding on PR #111).
+  FRONTMATTER_FENCE = /\A---[ \t]*\r?\n?\z/
   # The six lifecycle Skills (ADR 0006). Each MUST route host values through PROJECT.md, so each body
   # is asserted to reference the Project Config (the content-neutrality positive check in check_skills).
   LIFECYCLE_SKILLS = %w[assess devise invoke verify listen final].freeze
@@ -478,12 +485,15 @@ class ParityCheck
   # Skills Layer (ADR 0003 / ADR 0010). Runs only when the bundle ships a skills/ tree, so a minimal
   # bundle is unaffected (the same gate stance as check_rules). Two tiers:
   #   (1) Floor  — every REQUIRED_SKILLS entry has skills/<name>/SKILL.md (the expected skill ships).
-  #   (2) Shape  — EVERY present skills/<name>/ dir must have: a SKILL.md, that SKILL.md carrying YAML
-  #                frontmatter with a `name:` key, a paired Claude shim .claude/commands/<name>.md,
-  #                that shim referencing the canonical body (so a hollow stub can't pass), and a
-  #                reference to skills/<name>/SKILL.md in AGENTS.md (the documented invocation the
-  #                native-discovery tools reach). Applying the shape to every present dir is what makes
-  #                the check cover skills a later issue adds without editing this list.
+  #   (2) Shape  — EVERY present skills/<name>/ dir must have: a SKILL.md, that SKILL.md carrying
+  #                PARSEABLE YAML frontmatter with a `name:` matching the directory and a
+  #                `description:` (see check_body_frontmatter), a paired Claude shim
+  #                .claude/commands/<name>.md, that shim referencing the canonical body (so a hollow
+  #                stub can't pass) and — if and only if it opens one — carrying parseable frontmatter
+  #                of its own (see check_shim_frontmatter), and a reference to skills/<name>/SKILL.md
+  #                in AGENTS.md (the documented invocation the native-discovery tools reach). Applying
+  #                the shape to every present dir is what makes the check cover skills a later issue
+  #                adds without editing this list.
   #   (3) Neutrality — no HOST_SPECIFIC_TOKENS in any present body, and every LIFECYCLE_SKILLS body
   #                references PROJECT.md. This is the one content check (ADR 0003): the structural
   #                invariants can't see a leftover stack/domain token or a hardcoded quality check.
@@ -503,13 +513,17 @@ class ParityCheck
         next
       end
       body = read(body_rel)
-      err("Skill #{name}: #{body_rel} lacks YAML frontmatter with a `name:` key") unless frontmatter_name?(body)
+      check_body_frontmatter(name, body_rel, body)
 
       shim_rel = "#{CLAUDE_COMMANDS_DIR}/#{name}.md"
       if !exist?(shim_rel)
         err("Skill #{name} missing its Claude Invocation Shim: #{shim_rel} not found")
-      elsif !read(shim_rel).include?(body_rel)
-        err("Claude Invocation Shim #{shim_rel} does not reference its canonical body (expected `#{body_rel}`)")
+      else
+        shim = read(shim_rel)
+        unless shim.include?(body_rel)
+          err("Claude Invocation Shim #{shim_rel} does not reference its canonical body (expected `#{body_rel}`)")
+        end
+        check_shim_frontmatter(shim_rel, shim)
       end
 
       unless agents.include?(body_rel)
@@ -540,6 +554,58 @@ class ParityCheck
     end
   end
 
+  # A Skill body's frontmatter: it must EXIST, parse to a mapping, carry a non-empty `name:` that
+  # agrees with the directory, and carry a non-empty `description:`. The name/directory assertion is
+  # the identity invariant — a body whose `name:` disagrees with its own directory no longer describes
+  # the same Skill as its shim, and the rename work (#73) leaned on that agreement with no gate behind it.
+  def check_body_frontmatter(name, body_rel, body)
+    subject = "Skill #{name}: #{body_rel}"
+    state, payload = frontmatter(body, body_rel)
+
+    if (msg = malformed_frontmatter_error(subject, state, payload))
+      return err(msg)
+    end
+    # The missing-fence message is preserved VERBATIM: that mode was already correct and already
+    # tested, so tightening the rest of the check must cost it zero churn.
+    return err("#{subject} lacks YAML frontmatter with a `name:` key") if state == :none
+
+    declared = payload["name"]
+    if !declared.is_a?(String) || declared.strip.empty?
+      err("#{subject} lacks YAML frontmatter with a `name:` key")
+    elsif declared.strip != name
+      err("#{subject} declares `name: #{ascii_safe(declared.strip)}` but lives in #{SKILLS_DIR}/#{name}/ (a body " \
+          "whose frontmatter name disagrees with its directory no longer describes the same Skill as " \
+          "its shim, and tools select by that name)")
+    end
+
+    description = payload["description"]
+    return if description.is_a?(String) && !description.strip.empty?
+
+    err("#{subject} lacks a non-empty `description:` in its frontmatter (tools SELECT a Skill by its " \
+        "description; without one the Skill is discoverable but never chosen)")
+  end
+
+  # A Claude Invocation Shim's frontmatter, held to a DELIBERATELY SOFTER rule than the body's:
+  # parse-if-present. Only :none passes — genuinely absent frontmatter stays allowed, because the
+  # bundle has never required it and reddening a Host App for a style it was never asked to adopt is a
+  # false red. But any block that IS opened must be well-formed on every host: for Claude Code the shim
+  # is the invocation path, so a broken one is a dead slash command.
+  def check_shim_frontmatter(shim_rel, shim)
+    subject = "Claude Invocation Shim #{shim_rel}"
+    state, payload = frontmatter(shim, shim_rel)
+
+    if (msg = malformed_frontmatter_error(subject, state, payload))
+      return err(msg)
+    end
+    return unless state == :ok
+
+    description = payload["description"]
+    return if description.is_a?(String) && !description.strip.empty?
+
+    err("#{subject} carries frontmatter but no non-empty `description:` (a shim that declares " \
+        "frontmatter at all must describe what it invokes; omit the block entirely if it has nothing to say)")
+  end
+
   # True when `token` appears in `body` as a host-specific mention. Pure-alphabetic tokens require
   # ASCII-letter word boundaries (so `rspec` matches the standalone word but not "underspecified");
   # tokens carrying punctuation (paths, `bundler-audit`, `admin_root_path`) match as plain substrings.
@@ -558,16 +624,86 @@ class ParityCheck
        .sort
   end
 
-  # True when `content` opens with a YAML frontmatter block (--- … ---) carrying a non-empty `name:`.
-  def frontmatter_name?(content)
+  # Parses `content`'s YAML frontmatter (--- … ---), returning a discriminated `[state, payload]` so
+  # each frontmattered surface can phrase its own message. The frontmatter is PARSED, never regexed:
+  # a regex proves the text *looks* parseable while every consuming tool needs it to *be* parseable,
+  # and that gap ships green (issue #103 — an unquoted `": "` in a prose `description:`).
+  #
+  #   [:none, nil]                — genuinely absent: no opening `---` fence at all.
+  #   [:unterminated, nil]        — an opening `---` with no closing fence.
+  #   [:invalid, message]         — fenced and closed, but Psych raised.
+  #   [:non_mapping, class_name]  — parsed, but the root is not a Hash (an empty block yields nil).
+  #   [:ok, hash]                 — parsed to a Hash.
+  #
+  # :none and :unterminated are kept APART deliberately. Collapsing them is how the shim's "absent
+  # frontmatter is allowed" rule silently becomes "broken frontmatter is allowed" — the false green a
+  # Reviewer caught in this check's own plan.
+  #
+  # Both fences are matched with FRONTMATTER_FENCE, which requires column 0. Stripping indentation
+  # before comparing would let a `---` inside a YAML block scalar close the block early: the remainder
+  # is then never handed to the parser, so malformed YAML *after* the indented line passes the gate —
+  # the same false green in a new disguise. The truncation also cut the other way, emptying a
+  # legitimate block-scalar value and reddening a valid file. Match at root level and both go away.
+  #
+  # Two message-quality details, both verified against Psych rather than assumed: Psych numbers lines
+  # within the string it is handed, so parsing the fence-stripped block alone would report a line the
+  # author cannot find in the file — padding with one blank line per stripped line (blank lines are
+  # valid YAML) shifts its counter into agreement with the file. And `filename:` replaces Psych's
+  # useless `(<unknown>)` prefix with the real path. Both keep the output ASCII (ADR 0011): Psych
+  # reports line/column and never echoes the offending source, whose prose carries em dashes.
+  #
+  # `safe_load`'s default `permitted_classes` and `aliases: false` are passed explicitly — a
+  # deliberate choice, not an inherited default. Skill frontmatter is plain scalars; a future key that
+  # genuinely needs a Date should be a reviewed widening. A date-shaped scalar therefore raises
+  # Psych::DisallowedClass, which shares Psych::Exception with SyntaxError and so needs no second
+  # branch, and the :invalid message says what to do about it.
+  def frontmatter(content, rel)
     lines = content.lines
     first = lines.index { |l| !l.strip.empty? }
-    return false if first.nil? || lines[first].strip != "---"
+    return [:none, nil] if first.nil? || !lines[first].match?(FRONTMATTER_FENCE)
 
-    close = lines[(first + 1)..].index { |l| l.strip == "---" }
-    return false if close.nil?
+    close = lines[(first + 1)..].index { |l| l.match?(FRONTMATTER_FENCE) }
+    return [:unterminated, nil] if close.nil?
 
-    lines[(first + 1)...(first + 1 + close)].any? { |l| l.match?(/\Aname:\s*\S/) }
+    block = lines[(first + 1)...(first + 1 + close)].join
+    data = YAML.safe_load(("\n" * (first + 1)) + block, filename: rel, aliases: false)
+    data.is_a?(Hash) ? [:ok, data] : [:non_mapping, data.class.name]
+  rescue Psych::Exception => e
+    [:invalid, e.message]
+  end
+
+  # Renders an AUTHOR-CONTROLLED value safe for stdout (ADR 0011 / `rules/scripting.md`). A
+  # frontmatter `name:` is authored text and may legitimately carry non-ASCII, but a Host App or CI
+  # runner on a non-UTF-8 locale raises `invalid byte sequence` the moment it reads or matches the
+  # output. `String#dump` escapes every non-ASCII character to a `\u{...}` form, so the value stays
+  # diagnostic (the author can still see which name was declared) while the stream stays ASCII.
+  #
+  # Scoped deliberately to values this check newly puts on stdout. Interpolated PATHS are not routed
+  # through it: every `err` in this file already interpolates a rel path, so a non-ASCII path is a
+  # pre-existing, repo-wide exposure rather than one introduced here, and widening this fix to ~30
+  # call sites belongs to its own change.
+  def ascii_safe(value)
+    value.ascii_only? ? value : value.dump
+  end
+
+  # The malformed-frontmatter message shared by both frontmattered surfaces (a Skill body and its
+  # Claude Invocation Shim), prefixed with the caller's `subject`. Returns nil for :none and :ok — the
+  # two states whose handling legitimately DIFFERS per surface (a body must carry frontmatter; a shim
+  # need not), so they stay with the caller. Every malformed state is an error on every surface.
+  def malformed_frontmatter_error(subject, state, payload)
+    case state
+    when :unterminated
+      "#{subject} opens a frontmatter block with `---` but never closes it (an unterminated block is " \
+        "not readable frontmatter, so no tool can discover this Skill)"
+    when :invalid
+      "#{subject} has unparseable YAML frontmatter: #{payload} (the frontmatter is how every tool " \
+        "discovers the Skill, so a broken one ships green here and silently undiscoverable there -- " \
+        'quote any value containing a colon-space, e.g. `description: "Stage 3: implement"`)'
+    when :non_mapping
+      found = payload == "NilClass" ? "an empty block" : "a YAML #{payload}"
+      "#{subject} frontmatter is not a key/value mapping (parsed as #{found}); frontmatter must be " \
+        "`key: value` pairs"
+    end
   end
 
   # Branch-protection guardrails (ADR 0009). Runs only when the derived sidecar is present, so a

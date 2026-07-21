@@ -62,7 +62,12 @@ never self-merges; a human disposes on the PR.
 
 3. **Write the canonical body** at `skills/<name>/SKILL.md` in the house shape: frontmatter with a
    `name:` and a `description:`, a body that reads host values from `PROJECT.md` and names lifecycle
-   *verbs* (not platform commands), and a stated **terminal artifact**. Keep it business- and
+   *verbs* (not platform commands), and a stated **terminal artifact**. The frontmatter is
+   **parity-gated**: it is parsed, not pattern-matched, so it must be valid YAML whose `name:` equals
+   the directory name and whose `description:` is non-empty. Descriptions are prose and prose carries
+   colons — **quote any value containing a colon-space** (`description: "Stage 3: implement the plan."`),
+   because an unquoted one makes the frontmatter unreadable and the Skill undiscoverable in every tool.
+   Keep it business- and
    stack-neutral: **no host-specific proper noun or tool name may appear in the body** — the parity
    content-neutrality check reddens CI if one does, and this rule is scoped to `skills/<name>/SKILL.md`,
    so any illustrative host-named example belongs under `docs/`, never in the body.
@@ -72,7 +77,10 @@ never self-merges; a human disposes on the PR.
    asserts this substring — a hollow stub or a differently-spelled path fails), and the standard "carries
    no procedure of its own" paragraph citing [ADR 0003](../../docs/adr/0003-skills-canonical-body-thin-shims-graceful-degradation.md)
    and [ADR 0010](../../docs/adr/0010-repo-layout-canonical-skills-at-root.md). The shim carries no
-   procedure and no quality gate — only the pointer.
+   procedure and no quality gate — only the pointer. Its frontmatter is gated too, on a deliberately
+   softer rule: a shim may omit the block entirely, but any block it **does** open must be valid YAML,
+   closed, and carrying a non-empty `description:` — the same colon-quoting trap applies, and here a
+   broken block breaks the **invocation path itself**, not just discovery.
 
 5. **Wire the bookkeeping — the easy-to-miss sync points.** A new Skill is not done when its two files
    exist:
