@@ -139,6 +139,7 @@ class ParityCheck
     "docs/rules/README.md",
     "docs/rules/scripting-postmortems.md",
     "docs/rules/skills-postmortems.md",
+    "docs/rules/testing-postmortems.md",
     # Tier-1 Lean Core (ADR 0004)
     "rules/backend.md",
     "rules/frontend.md",
