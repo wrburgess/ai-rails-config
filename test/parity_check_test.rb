@@ -819,6 +819,85 @@ class ParityCheckTest < Minitest::Test
     end
   end
 
+  def test_skill_indented_fence_in_block_scalar_does_not_truncate_validation
+    # Reviewer finding (PR #111). An indented `---` is legal content inside a YAML block scalar. When
+    # the fence matcher stripped indentation, that line closed the block early, the remainder was
+    # never handed to the parser, and malformed YAML *after* it passed the gate — the exact false
+    # green this whole change exists to close, in a new disguise. `broken:` below carries an unquoted
+    # colon-space and MUST be reached.
+    with_bundle do |dir|
+      add_skills(dir)
+      File.write(File.join(dir, "skills/distill/SKILL.md"), <<~MD)
+        ---
+        name: distill
+        description: Valid description.
+        extra: |
+          ---
+        broken: Stage 3: this is invalid YAML
+        ---
+
+        Body.
+      MD
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/unparseable YAML frontmatter/, out)
+    end
+  end
+
+  def test_shim_indented_fence_in_block_scalar_does_not_truncate_validation
+    # The same helper serves both surfaces, so the truncation hid malformed shim frontmatter too —
+    # not just the body case the review demonstrated.
+    with_bundle do |dir|
+      add_skills(dir)
+      File.write(File.join(dir, ".claude/commands/distill.md"), <<~MD)
+        ---
+        description: Valid description.
+        extra: |
+          ---
+        broken: Stage 3: this is invalid YAML
+        ---
+
+        Read and follow [`skills/distill/SKILL.md`](../../skills/distill/SKILL.md).
+      MD
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(%r{Claude Invocation Shim \.claude/commands/distill\.md has unparseable YAML frontmatter}, out)
+    end
+  end
+
+  def test_skill_valid_block_scalar_containing_fence_passes
+    # The companion boundary test the review asked for: tightening the fence rule must not redden a
+    # legitimate block scalar whose *content* is `---`. Under the old matcher this file was a false
+    # RED — the block truncated, `description:` came back empty, and the check errored on a valid file.
+    with_bundle do |dir|
+      add_skills(dir)
+      File.write(File.join(dir, "skills/distill/SKILL.md"), <<~MD)
+        ---
+        name: distill
+        description: |
+          ---
+        ---
+
+        Body.
+      MD
+      code, out = run_check(dir)
+      assert_equal 0, code, out
+    end
+  end
+
+  def test_skill_indented_opening_fence_is_not_frontmatter
+    # Same root cause on the opening fence: an indented `---` is not a frontmatter delimiter, so the
+    # file genuinely has no frontmatter and must route to the existing missing-frontmatter error
+    # rather than being parsed as though it were fenced.
+    with_bundle do |dir|
+      add_skills(dir)
+      File.write(File.join(dir, "skills/distill/SKILL.md"), "  ---\n  name: distill\n  ---\n\nBody.\n")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/lacks YAML frontmatter with a `name:` key/, out)
+    end
+  end
+
   def test_name_mismatch_error_with_non_ascii_name_stays_ascii
     # The name-mismatch message is the one place this check interpolates AUTHOR-CONTROLLED frontmatter
     # into stdout, and a `name:` may legitimately carry non-ASCII. Without escaping, the checker's own

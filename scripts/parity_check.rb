@@ -236,6 +236,12 @@ class ParityCheck
   # to EVERY skills/<name>/ dir, so those later skills are covered by construction — no rewrite.
   SKILLS_DIR = "skills"
   CLAUDE_COMMANDS_DIR = ".claude/commands"
+  # A frontmatter delimiter, matched at ROOT LEVEL ONLY: `---` in column 0, trailing whitespace (and a
+  # CRLF `\r`) tolerated, leading indentation NOT. The indentation rule is load-bearing, not cosmetic —
+  # an indented `---` is legal content inside a YAML block scalar, and treating it as the closing fence
+  # truncates the block before parsing, hiding any malformed YAML that follows it. That is the very
+  # false green this check exists to close (Reviewer finding on PR #111).
+  FRONTMATTER_FENCE = /\A---[ \t]*\r?\n?\z/
   # The six lifecycle Skills (ADR 0006). Each MUST route host values through PROJECT.md, so each body
   # is asserted to reference the Project Config (the content-neutrality positive check in check_skills).
   LIFECYCLE_SKILLS = %w[assess devise invoke verify listen final].freeze
@@ -633,6 +639,12 @@ class ParityCheck
   # frontmatter is allowed" rule silently becomes "broken frontmatter is allowed" — the false green a
   # Reviewer caught in this check's own plan.
   #
+  # Both fences are matched with FRONTMATTER_FENCE, which requires column 0. Stripping indentation
+  # before comparing would let a `---` inside a YAML block scalar close the block early: the remainder
+  # is then never handed to the parser, so malformed YAML *after* the indented line passes the gate —
+  # the same false green in a new disguise. The truncation also cut the other way, emptying a
+  # legitimate block-scalar value and reddening a valid file. Match at root level and both go away.
+  #
   # Two message-quality details, both verified against Psych rather than assumed: Psych numbers lines
   # within the string it is handed, so parsing the fence-stripped block alone would report a line the
   # author cannot find in the file — padding with one blank line per stripped line (blank lines are
@@ -648,9 +660,9 @@ class ParityCheck
   def frontmatter(content, rel)
     lines = content.lines
     first = lines.index { |l| !l.strip.empty? }
-    return [:none, nil] if first.nil? || lines[first].strip != "---"
+    return [:none, nil] if first.nil? || !lines[first].match?(FRONTMATTER_FENCE)
 
-    close = lines[(first + 1)..].index { |l| l.strip == "---" }
+    close = lines[(first + 1)..].index { |l| l.match?(FRONTMATTER_FENCE) }
     return [:unterminated, nil] if close.nil?
 
     block = lines[(first + 1)...(first + 1 + close)].join
