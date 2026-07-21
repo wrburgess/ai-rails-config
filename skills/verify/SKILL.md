@@ -125,7 +125,8 @@ PR is ready for the Reviewer.
 ```
 
 Sign with the attribution footer from [`PROJECT.md`](../../PROJECT.md) → *Attribution & Model
-Declaration*.
+Declaration*, naming your **runtime-actual** model. This step depends on that being honest: the
+independence rule below compares the chain against the harness you are actually running as.
 
 ## Summon the Reviewer
 
@@ -136,31 +137,53 @@ and an unanswerable "did the primary respond?". (The *plan*-gate summons is a se
 with the HC while plan approval is `required` — see the ADR.)
 
 Read the chain from [`PROJECT.md`](../../PROJECT.md) → *Reviewer*: the **primary**, the **fallback
-order**, the **bounded window**, and the **degradation floor**. **Baseline: the floor is
-`stop-and-ask`, and it is not configurable** — a run that cannot obtain an independent review may not
-certify itself.
+order**, the **bounded window**, and the **degradation floor**. **Baseline — primary `Codex`,
+fallback order `Copilot`, bounded window `30m`, degradation floor `stop-and-ask`.** A Host App
+overrides the first three there; **the floor is not configurable** — a run that cannot obtain an
+independent review may not certify itself.
 
-After posting the self-review:
+Those four values are written out here, not left behind the pointer, because this procedure has to be
+executable by a reader who cannot open `PROJECT.md` — the resident-default rule in
+[`rules/skills.md`](../../rules/skills.md). They are the Generic Baseline's **placeholders**: whatever
+*Reviewer* declares wins, and the values above are what applies when it declares nothing.
 
-1. **Check the primary's precondition first** — the *Invocation paths* table declares each harness's
-   precondition and the check that verifies it. Run the check **before** summoning. A precondition
-   that is merely documented leaves the failure it describes intact: an unmet one means the summons
-   goes nowhere, indistinguishably from a review still being written.
-2. **Unmet precondition → fall back immediately.** Do not summon, do not start the window. This is the
-   whole point of checking: it converts a full-window silent stall into an instant, correct fallback.
-3. **Met → summon via the declared mechanism** and wait up to the **bounded window**.
-4. **A response is a reply on _any_ of the three surfaces** — an issue-level PR comment, an **inline
+After posting the self-review, take each chain entry in order:
+
+1. **No *Invocation paths* row → the entry is UNREACHABLE, not slow.** That table is the membership
+   list: an entry with no row has no summons mechanism, so there is nothing to issue and nothing to
+   wait for. Fall back **immediately** — do not start the window.
+
+   **No *Reviewer* section at all → every entry is unreachable, so go straight to step 7 and apply
+   the floor: stop and ask the HC.** Do not summon anything and do not start a window. A vendored
+   `PROJECT.md` that predates the section supplies no *Invocation paths* table, and the baseline
+   values above name *who* the chain would try without naming *how* to reach any of them — the
+   baseline ships placeholder harnesses, never a summons command it could not honor
+   ([ADR 0027](../../docs/adr/0027-reviewer-chain-validated-against-invocation-paths.md)).
+2. **The entry names the harness you are running as → also unreachable; fall back.** An AC cannot be
+   its own independent backstop, and a same-model review that *appears* to run is worse than none.
+   This is **self-reported by construction** — you compare the entry against your own runtime-actual
+   identity, and nothing verifies that claim. It is also a **harness**-level check, while the
+   standard's requirement is *model*-level: it catches a same-harness entry, and does **not** catch
+   two different harnesses that happen to serve the same model.
+3. **Precondition — the *Check* cell is optional and host-supplied.** Declared → run it before
+   summoning; unmet means do not summon, fall back immediately. **Absent** → the **summons is the
+   probe**: issue it, and carry the outcome forward as `unreachable (precondition unverified)` rather
+   than as a clean timeout. The baseline ships no executable check, so this is the default path.
+4. **Summon via the declared mechanism** and wait up to the **bounded window**.
+5. **A response is a reply on _any_ of the three surfaces** — an issue-level PR comment, an **inline
    diff thread**, or a **review body**. Poll all three. Reading only issue-level comments makes an
    automated inline review invisible — the same trap [`listen`](../../skills/listen/SKILL.md) Step 1
    warns about.
-5. **Window expires with no response → fall back** to the next entry in the order and repeat from
-   step 1. Never wait indefinitely.
-6. **Chain exhausted → apply the degradation floor: stop and ask the HC.** Do not proceed to `listen`
-   or `final` on an unreviewed PR.
+6. **Window expires with no response → fall back** to the next entry and repeat from step 1. Never
+   wait indefinitely.
+7. **Chain exhausted — including a chain that was unreachable end to end → apply the degradation
+   floor: stop and ask the HC.** Do not proceed to `listen` or `final` on an unreviewed PR.
 
 **Carry the outcome forward**, and keep **timeout distinct from unreachable** — "no second model
 exists" and "the second model is slow" call for different HC responses, and the SOW cannot
-reconstruct the difference later. Record which reviewer answered, or which floor was hit and why;
+reconstruct the difference later. `unreachable (precondition unverified)` is a third, distinct
+outcome: it says the summons went out but nothing confirmed it could land. Record which reviewer
+answered, or which floor was hit and why;
 [`final`](../../skills/final/SKILL.md) reports it in the SOW.
 
 **Terminal artifact:** the self-review comment on the PR.

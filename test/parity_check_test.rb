@@ -1573,7 +1573,28 @@ class ParityCheckTest < Minitest::Test
   # Appends a `## Reviewer` section to the baseline fixture's PROJECT.md. Additive for the same reason
   # add_human_gates is: test_baseline_without_reviewer_section_passes depends on build_baseline
   # staying free of the section, as the vendored-host regression guard.
-  def add_reviewer(dir, floor: "stop-and-ask", window: "30m")
+  #
+  # `invocation:` emits a matching `### Invocation paths` sub-table. It defaults to TRUE and must stay
+  # that way: under ADR 0027 a chain entry with no row there is unreachable and reported, so the
+  # settings-table-only fixture this helper used to write is the authored-but-INCOMPLETE state, not
+  # the valid one. Every caller asserting exit 0 depends on the sub-table being present; pass
+  # `invocation: false` only to build the incomplete case deliberately.
+  # `paths:` replaces the sub-table wholesale, for fixtures whose defect is in the sub-table's own
+  # MARKUP (a fenced example, an indented heading) rather than in a field value.
+  def add_reviewer(dir, floor: "stop-and-ask", window: "30m", primary: "Codex", fallback: "Copilot",
+                   invocation: true, paths: nil)
+    paths ||= if invocation
+                <<~SUB
+                ### Invocation paths
+
+                | Harness | Summons | Precondition | Check |
+                |---------|---------|--------------|-------|
+                | Codex | mention it on the PR | app installed | *(host-supplied)* |
+                | Copilot | request a review via the API | review enabled | *(host-supplied)* |
+              SUB
+              else
+                ""
+              end
     project = File.read(File.join(dir, "PROJECT.md"))
     File.write(File.join(dir, "PROJECT.md"), <<~MD)
       #{project}
@@ -1581,10 +1602,12 @@ class ParityCheckTest < Minitest::Test
 
       | Field | Setting | Allowed values |
       |-------|---------|----------------|
-      | **Primary** — summoned first | `Codex` | any harness |
-      | **Fallback order** — tried in turn | `Copilot` | comma-separated, or `none` |
+      | **Primary** — summoned first | `#{primary}` | any harness |
+      | **Fallback order** — tried in turn | `#{fallback}` | comma-separated, or `none` |
       | **Bounded window** — wait before falling back | `#{window}` | `<integer><unit>` |
       | **Degradation floor** — chain exhausted | `#{floor}` | `stop-and-ask` (not configurable) |
+
+      #{paths}
     MD
   end
 
@@ -1599,7 +1622,25 @@ class ParityCheckTest < Minitest::Test
     end
   end
 
+  def test_no_unsummonable_error_fires_without_a_reviewer_section
+    # The compatibility invariant asserted a SECOND time, and specifically against the check most
+    # likely to break it. test_baseline_without_reviewer_section_passes above asserts exit 0, which
+    # any future error would also break — but this one names the mechanism: an absent section supplies
+    # the shipped chain with NO invocation paths, so a check that forgot `Reviewer.section?` would
+    # report every vendored host's whole chain unreachable on re-sync (ADR 0027 decision 5).
+    with_bundle do |dir|
+      refute_includes File.read(File.join(dir, "PROJECT.md")), "## Reviewer"
+      code, out = run_check(dir)
+      assert_equal 0, code, out
+      refute_match(/no summons mechanism/, out)
+    end
+  end
+
   def test_valid_reviewer_section_passes
+    # THE negative control for every chain test below: a fully authored section — settings table AND
+    # the `### Invocation paths` sub-table naming both chain entries — must pass. Without the
+    # sub-table this fixture is the authored-but-incomplete state (see the test immediately below),
+    # so if `add_reviewer` ever loses it, this test is what catches it.
     with_bundle do |dir|
       add_reviewer(dir)
       code, out = run_check(dir)
@@ -1607,26 +1648,237 @@ class ParityCheckTest < Minitest::Test
     end
   end
 
+  def test_authored_section_without_invocation_paths_fails
+    # Finding 1 of #118, at the parity layer. The section is AUTHORED — so this is a host claiming the
+    # chain, not a vendored copy predating it — but nothing declares how to summon anyone. Every entry
+    # is unreachable, and the run would resolve to the floor while parity said the config was fine.
+    with_bundle do |dir|
+      add_reviewer(dir, invocation: false)
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/names `Codex` in the reviewer chain but .*no summons mechanism/, out)
+      assert_match(/names `Copilot` in the reviewer chain but .*no summons mechanism/, out)
+    end
+  end
+
+  def test_a_fenced_example_sub_table_does_not_satisfy_the_gate
+    # The extractor-level fence tests have a parity-level twin for the same reason
+    # test_no_unsummonable_error_fires_without_a_reviewer_section does: this is the layer a host
+    # actually meets. A `` ```markdown `` block showing how to author the sub-table is documentation —
+    # parsed as the live declaration it made an undeclared chain read as fully reachable and shipped
+    # green, which is the #118 false green re-created inside the fix for it.
+    with_bundle do |dir|
+      add_reviewer(dir, paths: <<~SUB)
+        A host authors the sub-table like this:
+
+        ```markdown
+        ### Invocation paths
+
+        | Harness | Summons |
+        |---------|---------|
+        | Codex | mention it on the PR |
+        | Copilot | request a review via the API |
+        ```
+      SUB
+      code, out = run_check(dir)
+      assert_equal 1, code, out
+      assert_match(/names `Codex` in the reviewer chain but .*no summons mechanism/, out)
+      assert_match(/names `Copilot` in the reviewer chain but .*no summons mechanism/, out)
+    end
+  end
+
+  def test_a_fallback_that_only_PREFIXES_an_invocation_row_fails
+    # Finding 3 at the parity layer. `Codex Cloud` resolved to the `Codex` row by prefix match, so
+    # both `unsummonable` and the self-reference check stayed silent and a chain that is broken under
+    # either reading — distinct harness with no mechanism, or a fallback to the primary itself —
+    # passed the gate.
+    with_bundle do |dir|
+      add_reviewer(dir, fallback: "Codex Cloud")
+      code, out = run_check(dir)
+      assert_equal 1, code, out
+      assert_match(/names `Codex Cloud` in the reviewer chain but .*no summons mechanism/, out)
+      refute_match(/names `Codex` in/, out, "the primary HAS its own row and must not be reported")
+    end
+  end
+
+  def test_primary_with_no_invocation_row_fails
+    with_bundle do |dir|
+      add_reviewer(dir, primary: "Not A Configured Harness")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/names `Not A Configured Harness` in the reviewer chain but .*no summons/, out)
+      refute_match(/names `Copilot`/, out, "the fallback HAS a row and must not be reported")
+    end
+  end
+
+  def test_fallback_with_no_invocation_row_fails
+    with_bundle do |dir|
+      add_reviewer(dir, fallback: "Nope")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/names `Nope` in the reviewer chain but .*no summons/, out)
+      refute_match(/names `Codex`/, out, "the primary HAS a row and must not be reported")
+    end
+  end
+
+  def test_blank_primary_fails
+    # A backtick pair holding only whitespace parses as READABLE (it matches BACKTICKED) and yields an
+    # empty primary, so neither the unreadable-cell check nor the allowed-values check sees anything.
+    # The chain then has no first entry at all — nobody to summon at the PR gate — and before ADR 0027
+    # that shipped green.
+    with_bundle do |dir|
+      add_reviewer(dir, primary: " ")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/declares an empty `primary`/, out)
+      assert_match(/nobody to summon at the PR gate/, out)
+      refute_match(/carries no backticked value/, out, "the cell IS readable; the value is the fault")
+      refute_match(/fallback-order/, out)
+    end
+  end
+
+  def test_blank_fallback_element_fails
+    # `Copilot, , Grok` — the empty element from #118's repro, isolated. Grok has no invocation row, so
+    # this fixture also reports it unreachable; the assertion below pins that the BLANK element is
+    # reported under its own message, which is the fault this test exists for.
+    with_bundle do |dir|
+      add_reviewer(dir, fallback: "Copilot, , Grok")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/has an EMPTY element/, out)
+      refute_match(/mixes `none`/, out, "a blank element is not a none-mixed fault")
+    end
+  end
+
+  def test_a_wholly_blank_fallback_order_fails
+    # The sibling shape of the test above, and the one that reported NOTHING before this fix. A
+    # whitespace-only backtick pair is READABLE (it matches BACKTICKED), so the unreadable-cell check
+    # stays quiet, `extract` yields "", and the fallback simply disappeared from the chain - while
+    # `Copilot,`, which still yields a working one-entry chain, was flagged. It gets its own wording
+    # because "has an EMPTY element" misdescribes a value that has no elements at all.
+    with_bundle do |dir|
+      add_reviewer(dir, fallback: " ")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/declares a `fallback-order` that is entirely BLANK/, out)
+      assert_match(/the primary is the only reviewer that will ever be tried/, out)
+      refute_match(/has an EMPTY element/, out, "a blank value has no elements to be empty")
+      refute_match(/carries no backticked value/, out, "the cell IS readable; the value is the fault")
+    end
+  end
+
+  def test_none_mixed_with_real_entries_fails
+    with_bundle do |dir|
+      add_reviewer(dir, fallback: "none, Copilot")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/mixes `none` with real entries/, out)
+      refute_match(/has an EMPTY element/, out, "a none-mixed fallback has no blank element")
+    end
+  end
+
+  def test_primary_repeated_in_its_own_fallback_fails
+    with_bundle do |dir|
+      add_reviewer(dir, primary: "Codex", fallback: "Codex")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/repeats the primary `Codex` in its own `fallback-order`/, out)
+      assert_match(/cannot be its own independent backstop/, out)
+      refute_match(/no summons mechanism/, out, "Codex HAS an invocation row - only the repeat is wrong")
+    end
+  end
+
+  def test_a_setting_cell_carrying_two_backticked_values_fails
+    # `Reviewer.extract` reads the FIRST backticked span and stops, so a list authored ONE CODE SPAN
+    # PER ELEMENT loses everything after the first — and this file's own *Branch & PR Policy* authors
+    # its protected-branch list exactly that way, so it is the convention a host will copy. The
+    # `fallback` argument is written so the emitted cell is literally `` `Copilot`, `Codex` ``: the
+    # helper supplies the outer pair of backticks.
+    #
+    # The refute is the whole point. `Copilot`, `Codex` under a `Codex` primary is a chain that
+    # visibly falls back to itself, and the self-reference invariant PASSES on the truncated read —
+    # so if the ambiguity were not reported, nothing here would be.
+    with_bundle do |dir|
+      add_reviewer(dir, primary: "Codex", fallback: "Copilot`, `Codex")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/carries MORE THAN ONE backticked value/, out)
+      assert_match(/reads only the FIRST \(`Copilot`\)/, out)
+      refute_match(/repeats the primary/, out,
+                   "the precondition: the truncated read cannot see the repeat")
+      refute_match(/carries no backticked value/, out, "the cell IS backticked - it is not unreadable")
+    end
+  end
+
+  def test_a_decoy_invocation_heading_outside_the_reviewer_section_still_fails
+    # #118's shape, at the parity layer. The host AUTHORED `## Reviewer` and declared no summons
+    # mechanism inside it; an unrelated H2 elsewhere happens to carry an `### Invocation paths`
+    # heading. A file-global search for that heading vouched for a chain the Reviewer section never
+    # declared, and this shipped green — the exact false green this PR exists to close.
+    with_bundle do |dir|
+      add_reviewer(dir, invocation: false)
+      path = File.join(dir, "PROJECT.md")
+      File.write(path, "#{File.read(path)}\n#{<<~MD}")
+        ## Some Other Section
+
+        ### Invocation paths
+
+        | Harness | Summons |
+        |---------|---------|
+        | Codex | mention it on the PR |
+        | Copilot | request a review via the API |
+      MD
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/names `Codex` in the reviewer chain but .*no summons mechanism/, out)
+      assert_match(/names `Copilot` in the reviewer chain but .*no summons mechanism/, out)
+    end
+  end
+
+  def test_new_reviewer_chain_messages_are_ascii_safe
+    # ADR 0011: author-controlled values reach stdout through err(), so every interpolation in the new
+    # messages goes through safe(). A harness name carrying a control character or a non-ASCII glyph
+    # must be escaped, not printed verbatim.
+    with_bundle do |dir|
+      add_reviewer(dir, primary: "RogueéHarness")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/Rogue\\xE9\\x07Harness/, out)
+      assert_empty out.chars.reject { |c| c.ord < 128 }, "no raw non-ASCII may reach stdout"
+    end
+  end
+
   def test_downgraded_degradation_floor_fails_as_non_configurable
     # The safety invariant, on the same footing as the merge gate: no Host App may declare that a run
     # with no reachable Reviewer delivers anyway. It must fail with its OWN policy-boundary message.
+    #
+    # The refutes are the point of this being a SINGLE-fault fixture: `add_reviewer` supplies a
+    # complete, reachable chain, so a floor downgrade must be the ONLY reason this exits 1. A
+    # composite failure would let this test pass on a bug in any of the checks it does not name.
     with_bundle do |dir|
       add_reviewer(dir, floor: "flag-in-sow")
       code, out = run_check(dir)
       assert_equal 1, code
       assert_match(/degradation floor is NOT configurable/, out)
       assert_match(/may not certify itself/, out)
+      refute_match(/no summons mechanism/, out)
+      refute_match(/unparseable bounded window/, out)
+      refute_match(/fallback-order/, out)
     end
   end
 
   def test_unparseable_bounded_window_fails
     # PR #109 specified the window as prose ("for example, 30 minutes"), which no AC could execute.
     # A window that does not parse is not a bounded wait, so it must redden rather than ship.
+    # Single-fault for the same reason as the test above — see its note.
     with_bundle do |dir|
       add_reviewer(dir, window: "30 minutes")
       code, out = run_check(dir)
       assert_equal 1, code
       assert_match(/unparseable bounded window/, out)
+      refute_match(/no summons mechanism/, out)
+      refute_match(/degradation floor is NOT configurable/, out)
+      refute_match(/fallback-order/, out)
     end
   end
 

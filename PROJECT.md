@@ -109,8 +109,8 @@ and stays green.
 
 | Field | Setting | Allowed values |
 |-------|---------|----------------|
-| **Primary** — the reviewer summoned first | `Codex (GPT - host sets model)` | any harness in *Attribution & Model Declaration* |
-| **Fallback order** — tried in turn when the primary is unreachable or silent | `Copilot` | comma-separated harnesses, or `none` |
+| **Primary** — the reviewer summoned first | `Codex` | any harness with a row in *Invocation paths* |
+| **Fallback order** — tried in turn when the primary is unreachable or silent | `Copilot` | comma-separated harnesses each with an *Invocation paths* row, or `none` alone; no blank elements and no repeat of *Primary*. Author the whole list inside **ONE pair of backticks** (`Copilot, Gemini`) — never one span per element, since the checker reads only the first span |
 | **Bounded window** — how long to wait for a response before falling back | `30m` | `<integer><unit>`, unit one of `s` · `m` · `h` |
 | **Degradation floor** — what happens when the whole chain is exhausted | `stop-and-ask` | `stop-and-ask` (not configurable) |
 
@@ -136,17 +136,42 @@ and stays green.
 
 ### Invocation paths
 
-The mechanism for summoning each harness, and the **precondition that must be verified first**. The
-precondition is *checked*, not merely documented — an unmet one fails immediately into the fallback
-rather than burning the window on a summons nobody receives
-([ADR 0026](docs/adr/0026-reviewer-is-a-project-config-value-ac-summons-floor-preserved.md)
-decision 4). A Host App replaces these rows with its real commands during Customization.
+The mechanism for summoning each harness. **This table is the chain's membership list**: a harness
+named in *Primary* or *Fallback order* with no row here has no summons mechanism, so it is
+**unreachable** — the parity check reports it, and `verify` falls straight past it rather than
+starting a window ([ADR 0027](docs/adr/0027-reviewer-chain-validated-against-invocation-paths.md)).
+A Host App replaces these rows with its real commands during Customization.
+
+The **Check** cell is **optional and host-supplied**, narrowly superseding
+[ADR 0026](docs/adr/0026-reviewer-is-a-project-config-value-ac-summons-floor-preserved.md)
+decision 4's unconditional model:
+
+- **Declared** → run it *before* summoning; an unmet precondition falls back immediately rather than
+  burning the window on a summons nobody receives.
+- **Absent** → **the summons is the probe**, and the outcome is carried forward as
+  `unreachable (precondition unverified)` — never as a clean timeout.
+
+**The baseline ships no executable check**, and the placeholders say so rather than implying one:
+the Codex check needs GitHub App authentication an AC's normal token does not have (it returns
+401/403), and the Copilot check *is* the summons, so it cannot precede one without a side effect.
+
+**The first column is the harness name, by contract.** A host may rename, add, drop or reorder every
+column *after* it — the mechanism column is found by its `Summons` header, falling back to the second
+column when no header names it — but the harness label must stay leftmost, because it is read
+positionally. Moving it fails closed rather than silently: the real harness name is never seen, so
+every chain entry reads as unreachable and the parity check reddens.
 
 | Harness | Summons | Precondition | Check |
 |---------|---------|--------------|-------|
-| Codex | mention `@codex review` on the PR | its GitHub app is installed on the repository | list the repo's installed apps and confirm the slug is present |
-| Copilot | request a PR review via the host platform's API | the account has Copilot code review enabled | request returns success rather than a not-enabled error |
+| Codex | mention `@codex review` on the PR | its GitHub app is installed on the repository | *(host-supplied — none shipped)* |
+| Copilot | request a PR review via the host platform's API | the account has Copilot code review enabled | *(host-supplied — none shipped)* |
 | *(host adds its own)* | — | — | — |
+
+**Both shipped mechanisms are PR-gate-only** — "on the PR", "a PR review via the host platform's
+API". At the **plan** gate there is therefore **no summons mechanism at all**, whoever owns it: the
+open question ADR 0026 decision 2 records is *who* summons, and this table is why answering that
+alone would not be enough. A host wanting a plan-gate review must add a mechanism that does not
+require a PR.
 
 ## Human Gates
 

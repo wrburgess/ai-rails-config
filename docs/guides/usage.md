@@ -85,6 +85,15 @@ split is what keeps future updates mergeable.
      `required` is its only legal value, so no host can express self-merge, and parity hard-fails any
      attempt. Leaving this section out entirely is fine — a vendored copy that predates it parses to
      the same strict defaults.
+   - **Reviewer** — the independent second-model reviewer chain the lifecycle summons: primary,
+     fallback order, bounded window, degradation floor, plus an *Invocation paths* table giving each
+     harness's summons mechanism ([ADR 0026](../adr/0026-reviewer-is-a-project-config-value-ac-summons-floor-preserved.md),
+     [ADR 0027](../adr/0027-reviewer-chain-validated-against-invocation-paths.md)). **The degradation
+     floor is not configurable:** `stop-and-ask` is its only legal value, so no host can express
+     "deliver unreviewed", and parity hard-fails any attempt. Omitting this section is fine — a
+     vendored copy that predates it parses to the same shipped chain. But the *Invocation paths* table
+     has **no default**, so the PR gate then has no summons mechanism at all and every run resolves to
+     the floor, `stop-and-ask`. Author *Invocation paths* to actually get a review.
    - **Intake Pipeline** / **Tool Roster** — the artifact locations `scout`/`clip` and `restock` read
      and write (also additive; repoint them if you relocate those artifacts).
 2. **Add your domain rules** to the [Rules Layer](../../rules/) as Customization — host-specific
@@ -218,5 +227,10 @@ ruby bin/ai-config-sync /path/to/host-app
 
 - Baseline files are overwritten; **`PROJECT.md` and an existing `bin/setup` are preserved** (pass
   `--force` to overwrite `PROJECT.md` too for a deliberate reset).
+- **Because it is preserved, your `PROJECT.md` may predate an additive section the new baseline
+  expects.** That stays green by design — the parser supplies shipped defaults — so nothing tells you
+  it is missing. Diff your `PROJECT.md` against the baseline's after each re-sync and add what is new.
+  The current instance is **Reviewer** (§3): without its *Invocation paths* table there is no summons
+  mechanism, so the PR gate resolves to `stop-and-ask` on every run.
 - Review the changes with `git diff` in the Host App and reconcile any Customization.
 - Re-run the quality gate (§5) to confirm the bundle is still green.

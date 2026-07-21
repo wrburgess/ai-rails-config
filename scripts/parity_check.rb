@@ -125,6 +125,7 @@ class ParityCheck
     "docs/adr/0024-harness-model-naming-convention.md",
     "docs/adr/0025-human-gate-policy-is-a-project-config-value.md",
     "docs/adr/0026-reviewer-is-a-project-config-value-ac-summons-floor-preserved.md",
+    "docs/adr/0027-reviewer-chain-validated-against-invocation-paths.md",
     # Standards
     "docs/standards/development-lifecycle.md",
     # Out-of-band research (the per-tool discovery re-verification AGENTS.md cites) and Stack Overlays
@@ -524,6 +525,82 @@ class ParityCheck
           "#{wrote}, which carries no backticked value - the checker therefore read the shipped " \
           "default `#{safe(Reviewer::DEFAULTS[key])}` while the table an agent reads says otherwise " \
           "(write the value in backticks, e.g. `#{safe(Reviewer::DEFAULTS[key])}`)")
+    end
+
+    # (3b) An AUTHORED cell offering MORE THAN ONE backticked value - a DIFFERENT fault from (3), and
+    # invisible to every other check here. `Reviewer.extract` reads the FIRST span and stops, so a
+    # list authored one code span per element (`` `Copilot`, `Gemini` `` - the very convention this
+    # file uses for its protected-branch list) silently loses everything after the first: the cell is
+    # backticked, so (3) is satisfied; and (1), (2) and (4) all run against the truncated read, so a
+    # `fallback-order` of `` `Copilot`, `Codex` `` under a `Codex` primary passes the self-reference
+    # invariant that the table plainly violates. Reported so the host learns the checker read
+    # something narrower than what their table shows.
+    Reviewer.ambiguous(text).each do |key, cell|
+      first = cell[Reviewer::BACKTICKED, 1].to_s.strip
+      err("Reviewer declaration: #{PROJECT_CONFIG} authors a `#{key.to_s.tr('_', '-')}` row whose " \
+          "setting cell #{safe(cell)} carries MORE THAN ONE backticked value - the checker reads " \
+          "only the FIRST (`#{safe(first)}`) and every value after it is invisible to every check " \
+          "above, so this row is validated as something narrower than the table shows (author the " \
+          "whole value inside a SINGLE pair of backticks, e.g. `Copilot, Gemini`)")
+    end
+
+    check_reviewer_chain(text, fields, bad)
+  end
+
+  # (4) THE CHAIN ITSELF (ADR 0027). The checks above validate each field in isolation; these validate
+  # the chain the fields describe - that it names harnesses at all, and that each one can actually be
+  # summoned. Before this, `primary: Not A Configured Harness, fallback_order: none, , Nope` returned
+  # `{}` from Reviewer.invalid and shipped green while naming a reviewer nobody could reach.
+  #
+  # NO `section?` GUARD IS NEEDED HERE, and adding one would be unkillable dead code. A PROJECT.md
+  # with no `## Reviewer` section parses to the shipped DEFAULTS, which are a well-formed chain
+  # (`test_defaults_are_themselves_valid` pins that), so none of the four shape faults can fire; and
+  # `Reviewer.unsummonable` carries the guard itself, because it is the one check an absent section
+  # would otherwise trip on every vendored host. The vendored-host contract is asserted directly, at
+  # both levels, by test_baseline_without_reviewer_section_passes and its sibling.
+  def check_reviewer_chain(text, fields, bad)
+    if bad.key?(:primary_blank)
+      err("Reviewer declaration: #{PROJECT_CONFIG} declares an empty `primary` - the chain has no " \
+          "first entry, so there is nobody to summon at the PR gate (name a harness with a row in " \
+          "Reviewer -> Invocation paths)")
+    end
+
+    if bad.key?(:fallback_order_blank_element)
+      # One key, two shapes a human reads very differently - a list with a hole in it, and a value
+      # that is nothing at all. The message names which one it found, mirroring the unreadable-cell
+      # message above; the shared key is correct because the FAULT is the same (a fallback entry that
+      # names no harness) and splitting it would report one defect under two headings.
+      raw = bad[:fallback_order_blank_element]
+      found = if raw.to_s.strip.empty?
+                "declares a `fallback-order` that is entirely BLANK - the fallback is silently " \
+                  "dropped from the chain, so the primary is the only reviewer that will ever be tried"
+              else
+                "declares `fallback-order: #{safe(raw)}`, which has an EMPTY element - a stray or " \
+                  "trailing comma reads as a fallback entry that names no harness"
+              end
+      err("Reviewer declaration: #{PROJECT_CONFIG} #{found} (name a harness with a row in " \
+          "Reviewer -> Invocation paths, or write `none` alone for no fallback)")
+    end
+
+    if bad.key?(:fallback_order_none_mixed)
+      err("Reviewer declaration: #{PROJECT_CONFIG} declares `fallback-order: " \
+          "#{safe(bad[:fallback_order_none_mixed])}`, which mixes `none` with real entries - `none` " \
+          "means NO fallback and is only legal alone, so this declaration is ambiguous about " \
+          "whether the chain continues")
+    end
+
+    if bad.key?(:fallback_order_self_reference)
+      err("Reviewer declaration: #{PROJECT_CONFIG} repeats the primary " \
+          "`#{safe(bad[:fallback_order_self_reference])}` in its own `fallback-order` - a chain that " \
+          "falls back to itself is not a fallback, and a reviewer cannot be its own independent " \
+          "backstop")
+    end
+
+    Reviewer.unsummonable(text).each do |entry|
+      err("Reviewer declaration: #{PROJECT_CONFIG} names `#{safe(entry)}` in the reviewer chain but " \
+          "Reviewer -> Invocation paths declares no summons mechanism for it - the AC has no way to " \
+          "reach it, so the chain falls straight past it to the degradation floor " \
+          "`#{Reviewer::FLOOR_VALUE}` (add a row for it, or remove it from the chain)")
     end
   end
 
