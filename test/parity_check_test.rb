@@ -1686,6 +1686,109 @@ class ParityCheckTest < Minitest::Test
     assert_equal "*Reviewer*", ParityCheck::REVIEWER_REFERENCE
   end
 
+  def test_bold_reviewer_does_not_satisfy_the_reference
+    # THE SUBSTRING TRAP. `"**Reviewer**".include?("*Reviewer*")` is TRUE, so matching the constant
+    # with `include?` was satisfied by ordinary bold prose — which docs/standards/development-lifecycle.md
+    # already writes. A body could drop its pointer entirely, hardcode a reviewer harness and a literal
+    # window, and still pass (Reviewer finding, PR #117). Hence REVIEWER_REFERENCE_RE, which rejects an
+    # adjacent `*` on either side.
+    with_bundle do |dir|
+      add_skills(dir)
+      write_skill(dir, "verify", body: <<~MD)
+        ---
+        name: verify
+        description: x
+        ---
+
+        Self-review the PR; read host values from PROJECT.md and the Human Gates policy.
+        The **Reviewer** is an independent second model. Summon the **Reviewer** by mentioning
+        the review command on the PR, then wait 30 minutes for the **Reviewer** to answer.
+      MD
+      code, out = run_check(dir)
+      assert_equal 1, code, "bold **Reviewer** prose must not satisfy the pointer reference"
+      assert_match(%r{Reviewer-aware Skill verify: skills/verify/SKILL\.md does not name the}, out)
+    end
+  end
+
+  def test_genuine_pointer_form_satisfies_the_reference
+    # The negative control for the two tests above: the real pointer form must still PASS, or the
+    # regex would just be a stricter way to be wrong.
+    with_bundle do |dir|
+      add_skills(dir)
+      write_skill(dir, "verify", body: <<~MD)
+        ---
+        name: verify
+        description: x
+        ---
+
+        Self-review the PR. Read the chain from PROJECT.md -> *Reviewer*, and the Human Gates policy.
+      MD
+      code, out = run_check(dir)
+      assert_equal 0, code, out
+    end
+  end
+
+  def test_unbackticked_reviewer_value_fails_as_unreadable
+    # The bare-prose hole: `extract` fail-safes to the shipped default, so without a separate
+    # unreadable check a PROJECT.md visibly declaring "deliver-unreviewed" read back as `stop-and-ask`
+    # and passed green. Bare prose is the authoring form that closed PR #109.
+    with_bundle do |dir|
+      project = File.read(File.join(dir, "PROJECT.md"))
+      File.write(File.join(dir, "PROJECT.md"), <<~MD)
+        #{project}
+        ## Reviewer
+
+        | Field | Setting | Allowed values |
+        |-------|---------|----------------|
+        | **Degradation floor** — chain exhausted | deliver-unreviewed with a footnote | `stop-and-ask` |
+      MD
+      code, out = run_check(dir)
+      assert_equal 1, code, "an authored-but-unreadable value must not pass green"
+      assert_match(/carries no backticked value/, out)
+      assert_match(/degradation-floor/, out)
+    end
+  end
+
+  def test_setting_headed_label_column_does_not_hide_a_floor_downgrade
+    # A host table headed `| Setting | Value |` bound column 0 — the LABEL column — so every field read
+    # its own label, all four host values were discarded, and the floor hard-fail could not fire on a
+    # downgrade plainly visible in the file (Reviewer finding, PR #117).
+    with_bundle do |dir|
+      project = File.read(File.join(dir, "PROJECT.md"))
+      File.write(File.join(dir, "PROJECT.md"), <<~MD)
+        #{project}
+        ## Reviewer
+
+        | Setting | Value |
+        |---------|-------|
+        | **Degradation floor** | `deliver-anyway` |
+      MD
+      code, out = run_check(dir)
+      assert_equal 1, code, "a `Setting`-headed label column must not swallow the declared values"
+      assert_match(/degradation floor is NOT configurable/, out)
+    end
+  end
+
+  def test_reviewer_errors_stay_ascii_on_hostile_input
+    # ADR 0011 / issue #113: author-controlled values reach err(). A control character, ANSI escape or
+    # non-ASCII glyph in PROJECT.md must not reach the terminal verbatim through an error message.
+    with_bundle do |dir|
+      project = File.read(File.join(dir, "PROJECT.md"))
+      File.write(File.join(dir, "PROJECT.md"), <<~MD)
+        #{project}
+        ## Reviewer
+
+        | Field | Setting | Allowed values |
+        |-------|---------|----------------|
+        | **Bounded window** — wait | `30мин \e[31mRED\e[0m` | shape |
+      MD
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert out.ascii_only?, "parity_check stdout must stay ASCII even on hostile PROJECT.md values"
+      refute_includes out, "\e", "an ANSI escape from PROJECT.md must not reach the terminal"
+    end
+  end
+
   # --- CLI wiring smoke (subprocess: proves the `exit` path, not just the class) -----------------
 
   def test_cli_exits_nonzero_on_broken_bundle

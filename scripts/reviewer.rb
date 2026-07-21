@@ -116,6 +116,53 @@ module Reviewer
     fields
   end
 
+  # The fields whose row was AUTHORED but whose setting cell carries no backticked token, as
+  # { key => the raw cell text }. Empty when every authored cell is readable.
+  #
+  # This exists because `extract` alone cannot express the difference between "the host did not author
+  # this field" (fail-SAFE: keep the shipped default, say nothing) and "the host authored it in a form
+  # the parser cannot read" (a MISTAKE: keep the shipped default so nothing unsafe is adopted, but say
+  # so loudly). Both leave the same value behind, so the distinction has to be reported separately.
+  #
+  # Without it the checker is blind in exactly the direction that matters: a PROJECT.md declaring
+  # `| **Degradation floor** | deliver-unreviewed with a footnote |` - no backticks, which is precisely
+  # the prose-where-a-value-belongs form that closed PR #109 - reads back as `stop-and-ask`, reports
+  # nothing, and passes green, while the human-readable table the AC actually follows says the
+  # opposite. An EMPTY cell is not a mistake, only an unauthored one, so it is never reported.
+  def unreadable(text)
+    bad = {}
+    lines = text.to_s.lines.map(&:chomp)
+    start = lines.index { |l| l.strip == SECTION }
+    return bad unless start
+
+    column = DEFAULT_SETTING_COLUMN
+    seen = {}
+
+    lines[(start + 1)..].each do |l|
+      break if l.start_with?("## ")
+
+      cells = table_cells(l)
+      next if cells.nil?
+
+      header = setting_column(cells)
+      if header
+        column = header
+        next
+      end
+
+      key = ROW_LABELS.keys.find { |k| labelled?(cells[0], ROW_LABELS[k]) }
+      next unless key
+      next if seen[key] # FIRST match wins, mirroring extract
+
+      seen[key] = true
+      cell = cells[column].to_s.strip
+      bad[key] = cell unless cell.empty? || cell.match?(BACKTICKED)
+
+      break if seen.length == ROW_LABELS.length
+    end
+    bad
+  end
+
   # The fields whose value is outside their allowed set (or malformed), as { key => value }. Empty
   # when all are valid. Separated from `extract` so an unknown value is REPORTED rather than coerced.
   def invalid(fields)
@@ -145,8 +192,15 @@ module Reviewer
 
   # The index of this row's `Setting` header cell, or nil when the row is not a header naming it. A
   # header row is what binds the value column, so a host may reorder the table's columns freely.
+  #
+  # Column 0 is NEVER bindable: it is the LABEL column that `labelled?` matches rows on, so a value
+  # can never live there. Without this guard a host table headed `| Setting | Value |` binds column 0
+  # and every field then reads its own label instead of its setting - which silently discards all four
+  # host values and hands the checker the shipped defaults, so the non-configurable floor's hard-fail
+  # cannot fire on a downgrade that is plainly visible in the file (Reviewer finding, PR #117).
   def setting_column(cells)
-    cells.index { |c| c.gsub(/[*`]/, "").strip.downcase == SETTING_HEADER }
+    idx = cells.index { |c| c.gsub(/[*`]/, "").strip.downcase == SETTING_HEADER }
+    idx&.positive? ? idx : nil
   end
 
   # True when a row's first cell names this field — emphasis/backticks stripped, case-insensitive.

@@ -165,6 +165,38 @@ class ReviewerTest < Minitest::Test
     assert_equal "stop-and-ask", fields[:degradation_floor]
   end
 
+  def test_a_row_whose_first_cell_merely_STARTS_WITH_a_label_is_a_known_collision
+    # Pins a REAL hazard rather than leaving it to be discovered. `labelled?` uses `start_with?`, so
+    # ANY row whose first cell begins with a field label is claimed as that field - including a row in
+    # the `### Invocation paths` sub-table if a host named a harness that way, or reordered the
+    # sub-table above the settings table. Here the collision row wins (first-match-wins) and, carrying
+    # no backticked value, silently yields the shipped default.
+    #
+    # Two things contain the blast radius in the shipped file: the settings table comes FIRST, and
+    # `extract` breaks once all four fields are authored, so the sub-table is never reached. That is
+    # ordering luck, not a guarantee.
+    #
+    # NOT fixed here because scripts/human_gates.rb:119 uses the identical `start_with?` rule and the
+    # two readers are deliberately kept byte-identical in their table contract - tightening it belongs
+    # in both at once, with its own issue. Recorded so the behavior is known rather than surprising.
+    md = <<~MD
+      # Project Config
+      ## Reviewer
+
+      | Harness | Summons |
+      |---------|---------|
+      | Primary reviewer app | mention it on the PR |
+
+      | Field | Setting |
+      |-------|---------|
+      | **Primary** | `Codex` |
+      ## Human Gates
+    MD
+    assert_equal Reviewer::DEFAULTS[:primary], Reviewer.extract(md)[:primary],
+                 "a row merely STARTING WITH a label is claimed as that field today - if this starts " \
+                 "failing, the matching rule was tightened; do it in human_gates.rb too"
+  end
+
   def test_underscore_emphasis_is_a_known_gap_shared_with_human_gates
     # Pins a REAL limitation rather than leaving it as a silent surprise: `labelled?` strips `*` and
     # backticks but NOT underscores, so `__Primary__` does not match and the field silently defaults.
@@ -203,26 +235,107 @@ class ReviewerTest < Minitest::Test
     # The shipped PROJECT.md puts an `### Invocation paths` sub-table INSIDE this section. An H3 does
     # not terminate the scan, so this pins that the sub-table cannot corrupt the parse: its header
     # names no `Setting` column, and its first cells are harness names that match no field label.
+    #
+    # The asserted field rows MUST sit BELOW the H3. An earlier version put them above it, which made
+    # the test vacuous: neither assertion could observe whether the scan stopped at the H3, and
+    # mutating `break if l.start_with?("## ")` to `"#"` left the entire suite green (Reviewer finding,
+    # PR #117). Placed below, the assertions fail outright if an H3 ever ends the section.
     md = <<~MD
       # Project Config
       ## Reviewer
-
-      | Field | Setting |
-      |-------|---------|
-      | **Primary** | `Codex` |
-      | **Degradation floor** | `stop-and-ask` |
 
       ### Invocation paths
 
       | Harness | Summons | Precondition | Check |
       |---------|---------|--------------|-------|
       | Codex | mention on the PR | app installed | list installed apps |
-      | Primary sounding row | nonsense | nonsense | nonsense |
+      | Copilot | request via API | review enabled | request succeeds |
+
+      ### The settings
+
+      | Field | Setting |
+      |-------|---------|
+      | **Primary** | `Codex` |
+      | **Degradation floor** | `stop-and-ask` |
       ## Human Gates
     MD
     fields = Reviewer.extract(md)
-    assert_equal "Codex", fields[:primary]
+    assert_equal "Codex", fields[:primary],
+                 "an H3 must not end the section - these rows sit below one"
     assert_equal "stop-and-ask", fields[:degradation_floor]
+  end
+
+  # --- the label column can never be the value column --------------------------------------------
+
+  def test_a_setting_headed_label_column_is_not_bound_as_the_value_column
+    # A host table headed `| Setting | Value |` puts the word "Setting" at index 0 - the LABEL column.
+    # Binding it would make every field read its own label instead of its value, silently discarding
+    # ALL host settings and handing the checker the shipped defaults, so a plainly visible floor
+    # downgrade could not be hard-failed (Reviewer finding, PR #117).
+    md = <<~MD
+      # Project Config
+      ## Reviewer
+
+      | Setting | Value |
+      |---------|-------|
+      | **Primary** | `Gemini 3 Pro` |
+      | **Degradation floor** | `deliver-anyway` |
+      ## Human Gates
+    MD
+    fields = Reviewer.extract(md)
+    assert_equal "Gemini 3 Pro", fields[:primary],
+                 "the value must be read from the VALUE column, not the label column"
+    assert_equal "deliver-anyway", fields[:degradation_floor]
+    assert_equal({ degradation_floor: "deliver-anyway" }, Reviewer.invalid(fields),
+                 "a downgrade authored under a `Setting`-headed label column must still be reported")
+  end
+
+  # --- authored-but-unreadable is REPORTED, not silently defaulted -------------------------------
+
+  def test_unbackticked_authored_value_is_reported_as_unreadable
+    # THE bare-prose hole. `extract` fail-safes to the shipped default (correct - never adopt an
+    # unreadable value), but that alone let a PROJECT.md visibly declaring "deliver-unreviewed" read
+    # back as `stop-and-ask` with nothing reported: green, while the table the AC actually follows
+    # said the opposite. Bare prose is exactly the authoring form that closed PR #109.
+    rows = "| **Degradation floor** — chain exhausted | deliver-unreviewed with a footnote | fixed |\n" \
+           "| **Bounded window** — wait | never, just deliver | shape |"
+    text = project_md(rows)
+
+    assert_equal "stop-and-ask", Reviewer.extract(text)[:degradation_floor],
+                 "an unreadable value must never be ADOPTED"
+    unreadable = Reviewer.unreadable(text)
+    assert_equal "deliver-unreviewed with a footnote", unreadable[:degradation_floor]
+    assert_equal "never, just deliver", unreadable[:bounded_window]
+  end
+
+  def test_empty_cell_is_unauthored_not_unreadable
+    # The fail-safe boundary: an EMPTY setting cell is an unauthored field, not a mistake, so it must
+    # NOT be reported. Only a non-empty cell with no backticked token is a mistake.
+    rows = "| **Primary** — summoned first |  | any harness |"
+    assert_empty Reviewer.unreadable(project_md(rows))
+  end
+
+  def test_backticked_values_are_never_reported_as_unreadable
+    assert_empty Reviewer.unreadable(project_md(all_rows))
+    assert_empty Reviewer.unreadable(project_md(all_rows(floor: "flag-in-sow"))),
+                 "a backticked-but-invalid value is `invalid`, not `unreadable` - they are different faults"
+  end
+
+  def test_unreadable_mirrors_extracts_first_match_wins
+    # BOTH rows must be unreadable, and they must differ. If the stray row were backticked, dropping
+    # the first-match-wins guard would merely fail to overwrite an already-set entry, and the test
+    # could not observe the difference — a mutation run caught exactly that (Reviewer finding,
+    # PR #117). With two distinct unreadable values, the guard is the only thing choosing which wins.
+    rows = "| **Degradation floor** — authored | the authored prose | fixed |\n" \
+           "| **Degradation floor** — stray later row | a different prose | fixed |\n" \
+           "| **Primary** — summoned first | `Codex` | any |"
+    assert_equal "the authored prose", Reviewer.unreadable(project_md(rows))[:degradation_floor],
+                 "unreadable must resolve the SAME row extract does, or the two disagree about which " \
+                 "row is authoritative and the error message names a value the parser never read"
+  end
+
+  def test_unreadable_returns_empty_when_the_section_is_absent
+    assert_empty Reviewer.unreadable("# Project Config\n## Lifecycle Host\n- x\n")
   end
 
   def test_section_as_last_in_file_parses_to_eof
@@ -299,9 +412,39 @@ class ReviewerTest < Minitest::Test
 
   # --- data contract: the REAL shipped PROJECT.md ------------------------------------------------
 
+  def project_md_path
+    File.join(File.expand_path("..", __dir__), "PROJECT.md")
+  end
+
+  def test_real_project_md_actually_contains_the_section
+    # THE PRECONDITION FOR EVERY DRIFT GUARD BELOW. `from_file` fail-safes to DEFAULTS when the
+    # section is absent, so deleting the whole `## Reviewer` section - or merely renaming its heading
+    # - made all three data-contract tests below pass on the defaults while the shipped bundle
+    # declared nothing at all (Reviewer finding, PR #117). Asserting the heading is present is what
+    # turns those from vacuous into real, and it is why this test comes first.
+    assert_includes File.read(project_md_path), "\n#{Reviewer::SECTION}\n",
+                    "the shipped PROJECT.md must actually declare the `#{Reviewer::SECTION}` section - " \
+                    "without it every assertion below passes vacuously on the shipped defaults"
+  end
+
+  def test_real_project_md_authors_every_field
+    # The other half of the same hole: the heading can be present while the TABLE is gone, and the
+    # value assertions would again be reading defaults rather than what the file declares.
+    text = File.read(project_md_path)
+    Reviewer::ROW_LABELS.each_key do |key|
+      refute_nil Reviewer.unreadable(text), "unreadable must not blow up on the shipped file"
+      assert_match(/^\|\s*\*{0,2}#{Regexp.escape(Reviewer::ROW_LABELS[key])}/i, text,
+                   "the shipped PROJECT.md must author a `#{key}` row, not rely on the parser default")
+    end
+  end
+
+  def test_real_project_md_has_no_unreadable_cells
+    assert_empty Reviewer.unreadable(File.read(project_md_path)),
+                 "every shipped Reviewer value must be authored in backticks"
+  end
+
   def test_real_project_md_ships_a_valid_declaration
-    root = File.expand_path("..", __dir__)
-    fields = Reviewer.from_file(File.join(root, "PROJECT.md"))
+    fields = Reviewer.from_file(project_md_path)
     assert_empty Reviewer.invalid(fields),
                  "the shipped PROJECT.md must declare a valid reviewer chain"
   end
@@ -311,8 +454,7 @@ class ReviewerTest < Minitest::Test
     # If the two drift, vendoring changes behavior for no stated reason — a host that deletes the
     # section would silently get a different reviewer chain than the one it was handed. Nothing else
     # pins this, and neither value is validated against the other by the parity check.
-    root = File.expand_path("..", __dir__)
-    assert_equal Reviewer::DEFAULTS, Reviewer.from_file(File.join(root, "PROJECT.md")),
+    assert_equal Reviewer::DEFAULTS, Reviewer.from_file(project_md_path),
                  "scripts/reviewer.rb DEFAULTS and the shipped PROJECT.md must declare the same chain"
   end
 
@@ -331,8 +473,7 @@ class ReviewerTest < Minitest::Test
     # The drift guard (mirrors human_gates_test's strict-defaults guard): the Generic Baseline must
     # ship the floor that keeps a run from certifying itself. If someone downgrades this, every
     # vendoring host silently loses its faithfulness backstop.
-    root = File.expand_path("..", __dir__)
-    fields = Reviewer.from_file(File.join(root, "PROJECT.md"))
+    fields = Reviewer.from_file(project_md_path)
     assert_equal Reviewer::FLOOR_VALUE, fields[:degradation_floor],
                  "the shipped PROJECT.md must declare the non-configurable degradation floor"
   end

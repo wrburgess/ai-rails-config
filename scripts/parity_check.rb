@@ -306,6 +306,12 @@ class ParityCheck
   # being dropped. The emphasized form is what a PROJECT.md pointer looks like here
   # (`PROJECT.md` -> *Reviewer*), so it only appears when a body really routes at the host value.
   REVIEWER_REFERENCE = "*Reviewer*"
+  # ...matched as a REGEX, not a substring. `**Reviewer**` CONTAINS `*Reviewer*`, so a plain
+  # `include?` is satisfied by ordinary bold prose - which the lifecycle standard already writes - and
+  # the check then passes on a body that hardcodes a reviewer harness and a literal window instead of
+  # reading the host value. That is the exact defect this assertion exists to prevent, so the guard
+  # has to reject an adjacent `*` on either side (Reviewer finding, PR #117).
+  REVIEWER_REFERENCE_RE = /(?<!\*)\*Reviewer\*(?!\*)/.freeze
 
   # Branch-protection guardrails (ADR 0009). Checked only for a bundle that ships them — signalled by
   # the derived sidecar's presence — so minimal fixture bundles are unaffected.
@@ -489,21 +495,41 @@ class ParityCheck
   def check_reviewer
     return unless exist?(PROJECT_CONFIG)
 
-    fields = Reviewer.extract(read(PROJECT_CONFIG))
+    text = read(PROJECT_CONFIG)
+    fields = Reviewer.extract(text)
     bad = Reviewer.invalid(fields)
 
     if bad.key?(:degradation_floor)
       err("Reviewer declaration: the degradation floor is NOT configurable - #{PROJECT_CONFIG} " \
-          "declares `degradation-floor: #{fields[:degradation_floor]}` but " \
+          "declares `degradation-floor: #{safe(fields[:degradation_floor])}` but " \
           "`#{Reviewer::FLOOR_VALUE}` is its only allowed value (a run that cannot obtain an " \
           "independent review may not certify itself; the AC stops and asks the HC)")
     end
 
     if bad.key?(:bounded_window)
       err("Reviewer declaration: #{PROJECT_CONFIG} declares an unparseable bounded window " \
-          "`#{fields[:bounded_window]}` - expected a positive integer plus a unit of `s`, `m` or `h` " \
-          "(e.g. `30m`); a window the AC cannot parse is not a bounded wait")
+          "`#{safe(fields[:bounded_window])}` - expected a positive integer plus a unit of `s`, `m` " \
+          "or `h` (e.g. `30m`); a window the AC cannot parse is not a bounded wait")
     end
+
+    # (3) An AUTHORED but unreadable cell. Without this the two checks above are enforced only against
+    # BACKTICKED downgrades: a host writing the value as bare prose gets the shipped default handed
+    # back to the checker while the table the AC actually reads says something else - green, and
+    # wrong in the unsafe direction. Reported per field, and deliberately NOT coerced.
+    Reviewer.unreadable(text).each do |key, cell|
+      err("Reviewer declaration: #{PROJECT_CONFIG} authors `#{key.to_s.tr('_', '-')}` as " \
+          "`#{safe(cell)}`, which carries no backticked value - the checker therefore read the " \
+          "shipped default `#{safe(Reviewer::DEFAULTS[key])}` while the table an agent reads says " \
+          "otherwise (write the value in backticks, e.g. `#{safe(Reviewer::DEFAULTS[key])}`)")
+    end
+  end
+
+  # Render an author-controlled value ASCII-safe for stdout (ADR 0011). Any byte outside printable
+  # ASCII becomes an escape, so a stray control character, ANSI sequence or non-ASCII glyph in
+  # PROJECT.md cannot reach the terminal verbatim through an error message. Applied to the values
+  # check_reviewer interpolates; issue #113 tracks doing the same for the older checks.
+  def safe(value)
+    value.to_s.gsub(/[^\x20-\x7E]/) { |c| format("\\x%02X", c.ord) }
   end
 
   # Tier-1 Rules Layer (ADR 0004). Runs only when the bundle ships a rules/ tree, so a minimal bundle
@@ -603,7 +629,7 @@ class ParityCheck
       # … and every reviewer-aware Skill must NAME the Reviewer host value (ADR 0026). Same shape and
       # same limit as the gate assertion above: this verifies the REFERENCE, not that the body's prose
       # agrees with the declaration.
-      if REVIEWER_AWARE_SKILLS.include?(name) && !body.include?(REVIEWER_REFERENCE)
+      if REVIEWER_AWARE_SKILLS.include?(name) && !body.match?(REVIEWER_REFERENCE_RE)
         err("Reviewer-aware Skill #{name}: #{body_rel} does not name the `#{REVIEWER_REFERENCE}` host " \
             "value (a body that summons, consumes or reports the second-model review must state the " \
             "shipped default inline AND read the override from #{PROJECT_CONFIG} -> Reviewer, never " \

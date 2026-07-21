@@ -134,7 +134,14 @@ re-tested rather than assumed permanent.
 
 ADR 0025 rejected option E — a single `autonomy:` knob — *"as over-reach and as actively dangerous:
 it would couple the plan pause to the emergency stops and the intake gates, which must **not** move
-together."* This decision moves the plan pause and `listen`'s wait together, so it must answer that.
+together."*
+
+**Precisely what this decision moves:** `listen`'s blanket wait (decision 7) and the PR-gate summons
+owner (decision 2). **It does not move the plan pause.** `PROJECT.md` → *Human Gates* is untouched and
+still ships plan approval `required`; waiving that pause is [#116](https://github.com/wrburgess/ai-config/issues/116)'s
+decision to make, not this one's. The question is therefore narrower than option E's, but it is still
+worth answering, because #116 will move the plan pause against the policy this ADR sets — so the two
+must be shown not to compose into the coupling ADR 0025 rejected.
 
 It is a different coupling, on three grounds:
 
@@ -148,10 +155,14 @@ It is a different coupling, on three grounds:
   to move all three together. This is a fixed policy decision with the emergency stops and the merge
   gate hard-wired beneath it, not a new dial.
 
-The residual risk is real and is recorded rather than argued away: with the plan pause waived and
-`listen`'s wait removed, the only human checkpoints before merge are the four emergency stops and the
-merge gate — and the stops are prose-only conditions no check can verify. That is the price of
-hands-off, and it is why decision 3 keeps the Reviewer floor at "stop and ask."
+The residual risk is real and is recorded rather than argued away — as a **future** state, not the
+shipped one. After this ADR the plan pause still stands, so the pre-merge human checkpoints are: the
+plan gate, the four emergency stops, the Reviewer floor, and merge. **Once #116 waives the plan
+pause**, the plan gate leaves that list and the remaining checkpoints are the emergency stops, the
+Reviewer floor and merge — and the stops are prose-only conditions no check can verify. That is the
+price of hands-off, and it is exactly why decision 3 keeps the Reviewer floor at "stop and ask": it is
+the one pre-merge check that is both machine-enforced and non-configurable, and it has to still be
+standing when the others go.
 
 ## Considered options
 
