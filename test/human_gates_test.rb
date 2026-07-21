@@ -152,9 +152,16 @@ class HumanGatesTest < Minitest::Test
     # FIRST matching line. If a later row could reassign, any second gate-shaped row in the section -
     # an illustrative example, a copy/paste leftover, a malicious edit - would silently override the
     # authored setting, and it would fail in the UNSAFE direction (`required` quietly becoming `auto`).
+    #
+    # The stray row MUST come before every gate is authored. `extract` breaks out of the loop once
+    # both gates are seen, so a stray row placed after a complete table is never read — the test then
+    # passes because of the `break`, not because of the `next if authored[key]` guard it names. This
+    # fixture previously authored BOTH gates first, and a mutation run (issue #114) proved the
+    # consequence: deleting the guard left this whole suite green. The `Merge` row now comes last, so
+    # the guard is the only thing that can make this pass.
     rows = "| **Plan approval** — the authored row | `required` | `required` · `auto` |\n" \
-           "| **Merge** — the authored row | `required` | `required` |\n" \
-           "| **Plan approval** — a later row | `auto` | `required` · `auto` |"
+           "| **Plan approval** — a later row | `auto` | `required` · `auto` |\n" \
+           "| **Merge** — the authored row | `required` | `required` |"
     gates = HumanGates.extract(project_md(rows))
     assert_equal "required", gates[:plan_approval], "a later row overrode the first authored row"
     assert_equal "required", gates[:merge]

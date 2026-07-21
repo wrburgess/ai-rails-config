@@ -125,9 +125,47 @@ PR is ready for the Reviewer.
 ```
 
 Sign with the attribution footer from [`PROJECT.md`](../../PROJECT.md) → *Attribution & Model
-Declaration*. Then notify the HC the PR is ready to send to the Reviewer; after Reviewer feedback the
-HC runs the review-response skill (`listen`) then the deliver skill (`final`).
+Declaration*.
+
+## Summon the Reviewer
+
+**`verify` is the sole owner of the PR-gate Reviewer summons** ([ADR 0026](../../docs/adr/0026-reviewer-is-a-project-config-value-ac-summons-floor-preserved.md)).
+The **AC** summons here — not the HC — so a run still gets its faithfulness backstop with no human in
+the loop. No other Skill issues this summons: a second one produces two review requests, two windows,
+and an unanswerable "did the primary respond?". (The *plan*-gate summons is a separate thing and stays
+with the HC while plan approval is `required` — see the ADR.)
+
+Read the chain from [`PROJECT.md`](../../PROJECT.md) → *Reviewer*: the **primary**, the **fallback
+order**, the **bounded window**, and the **degradation floor**. **Baseline: the floor is
+`stop-and-ask`, and it is not configurable** — a run that cannot obtain an independent review may not
+certify itself.
+
+After posting the self-review:
+
+1. **Check the primary's precondition first** — the *Invocation paths* table declares each harness's
+   precondition and the check that verifies it. Run the check **before** summoning. A precondition
+   that is merely documented leaves the failure it describes intact: an unmet one means the summons
+   goes nowhere, indistinguishably from a review still being written.
+2. **Unmet precondition → fall back immediately.** Do not summon, do not start the window. This is the
+   whole point of checking: it converts a full-window silent stall into an instant, correct fallback.
+3. **Met → summon via the declared mechanism** and wait up to the **bounded window**.
+4. **A response is a reply on _any_ of the three surfaces** — an issue-level PR comment, an **inline
+   diff thread**, or a **review body**. Poll all three. Reading only issue-level comments makes an
+   automated inline review invisible — the same trap [`listen`](../../skills/listen/SKILL.md) Step 1
+   warns about.
+5. **Window expires with no response → fall back** to the next entry in the order and repeat from
+   step 1. Never wait indefinitely.
+6. **Chain exhausted → apply the degradation floor: stop and ask the HC.** Do not proceed to `listen`
+   or `final` on an unreviewed PR.
+
+**Carry the outcome forward**, and keep **timeout distinct from unreachable** — "no second model
+exists" and "the second model is slow" call for different HC responses, and the SOW cannot
+reconstruct the difference later. Record which reviewer answered, or which floor was hit and why;
+[`final`](../../skills/final/SKILL.md) reports it in the SOW.
 
 **Terminal artifact:** the self-review comment on the PR.
+
+**Next step:** the review-response skill (`listen`) on the Reviewer's findings, then the deliver
+skill (`final`).
 
 </output>

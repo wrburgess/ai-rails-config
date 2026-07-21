@@ -24,6 +24,13 @@ summarize and propose, but you change nothing until the HC chooses which finding
    **inline diff-thread comments**, and **review bodies**. A common trap is reading only the
    issue-level comments — an inline review (e.g. from an automated code-review tool) is then invisible.
    Pull whichever surfaces your host exposes so no reviewer is missed.
+
+   These are the same three surfaces [`PROJECT.md`](../../PROJECT.md) → *Reviewer* defines as
+   constituting a **response**, and [`verify`](../../skills/verify/SKILL.md) polls when it summons —
+   keep the two readings identical, or a review that counted as a response there becomes invisible
+   here. **`verify` owns the summons; this stage never issues one** — if there are no threads to
+   fetch, the Reviewer was never summoned or its floor was skipped: stop and recheck, don't proceed on
+   an unreviewed PR.
 2. **Classify each finding by severity** using [`PROJECT.md`](../../PROJECT.md) → *Review Severity
    Framework* (Critical / High / Medium / Low), plus a **Discussion** bucket for architectural
    questions, alternatives, or clarification requests that aren't defects.

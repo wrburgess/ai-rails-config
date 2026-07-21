@@ -41,7 +41,16 @@ context you actually re-read (the PR, its checks, its review threads), not on a 
 2. **Resolve remaining Reviewer findings** by the [`PROJECT.md`](../../PROJECT.md) → *Review Severity
    Framework*: **all Critical and High findings must be resolved before the SOW.** Don't argue a
    finding unless it is factually incorrect — if the Reviewer flagged it, treat it as a real gap.
-3. **Generate the Statement of Work** and post it as a PR comment via the lifecycle host:
+3. **Confirm the faithfulness backstop actually ran.** [`verify`](../../skills/verify/SKILL.md) owns
+   the summons and carries its outcome forward; record here **which** reviewer from
+   [`PROJECT.md`](../../PROJECT.md) → *Reviewer* answered — the primary, or which fallback. The SOW
+   states this explicitly rather than implying a review happened because findings exist.
+
+   If the chain was exhausted, the floor applies: **`stop-and-ask` is the shipped default and is not
+   configurable**, so an unreviewed PR does **not** reach a SOW — stop and ask the HC instead of
+   delivering with a footnote. Reaching this step with no reviewer response means `verify`'s floor was
+   skipped: stop and recheck.
+4. **Generate the Statement of Work** and post it as a PR comment via the lifecycle host:
    ```markdown
    ## Statement of Work
 
@@ -63,6 +72,9 @@ context you actually re-read (the PR, its checks, its review threads), not on a 
    - [Coverage by test type, notable scenarios, and edge cases]
    - Results: [each check from PROJECT.md → Quality Checks and its outcome]
 
+   ### Reviewer Backstop
+   - Reviewed by: [which reviewer answered — the primary, or which fallback and why it was reached]
+
    ### Reviewer Findings
    | Finding | Severity | Resolution |
    |---------|----------|------------|
@@ -77,12 +89,12 @@ context you actually re-read (the PR, its checks, its review threads), not on a 
    ### Linked Issue
    [`Closes #N` for a leaf issue; `Part of #N` with NO adjacent closing keyword for an umbrella sub-PR]
    ```
-4. **Post a reference link on the original issue** pointing to the SOW on the PR (for an umbrella
+5. **Post a reference link on the original issue** pointing to the SOW on the PR (for an umbrella
    sub-PR whose closing references are empty, post on the `Part of #N` umbrella issue).
-5. **Suggest Rules Layer / config improvements** learned during implementation — a convention that
+6. **Suggest Rules Layer / config improvements** learned during implementation — a convention that
    isn't documented, a gap a Reviewer finding revealed, a new anti-pattern worth capturing. Present
    the suggestions to the HC; **do not edit the Rules Layer or config without approval.**
-6. **Notify the HC** the PR is ready for final review and merge.
+7. **Notify the HC** the PR is ready for final review and merge.
 
 Sign every lifecycle-host comment with the attribution footer from [`PROJECT.md`](../../PROJECT.md) →
 *Attribution & Model Declaration*.
