@@ -355,6 +355,157 @@ class ReviewerTest < Minitest::Test
     assert_empty Reviewer.unreadable("# Project Config\n## Lifecycle Host\n- x\n")
   end
 
+  # --- a MULTI-SPAN setting cell is REPORTED, not silently truncated -----------------------------
+
+  # A settings table whose `Fallback order` cell is passed through VERBATIM (no backticks added), so a
+  # fixture can author it ONE CODE SPAN PER ELEMENT — `` `Copilot`, `Gemini` `` — which is exactly the
+  # convention PROJECT.md -> Branch & PR Policy already uses for its protected-branch list.
+  def spanned_rows(primary: "Codex", fallback: "`Copilot`, `Gemini`")
+    "| **Primary** — summoned first | `#{primary}` | any harness |\n" \
+      "| **Fallback order** — tried in turn | #{fallback} | comma-separated, or `none` |\n" \
+      "| **Bounded window** — wait | `30m` | `<integer><unit>` |\n" \
+      "| **Degradation floor** — chain exhausted | `stop-and-ask` | fixed |"
+  end
+
+  def test_a_multi_span_setting_cell_is_reported_and_no_other_seam_can_see_it
+    # THE TRUNCATION HOLE. `extract` reads the FIRST backticked span and stops, so a list authored one
+    # span per element loses everything after the first — and every pre-existing seam stays silent, in
+    # four different ways. Each assertion below is one of them, and together they are why the fault
+    # needed a seam of its own rather than an extension of any existing check.
+    text = project_md(spanned_rows)
+
+    assert_equal({ fallback_order: "`Copilot`, `Gemini`" }, Reviewer.ambiguous(text),
+                 "the ONLY seam that can see a cell offering more than one value")
+
+    fields = Reviewer.extract(text)
+    assert_equal "Copilot", fields[:fallback_order], "extract reads the FIRST span and stops"
+    assert_empty Reviewer.unreadable(text),
+                 "the cell IS backticked, so `unreadable` matches truthily and reports nothing"
+    assert_empty Reviewer.invalid(fields),
+                 "every value check runs against the TRUNCATED read, which is a valid one-entry chain"
+    assert_equal %w[Codex Copilot], Reviewer.chain(fields),
+                 "`Gemini` never reaches the chain, so nothing downstream can report it"
+  end
+
+  def test_a_dropped_span_is_invisible_to_unsummonable
+    # The fourth seam, which needs the raw text rather than the fields. `Gemini` has no invocation row
+    # and is nonetheless never reported unreachable — because it never became a chain entry at all.
+    md = with_paths("| Codex | mention on the PR | x | — |\n| Copilot | request via the API | x | — |",
+                    settings: "| **Primary** | `Codex` |\n" \
+                              "| **Fallback order** | `Copilot`, `Gemini` |")
+    assert_empty Reviewer.unsummonable(md),
+                 "the precondition for this finding: a dropped span cannot be reported unreachable"
+    assert_equal({ fallback_order: "`Copilot`, `Gemini`" }, Reviewer.ambiguous(md))
+  end
+
+  def test_a_multi_span_cell_defeats_the_self_reference_invariant_and_is_reported_anyway
+    # The sharpest form: `` `Copilot`, `Codex` `` under a `Codex` primary is a file that VISIBLY falls
+    # back to its own primary, and the truncated read cannot see it. Reporting the ambiguity is what
+    # keeps a plainly-violated invariant from shipping green.
+    text = project_md(spanned_rows(primary: "Codex", fallback: "`Copilot`, `Codex`"))
+    fields = Reviewer.extract(text)
+
+    refute_includes Reviewer.invalid(fields).keys, :fallback_order_self_reference,
+                    "the precondition: the invariant passes on the truncated read"
+    assert_equal({ fallback_order: "`Copilot`, `Codex`" }, Reviewer.ambiguous(text),
+                 "so SOMETHING must report the cell the invariant was never applied to")
+  end
+
+  def test_a_single_backticked_span_is_never_ambiguous
+    # The negative control, and the boundary: a comma-separated list inside ONE pair of backticks is
+    # the documented form and reads correctly through every seam.
+    text = project_md(all_rows(fallback: "Copilot, Gemini"))
+    assert_empty Reviewer.ambiguous(text)
+    assert_equal %w[Codex Copilot Gemini], Reviewer.chain(Reviewer.extract(text)),
+                 "the single-span form is what every other seam reads correctly"
+  end
+
+  def test_ambiguous_resolves_the_same_row_extract_does
+    # First-match-wins, mirrored. If the two disagreed about which row is authoritative, the error
+    # message would quote a cell the parser never read. Both rows here are field-shaped and only the
+    # FIRST is multi-span, so the guard is the only thing choosing.
+    rows = "| **Fallback order** — authored | `Copilot`, `Gemini` | list |\n" \
+           "| **Fallback order** — stray later row | `Grok` | list |\n" \
+           "| **Primary** — summoned first | `Codex` | any |"
+    text = project_md(rows)
+    assert_equal({ fallback_order: "`Copilot`, `Gemini`" }, Reviewer.ambiguous(text))
+    assert_equal "Copilot", Reviewer.extract(text)[:fallback_order]
+  end
+
+  def test_ambiguous_follows_the_setting_header_not_the_position
+    # The multi-span cell sits at index 2; the "Allowed values" cell at index 1 carries exactly one
+    # span. Read positionally, the fault is invisible and a harmless cell is accused instead.
+    md = <<~MD
+      # Project Config
+      ## Reviewer
+
+      | Field | Allowed values | Setting |
+      |-------|----------------|---------|
+      | **Fallback order** | comma-separated, or `none` | `Copilot`, `Gemini` |
+      ## Human Gates
+    MD
+    assert_equal({ fallback_order: "`Copilot`, `Gemini`" }, Reviewer.ambiguous(md))
+  end
+
+  def test_ambiguous_ends_at_the_next_h2
+    # A field-shaped row in a LATER section is not this section's declaration, exactly as for extract.
+    md = <<~MD
+      # Project Config
+      ## Reviewer
+
+      | Field | Setting |
+      |-------|---------|
+      | **Primary** | `Codex` |
+      ## Some Other Section
+
+      | Field | Setting |
+      |-------|---------|
+      | **Fallback order** | `Copilot`, `Gemini` |
+    MD
+    assert_empty Reviewer.ambiguous(md)
+  end
+
+  def test_a_row_matching_no_field_label_is_never_reported_as_ambiguous
+    # Only the four FIELD rows are this seam's business. A prose row that happens to carry two code
+    # spans is not a setting the parser truncated.
+    #
+    # THE SEPARATOR ROW IS DELIBERATELY OMITTED. Without the label guard every unlabelled row is
+    # filed under a `nil` key, and only the FIRST such row gets there — first-match-wins then skips
+    # the rest. A `|---|---|` row above the note would quietly claim that slot and this fixture would
+    # pass with the guard deleted (it did, on the first mutation run). The note must be the first
+    # unlabelled row in the section for the assertion to mean anything.
+    md = <<~MD
+      # Project Config
+      ## Reviewer
+
+      | Field | Setting |
+      | A note about harnesses | `Copilot` and `Grok` are both fine |
+      | **Primary** | `Codex` |
+      ## Human Gates
+    MD
+    assert_empty Reviewer.ambiguous(md)
+  end
+
+  def test_ambiguous_falls_back_to_the_second_column_when_no_header_names_setting
+    # DEFAULT_SETTING_COLUMN, mirrored for this seam. Every other fixture here heads its table
+    # `Setting`, which binds column 1 explicitly and leaves the positional fallback unproven — a live
+    # host path, since `extract` has the same fallback and its own test for it.
+    md = <<~MD
+      # Project Config
+      ## Reviewer
+
+      | Field | Value |
+      |-------|-------|
+      | **Fallback order** | `Copilot`, `Gemini` |
+      ## Human Gates
+    MD
+    assert_equal({ fallback_order: "`Copilot`, `Gemini`" }, Reviewer.ambiguous(md))
+  end
+
+  def test_ambiguous_returns_empty_when_the_section_is_absent
+    assert_empty Reviewer.ambiguous("# Project Config\n## Lifecycle Host\n- x\n")
+  end
+
   def test_section_as_last_in_file_parses_to_eof
     md = <<~MD
       # Project Config
@@ -521,6 +672,14 @@ class ReviewerTest < Minitest::Test
     assert_empty Reviewer.invocation_paths(project_md(all_rows))
   end
 
+  def test_invocation_paths_is_empty_when_the_WHOLE_SECTION_is_absent
+    # A separate case from the one above, and reachable only by calling this seam directly:
+    # `unsummonable` short-circuits on `section?` before it ever gets here, so nothing else in the
+    # suite drives `invocation_paths` at a PROJECT.md with no `## Reviewer` at all. It is a public
+    # method on a fail-SAFE reader, so the vendored-host answer is [] rather than a crash.
+    assert_empty Reviewer.invocation_paths("# Project Config\n## Lifecycle Host\n- x\n")
+  end
+
   def test_invocation_paths_ends_at_the_next_h3
     md = <<~MD
       # Project Config
@@ -562,6 +721,163 @@ class ReviewerTest < Minitest::Test
     assert_equal %w[Codex], Reviewer.invocation_paths(md)
   end
 
+  def test_invocation_paths_ends_at_a_heading_of_ANY_level
+    # Terminating on `## ` and `### ` alone admitted tables under DEEPER headings: an `#### Host
+    # notes` subheading carrying a harness-shaped table injected phantom rows into the membership
+    # list, so a chain entry named only there read as reachable and parity passed. Every level is
+    # exercised because the terminator is a range (`#{1,6}`), and a range's ends are its mutants.
+    ["# ", "#### ", "##### ", "###### "].each do |hashes|
+      md = <<~MD
+        # Project Config
+        ## Reviewer
+
+        ### Invocation paths
+
+        | Harness | Summons |
+        |---------|---------|
+        | Codex | mention it |
+
+        #{hashes}Host notes
+
+        | Harness | Summons |
+        |---------|---------|
+        | Ghost | mention it |
+        ## Human Gates
+      MD
+      assert_equal %w[Codex], Reviewer.invocation_paths(md),
+                   "a `#{hashes.strip}` heading must end the sub-table - a harness-shaped table under " \
+                   "one must never join the chain's membership list"
+    end
+  end
+
+  def test_a_decoy_invocation_heading_under_an_unrelated_h2_does_not_satisfy_membership
+    # FINDING 1 OF #118, IN ITS SUBTLEST FORM. The sub-table must BELONG to `## Reviewer`. A
+    # file-global search for the H3 binds the first heading of that name anywhere in PROJECT.md, so
+    # this host — which has authored the section and declared no summons mechanism inside it — would
+    # ship GREEN off a table sitting under some other H2 entirely.
+    md = <<~MD
+      # Project Config
+      ## Reviewer
+
+      | Field | Setting |
+      |-------|---------|
+      | **Primary** | `Codex` |
+      | **Fallback order** | `none` |
+
+      ## Some Other Section
+
+      ### Invocation paths
+
+      | Harness | Summons |
+      |---------|---------|
+      | Codex | mention it |
+    MD
+    assert_empty Reviewer.invocation_paths(md),
+                 "a sub-table outside `## Reviewer` is not this section's membership list"
+    assert_equal %w[Codex], Reviewer.unsummonable(md),
+                 "the chain must still read as unreachable - a decoy elsewhere cannot vouch for it"
+  end
+
+  def test_a_decoy_heading_BEFORE_the_section_does_not_hide_the_real_sub_table
+    # The converse, and the reason scoping cannot be done by "take the LAST such heading" either: a
+    # decoy above `## Reviewer` must not shadow a genuine, fully-declared chain into reading
+    # unreachable, which is a false RED on a host that did everything right.
+    md = <<~MD
+      # Project Config
+      ## Some Other Section
+
+      ### Invocation paths
+
+      | Harness | Summons |
+      |---------|---------|
+      | Impostor | mention it |
+
+      ## Reviewer
+
+      | Field | Setting |
+      |-------|---------|
+      | **Primary** | `Codex` |
+      | **Fallback order** | `none` |
+
+      ### Invocation paths
+
+      | Harness | Summons |
+      |---------|---------|
+      | Codex | mention it |
+      ## Human Gates
+    MD
+    assert_equal %w[Codex], Reviewer.invocation_paths(md)
+    assert_empty Reviewer.unsummonable(md), "a declared chain must not be reported unreachable"
+  end
+
+  def test_a_row_mixing_separator_shaped_cells_with_real_ones_is_a_harness
+    # The separator skip is `cells.all?`, and the quantifier is the invariant: under `any?` a single
+    # dash placeholder ANYWHERE in a row would delete that harness from the membership list, and every
+    # chain entry relying on it would be reported unreachable. Only a row that is separator-shaped in
+    # EVERY cell is a separator.
+    md = with_paths("| MyHarness | mention @bot on the PR | -- | -- |")
+    assert_equal %w[MyHarness], Reviewer.invocation_paths(md),
+                 "a row with dashes in SOME cells is a harness row, not a separator"
+  end
+
+  def test_a_two_dash_alignment_separator_is_still_not_a_harness
+    # The separator pattern's lower bound, pinned. GFM's delimiter row does not require three hyphens,
+    # so `|:--|:--:|` is a real table a host can write — and its alignment colons keep NO_SUMMONS from
+    # catching it, so if the structural skip stopped recognizing two dashes the row would leak `:--`
+    # into the membership list as a harness.
+    md = <<~MD
+      # Project Config
+      ## Reviewer
+
+      ### Invocation paths
+
+      | Harness | Summons |
+      |:--|:--:|
+      | Codex | mention it |
+      ## Human Gates
+    MD
+    assert_equal %w[Codex], Reviewer.invocation_paths(md)
+  end
+
+  def test_a_header_row_is_recognized_by_its_HARNESS_cell_alone
+    # HEADER_CELLS has two entries and each must be separately provable. Here NO cell reads
+    # "Summons", so nothing binds the mechanism column and only the `Harness` cell can identify this
+    # row as the header — without that entry it is read as a data row declaring a harness called
+    # "Harness", which a chain entry named `Harness…` would then match by prefix.
+    md = <<~MD
+      # Project Config
+      ## Reviewer
+
+      ### Invocation paths
+
+      | Harness | How to summon |
+      |---------|---------------|
+      | Codex | mention it |
+      ## Human Gates
+    MD
+    assert_equal %w[Codex], Reviewer.invocation_paths(md)
+  end
+
+  def test_the_summons_column_falls_back_to_the_second_when_no_header_names_it
+    # DEFAULT_SUMMONS_COLUMN is a live host path, not a theoretical one: PROJECT.md invites hosts to
+    # rewrite these rows and a host may head the column anything. The second row is what pins the
+    # fallback to column 1 from BOTH sides — read from column 2 nothing is summonable, read from
+    # column 0 every row is, and only column 1 tells the two apart.
+    md = <<~MD
+      # Project Config
+      ## Reviewer
+
+      ### Invocation paths
+
+      | Harness | Mechanism |
+      |---------|-----------|
+      | Codex | mention it on the PR |
+      | Copilot | — |
+      ## Human Gates
+    MD
+    assert_equal %w[Codex], Reviewer.invocation_paths(md)
+  end
+
   def test_invocation_paths_ignores_the_settings_table_above_it
     # The scan anchors on the H3, not on `## Reviewer`. A scan that merely walked the H2 would return
     # `Primary` and `Degradation floor` as if they were harnesses — and since matching is by prefix,
@@ -597,14 +913,20 @@ class ReviewerTest < Minitest::Test
     # Column 0 is the LABEL column. Binding it would make every row read its own name as its summons
     # mechanism, so no row could ever be skipped and the whole chain would read as reachable — the
     # exact failure `setting_column`'s column-0 guard exists to prevent, mirrored here.
+    #
+    # The second header cell reads "Tool", NOT "Harness", deliberately: with both HEADER_CELLS
+    # entries present in one row, either could be deleted and this row would still be recognized as a
+    # header — two mutants, both unkillable. Here only the `summons` entry can do it, which is what
+    # makes that entry separately provable (its sibling is pinned by
+    # test_a_header_row_is_recognized_by_its_HARNESS_cell_alone).
     md = <<~MD
       # Project Config
       ## Reviewer
 
       ### Invocation paths
 
-      | Summons | Harness |
-      |---------|---------|
+      | Summons | Tool |
+      |---------|------|
       | Codex | — |
       ## Human Gates
     MD
@@ -689,6 +1011,44 @@ class ReviewerTest < Minitest::Test
   def test_self_reference_is_case_insensitive
     fields = Reviewer.extract(project_md(all_rows(primary: "Codex", fallback: "Copilot, codex")))
     assert_equal "Codex", Reviewer.invalid(fields)[:fallback_order_self_reference]
+  end
+
+  def test_self_reference_sees_through_emphasis
+    # `invalid` compares through `plain`, the same reduction `unsummonable` uses. Compared raw, the
+    # two seams disagreed about the same string and BOTH went silent on a chain that falls back to
+    # itself: `invalid` saw `**Copilot**` != `Copilot`, while `unsummonable` — which strips the
+    # emphasis — found the `Copilot` row and reported nothing. The second assertion pins that
+    # precondition, so this test fails for the right reason if either seam changes.
+    md = with_paths("| Copilot | request via the API | x | — |",
+                    settings: "| **Primary** | `Copilot` |\n| **Fallback order** | `**Copilot**` |")
+    assert_empty Reviewer.unsummonable(md),
+                 "the precondition: the emphasized entry resolves to a row, so this seam stays quiet"
+
+    fields = Reviewer.extract(project_md(all_rows(primary: "Copilot", fallback: "**Copilot**")))
+    assert_equal "Copilot", Reviewer.invalid(fields)[:fallback_order_self_reference],
+                 "emphasis must not hide a fallback that names the primary"
+  end
+
+  def test_a_wholly_blank_fallback_order_is_reported
+    # Reached through the REAL parse: a whitespace-only backtick pair satisfies BACKTICKED, so
+    # `unreadable` says nothing and `extract` yields "". Gated under `parts.length > 1`, the
+    # blank-element check could not see it — Ruby's `"".split(",", -1)` returns NO elements at all —
+    # so the fallback simply vanished from the chain and NOTHING reported it, while `Copilot,` (which
+    # still yields a working one-entry chain) was flagged. That asymmetry is the fault here.
+    text = project_md(all_rows(fallback: " "))
+    fields = Reviewer.extract(text)
+
+    assert_equal "", fields[:fallback_order], "the precondition: the parse must yield a blank"
+    assert_empty Reviewer.unreadable(text),
+                 "a whitespace-only backtick pair is READABLE - the blank is the fault, not the form"
+    assert_equal %w[Codex], Reviewer.chain(fields), "the fallback is gone from the chain entirely"
+
+    bad = Reviewer.invalid(fields)
+    assert_equal "", bad[:fallback_order_blank_element],
+                 "a wholly blank fallback must be reported, exactly as a blank ELEMENT is"
+    refute_includes bad.keys, :fallback_order_none_mixed
+    refute_includes bad.keys, :fallback_order_self_reference
+    refute_includes bad.keys, :primary_blank
   end
 
   def test_the_issue_repro_reports_BOTH_faults_under_distinct_keys
@@ -792,7 +1152,6 @@ class ReviewerTest < Minitest::Test
     # value assertions would again be reading defaults rather than what the file declares.
     text = File.read(project_md_path)
     Reviewer::ROW_LABELS.each_key do |key|
-      refute_nil Reviewer.unreadable(text), "unreadable must not blow up on the shipped file"
       assert_match(/^\|\s*\*{0,2}#{Regexp.escape(Reviewer::ROW_LABELS[key])}/i, text,
                    "the shipped PROJECT.md must author a `#{key}` row, not rely on the parser default")
     end
@@ -801,6 +1160,34 @@ class ReviewerTest < Minitest::Test
   def test_real_project_md_has_no_unreadable_cells
     assert_empty Reviewer.unreadable(File.read(project_md_path)),
                  "every shipped Reviewer value must be authored in backticks"
+  end
+
+  def test_real_project_md_has_no_ambiguous_cells
+    assert_empty Reviewer.ambiguous(File.read(project_md_path)),
+                 "the shipped bundle must not do the thing it reports hosts for - each setting cell " \
+                 "must offer exactly ONE backticked value"
+  end
+
+  def test_real_project_md_documents_the_single_span_list_form
+    # Doc/machine agreement, in the direction a host is most likely to get wrong. This repo's own
+    # protected-branch list is authored one code span per element, so a host copying that convention
+    # into `Fallback order` is the expected mistake — the allowed-values cell has to say otherwise at
+    # the point of authorship, not only in an error message after the fact.
+    fallback_row = File.read(project_md_path)[/^\|\s*\*\*Fallback order\*\*.*$/]
+    assert_match(/ONE pair of backticks/, fallback_row.to_s,
+                 "the Fallback-order allowed-values cell must name the single-span list form")
+  end
+
+  def test_real_project_md_states_the_harness_label_column_contract
+    # `invocation_paths` reads the harness name positionally (`cells[0]`) while binding the mechanism
+    # column by header, so "reorder the columns freely" is true of every column BUT the first. The
+    # table openly invites hosts to rewrite these rows, so the one column they may not move has to be
+    # named where they are authoring.
+    text = File.read(project_md_path)
+    section = text[/#{Regexp.escape(Reviewer::INVOCATION_SECTION)}.*?(?=\n## )/m]
+    refute_nil section, "the invocation sub-table must be locatable"
+    assert_includes section, "The first column is the harness name, by contract",
+                    "the positional read of column 0 must be stated where a host authors its rows"
   end
 
   def test_real_project_md_ships_a_valid_declaration

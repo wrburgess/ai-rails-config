@@ -1708,6 +1708,23 @@ class ParityCheckTest < Minitest::Test
     end
   end
 
+  def test_a_wholly_blank_fallback_order_fails
+    # The sibling shape of the test above, and the one that reported NOTHING before this fix. A
+    # whitespace-only backtick pair is READABLE (it matches BACKTICKED), so the unreadable-cell check
+    # stays quiet, `extract` yields "", and the fallback simply disappeared from the chain - while
+    # `Copilot,`, which still yields a working one-entry chain, was flagged. It gets its own wording
+    # because "has an EMPTY element" misdescribes a value that has no elements at all.
+    with_bundle do |dir|
+      add_reviewer(dir, fallback: " ")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/declares a `fallback-order` that is entirely BLANK/, out)
+      assert_match(/the primary is the only reviewer that will ever be tried/, out)
+      refute_match(/has an EMPTY element/, out, "a blank value has no elements to be empty")
+      refute_match(/carries no backticked value/, out, "the cell IS readable; the value is the fault")
+    end
+  end
+
   def test_none_mixed_with_real_entries_fails
     with_bundle do |dir|
       add_reviewer(dir, fallback: "none, Copilot")
@@ -1726,6 +1743,53 @@ class ParityCheckTest < Minitest::Test
       assert_match(/repeats the primary `Codex` in its own `fallback-order`/, out)
       assert_match(/cannot be its own independent backstop/, out)
       refute_match(/no summons mechanism/, out, "Codex HAS an invocation row - only the repeat is wrong")
+    end
+  end
+
+  def test_a_setting_cell_carrying_two_backticked_values_fails
+    # `Reviewer.extract` reads the FIRST backticked span and stops, so a list authored ONE CODE SPAN
+    # PER ELEMENT loses everything after the first — and this file's own *Branch & PR Policy* authors
+    # its protected-branch list exactly that way, so it is the convention a host will copy. The
+    # `fallback` argument is written so the emitted cell is literally `` `Copilot`, `Codex` ``: the
+    # helper supplies the outer pair of backticks.
+    #
+    # The refute is the whole point. `Copilot`, `Codex` under a `Codex` primary is a chain that
+    # visibly falls back to itself, and the self-reference invariant PASSES on the truncated read —
+    # so if the ambiguity were not reported, nothing here would be.
+    with_bundle do |dir|
+      add_reviewer(dir, primary: "Codex", fallback: "Copilot`, `Codex")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/carries MORE THAN ONE backticked value/, out)
+      assert_match(/reads only the FIRST \(`Copilot`\)/, out)
+      refute_match(/repeats the primary/, out,
+                   "the precondition: the truncated read cannot see the repeat")
+      refute_match(/carries no backticked value/, out, "the cell IS backticked - it is not unreadable")
+    end
+  end
+
+  def test_a_decoy_invocation_heading_outside_the_reviewer_section_still_fails
+    # #118's shape, at the parity layer. The host AUTHORED `## Reviewer` and declared no summons
+    # mechanism inside it; an unrelated H2 elsewhere happens to carry an `### Invocation paths`
+    # heading. A file-global search for that heading vouched for a chain the Reviewer section never
+    # declared, and this shipped green — the exact false green this PR exists to close.
+    with_bundle do |dir|
+      add_reviewer(dir, invocation: false)
+      path = File.join(dir, "PROJECT.md")
+      File.write(path, "#{File.read(path)}\n#{<<~MD}")
+        ## Some Other Section
+
+        ### Invocation paths
+
+        | Harness | Summons |
+        |---------|---------|
+        | Codex | mention it on the PR |
+        | Copilot | request a review via the API |
+      MD
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/names `Codex` in the reviewer chain but .*no summons mechanism/, out)
+      assert_match(/names `Copilot` in the reviewer chain but .*no summons mechanism/, out)
     end
   end
 

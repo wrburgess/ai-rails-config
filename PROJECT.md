@@ -110,7 +110,7 @@ and stays green.
 | Field | Setting | Allowed values |
 |-------|---------|----------------|
 | **Primary** — the reviewer summoned first | `Codex` | any harness with a row in *Invocation paths* |
-| **Fallback order** — tried in turn when the primary is unreachable or silent | `Copilot` | comma-separated harnesses each with an *Invocation paths* row, or `none` alone; no blank elements and no repeat of *Primary* |
+| **Fallback order** — tried in turn when the primary is unreachable or silent | `Copilot` | comma-separated harnesses each with an *Invocation paths* row, or `none` alone; no blank elements and no repeat of *Primary*. Author the whole list inside **ONE pair of backticks** (`Copilot, Gemini`) — never one span per element, since the checker reads only the first span |
 | **Bounded window** — how long to wait for a response before falling back | `30m` | `<integer><unit>`, unit one of `s` · `m` · `h` |
 | **Degradation floor** — what happens when the whole chain is exhausted | `stop-and-ask` | `stop-and-ask` (not configurable) |
 
@@ -154,6 +154,12 @@ decision 4's unconditional model:
 **The baseline ships no executable check**, and the placeholders say so rather than implying one:
 the Codex check needs GitHub App authentication an AC's normal token does not have (it returns
 401/403), and the Copilot check *is* the summons, so it cannot precede one without a side effect.
+
+**The first column is the harness name, by contract.** A host may rename, add, drop or reorder every
+column *after* it — the mechanism column is found by its `Summons` header, falling back to the second
+column when no header names it — but the harness label must stay leftmost, because it is read
+positionally. Moving it fails closed rather than silently: the real harness name is never seen, so
+every chain entry reads as unreachable and the parity check reddens.
 
 | Harness | Summons | Precondition | Check |
 |---------|---------|--------------|-------|

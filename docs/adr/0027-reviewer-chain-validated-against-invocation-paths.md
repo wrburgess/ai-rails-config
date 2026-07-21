@@ -3,7 +3,8 @@
 **Status:** accepted
 
 Narrowly supersedes [ADR 0026](0026-reviewer-is-a-project-config-value-ac-summons-floor-preserved.md)
-decision 4. Every other decision in ADR 0026 stands unmodified.
+decision 4 (below, decision 4), and **amends ADR 0026 decision 1 in two named places** (decision 7).
+Decisions 2, 3, 5, 6 and 7 of ADR 0026 stand unmodified.
 
 ## Context
 
@@ -44,6 +45,14 @@ harness is not the same as being able to reach one.
    that actually matters**: a harness listed under *Attribution* is one this repo signs commits as,
    which says nothing about whether an AC can summon it. The reachable set is the one the procedure
    depends on.
+
+   "Stays within its own H2" is an **enforced** property, not a description of intent.
+   `invocation_paths` locates `## Reviewer` first and searches for its `### Invocation paths` H3
+   *inside* that section, ending at the next heading of any level. Shipped first as a file-global
+   search for the H3, it read whichever heading of that name came first anywhere in `PROJECT.md` —
+   so a host with no sub-table under `## Reviewer` passed green off an unrelated decoy, which is the
+   #118 state this decision exists to close, and the converse decoy reported a declared chain
+   unreachable. Scoping is what makes the sentence above true of the code.
 
 2. **The chain's SHAPE is validated, each fault under its own key.** `Reviewer.invalid` gains
    `:primary_blank`, `:fallback_order_blank_element`, `:fallback_order_none_mixed`, and
@@ -102,6 +111,29 @@ harness is not the same as being able to reach one.
    **records** the mechanism gap and deliberately does not fix it; it belongs with #115, alongside the
    ownership question. `PROJECT.md` → *Invocation paths* states it at the point of authorship, where a
    host adding its own rows will meet it.
+
+7. **Two consequential amendments to ADR 0026 decision 1, named here rather than made silently.**
+   Decision 1 specified what the `## Reviewer` section declares. Implementing decisions 1 and 4 above
+   changed that specification twice, and both changes are visible in the shipped `PROJECT.md`:
+
+   - **`Primary` names a HARNESS ONLY, not "harness + model."** ADR 0026 decision 1 says the section
+     declares "the primary reviewer (harness + model per [ADR 0024](0024-harness-model-naming-convention.md))",
+     and the file shipped `Codex (GPT - host sets model)`. That reading is backwards: ADR 0024's
+     convention exists to keep the two APART, and a harness+model compound in a harness-named field is
+     the conflation it forbids. It also breaks decision 1 above — membership is checked against
+     *Invocation paths*, whose rows are harnesses — so a model-qualified primary was resolving to its
+     harness row only by `unsummonable`'s prefix match, which is a documented limitation, not a
+     contract to build on. The shipped value is now bare `Codex`, and the allowed-values cell reads
+     "any harness with a row in *Invocation paths*" rather than "any harness in *Attribution & Model
+     Declaration*".
+   - **The invocation table's *Check* column is optional, so decision 1's "*and its
+     precondition-check command*" no longer holds as a requirement of the table.** This is the
+     table-shape half of decision 4 above; both shipped *Check* cells now read host-supplied. Decision
+     4 relaxes the procedure, and this relaxes the declaration the procedure reads.
+
+   Recorded as its own decision because a scope statement claiming "every other decision in ADR 0026
+   stands unmodified" was *false about this ADR's own diff* — exactly the documented-vs-shipped split
+   the rest of this ADR exists to close.
 
 ## Considered options
 

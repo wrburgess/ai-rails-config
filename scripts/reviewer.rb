@@ -18,7 +18,9 @@
 #   - the value is the first `backticked` token in that row's SETTING cell, located by the header cell
 #     named "Setting" and falling back to the SECOND cell when no header names it. Only that one cell
 #     is read, so the "Allowed values" cell can never be mistaken for the setting, and reordering the
-#     table's columns does not silently change the parse.
+#     table's columns does not silently change the parse. A cell carrying MORE THAN ONE backticked
+#     span is still read as its FIRST — and separately REPORTED by `ambiguous`, because "read the
+#     first span" quietly discards the rest of what the host wrote.
 #
 # NOTE on the sub-table: the "### Invocation paths" table lives inside this section and its rows are
 # NOT field rows (their first cells are harness names). They are ignored by construction — ROW_LABELS
@@ -38,8 +40,17 @@ module Reviewer
   SECTION = "## Reviewer"
 
   # The sub-section declaring HOW each harness is summoned. Parsed by `invocation_paths` on its own
-  # independent scan (anchored on this H3), never by `extract`/`unreadable`.
+  # independent scan — located WITHIN `## Reviewer` and then anchored on this H3 — never by
+  # `extract`/`unreadable`.
   INVOCATION_SECTION = "### Invocation paths"
+
+  # Any markdown ATX heading. `invocation_paths` ends its sub-table scan at the next heading of ANY
+  # level: terminating on `## `/`### ` alone let a deeper subheading (`#### Host notes`) carrying a
+  # harness-shaped table inject phantom rows into the membership list, so a chain entry named only
+  # there read as reachable while parity stayed green.
+  #
+  # `\#` escapes Ruby's `#{` interpolation — the pattern is a `#` repeated 1-6 times, then whitespace.
+  HEADING = /\A\#{1,6}\s/.freeze
 
   # The Generic Baseline's shipped declaration, and the answer for any absent section/row. The floor
   # is the load-bearing one: absent everything, a run still stops rather than self-certifying.
@@ -87,8 +98,15 @@ module Reviewer
   DEFAULT_SETTING_COLUMN = 1
 
   # The *Invocation paths* sub-table's own header contract, deliberately the same SHAPE as the
-  # settings table's (bind by header, fall back to a position, never bind column 0) so a host may
-  # reorder either table's columns without changing what is read.
+  # settings table's: bind the mechanism column BY HEADER, fall back to a position, never bind
+  # column 0.
+  #
+  # COLUMN 0 IS THE HARNESS LABEL COLUMN BY CONTRACT, not by convention. `invocation_paths` reads the
+  # harness name positionally (`cells[0]`), so what a host may reorder freely is every column AFTER
+  # the first — the harness name must stay leftmost. Degradation is fail-CLOSED if it does not (the
+  # row's real harness name is never seen, so a declared entry reads as unreachable and the chain
+  # reddens), but it is a contract either way, and PROJECT.md -> *Invocation paths* states it where a
+  # host authors its rows.
   SUMMONS_HEADER = "summons"
   DEFAULT_SUMMONS_COLUMN = 1
 
@@ -206,6 +224,73 @@ module Reviewer
     bad
   end
 
+  # The fields whose SETTING cell offers MORE THAN ONE backticked span, as { key => the raw cell }.
+  # Empty when every authored cell offers the parser exactly one candidate value.
+  #
+  # A DISTINCT fault from `unreadable`, and one no other seam can see. `extract` reads the FIRST
+  # backticked span and stops, so a host authoring a list ONE CODE SPAN PER ELEMENT —
+  # `` `Copilot`, `Gemini` ``, which is exactly the convention PROJECT.md -> Branch & PR Policy
+  # already uses for its protected-branch list — silently loses every span after the first, and all
+  # four existing seams stay quiet about it:
+  #   - `unreadable` is satisfied by ANY backtick in the cell, so the cell reads as well-formed
+  #   - `invalid` validates only the TRUNCATED value, so `` `Copilot`, `Codex` `` under a `Codex`
+  #     primary passes the self-reference invariant that the table visibly violates
+  #   - `chain` never contains the dropped entry, so `unsummonable` never looks it up
+  #
+  # REPORTED RATHER THAN RE-PARSED, deliberately. Reading past the first span would mean changing
+  # `extract`, whose table contract is kept byte-identical with scripts/human_gates.rb; and guessing
+  # which reading the host meant is the coercion this file refuses everywhere else. The parser keeps
+  # its rule and the host is told LOUDLY that the checker read something narrower than the table
+  # shows. The fix is authoring the whole value inside ONE pair of backticks (`` `Copilot, Gemini` ``),
+  # which every seam above then reads correctly.
+  def ambiguous(text)
+    authored_setting_cells(text).select { |_key, cell| cell.scan(BACKTICKED).length > 1 }
+  end
+
+  # Every AUTHORED field row's SETTING cell, as { key => the raw cell text }, resolved by the SAME
+  # rules `extract` and `unreadable` use: the section ends at the next `## `, a header naming
+  # "Setting" binds the value column (falling back to DEFAULT_SETTING_COLUMN), and the FIRST row
+  # matching a label wins.
+  #
+  # NEW and additive: it DUPLICATES that scan rather than being refactored out of `extract` /
+  # `unreadable`, because those two bodies are kept identical in contract with scripts/human_gates.rb,
+  # which ships no such seam. The duplication is the price of that guarantee, and the three are held
+  # in step by test_ambiguous_resolves_the_same_row_extract_does.
+  #
+  # It deliberately does NOT carry its siblings' `break` on a complete field set. There that break is
+  # defence in depth beside the first-match-wins guard; here it would be a branch no test can kill —
+  # `next if cells_by_key.key?(key)` already makes a later row unable to change the answer, and the
+  # `## ` break already ends the section — while doing the one thing rules/testing.md:23 names, which
+  # is letting a realistic fixture exit the loop before the case under test is reached.
+  def authored_setting_cells(text)
+    cells_by_key = {}
+    lines = text.to_s.lines.map(&:chomp)
+    start = lines.index { |l| l.strip == SECTION }
+    return cells_by_key unless start
+
+    column = DEFAULT_SETTING_COLUMN
+
+    lines[(start + 1)..].each do |l|
+      break if l.start_with?("## ")
+
+      cells = table_cells(l)
+      next if cells.nil?
+
+      header = setting_column(cells)
+      if header
+        column = header
+        next
+      end
+
+      key = ROW_LABELS.keys.find { |k| labelled?(cells[0], ROW_LABELS[k]) }
+      next unless key
+      next if cells_by_key.key?(key) # FIRST match wins, mirroring extract and unreadable
+
+      cells_by_key[key] = cells[column].to_s.strip
+    end
+    cells_by_key
+  end
+
   # True when the host AUTHORED a `## Reviewer` section at all, as opposed to inheriting the shipped
   # defaults from its absence. `extract` cannot express this difference — it answers with DEFAULTS
   # either way — and the difference is the whole vendored-host compatibility contract: an absent
@@ -216,26 +301,46 @@ module Reviewer
     text.to_s.lines.any? { |l| l.chomp.strip == SECTION }
   end
 
+  # The BODY of the `## Reviewer` section: every line between its H2 and the next `## `, in order.
+  # Empty when the section is absent. The section boundary is the same one `extract` and `unreadable`
+  # walk inline; this returns it so `invocation_paths` can look for its H3 INSIDE the section rather
+  # than anywhere in the file.
+  def section_lines(text)
+    lines = text.to_s.lines.map(&:chomp)
+    start = lines.index { |l| l.strip == SECTION }
+    return [] unless start
+
+    lines[(start + 1)..].take_while { |l| !l.start_with?("## ") }
+  end
+
   # The harness names that declare a summons mechanism in `### Invocation paths`, in table order.
   # Empty when the sub-section is absent — which, for an AUTHORED section, means no chain entry is
   # reachable at all, not that every entry is fine.
   #
-  # An INDEPENDENT scan, anchored on the H3 rather than on `## Reviewer`, and terminating at the next
-  # `## ` or `### `. Anchoring matters: the settings table sits above this one in the shipped file, so
-  # a scan that merely walked the H2 would return `Primary`/`Fallback order` as if they were harnesses.
+  # SCOPED TO `## Reviewer` FIRST, then anchored on the H3 WITHIN it. Both halves are load-bearing,
+  # in opposite directions:
+  #   - Scoping is what makes the sub-table BELONG to this section. A file-global search for the H3
+  #     binds the FIRST heading of that name ANYWHERE in PROJECT.md, under any H2 or none — so a host
+  #     whose `## Reviewer` carries no sub-table at all ships GREEN off a decoy H3 elsewhere in the
+  #     file (the exact #118 state this check exists to close), and the converse decoy reports a
+  #     genuine, fully-declared chain unreachable.
+  #   - Anchoring on the H3, rather than walking the whole H2 body, is what keeps the SETTINGS table
+  #     out. It sits above this one in the shipped file, so a scan of the section wholesale would
+  #     return `Primary`/`Fallback order` as if they were harnesses.
+  # The scan then ends at the next heading of ANY level (see HEADING).
   #
   # Deliberately reuses `table_cells` READ-ONLY and touches none of `extract`/`unreadable`/`labelled?`/
   # `setting_column`, whose table contract is kept byte-identical with scripts/human_gates.rb.
   def invocation_paths(text)
     found = []
-    lines = text.to_s.lines.map(&:chomp)
-    start = lines.index { |l| l.strip == INVOCATION_SECTION }
+    body = section_lines(text)
+    start = body.index { |l| l.strip == INVOCATION_SECTION }
     return found unless start
 
     column = DEFAULT_SUMMONS_COLUMN
 
-    lines[(start + 1)..].each do |l|
-      break if l.start_with?("## ") || l.start_with?("### ")
+    body[(start + 1)..].each do |l|
+      break if l.match?(HEADING) # the next heading of ANY level ends the sub-section
 
       cells = table_cells(l)
       next if cells.nil?
@@ -297,17 +402,31 @@ module Reviewer
     # `split(",", -1)` KEEPS a trailing empty element: Ruby's default drops it, so `Copilot,` - an
     # edit abandoned mid-word - would otherwise read as a clean single-entry fallback.
     parts = raw.split(",", -1).map(&:strip)
-    if parts.length > 1
-      bad[:fallback_order_blank_element] = raw if parts.any?(&:empty?)
-      bad[:fallback_order_none_mixed] = raw if parts.any? { |p| p.downcase == NONE }
-    end
+    # THE BLANK-ELEMENT CHECK IS UNGATED, and `raw.strip.empty?` is a separate disjunct rather than
+    # redundant with it. Ruby's `"".split(",", -1)` returns `[]` - no element at all - so a WHOLLY
+    # blank `fallback_order` (reachable through the real parse as a whitespace-only backtick pair)
+    # has nothing for `any?(&:empty?)` to see. Under the old `parts.length > 1` gate it was reported
+    # by NOTHING: `unreadable` is satisfied by the backticks, `extract` yields "", and the fallback
+    # simply vanished from the chain - while `Copilot,` , which still yields a WORKING one-entry
+    # chain, was flagged. That is backwards, and the ungated check is what makes the two agree.
+    #
+    # `parts.length > 1` survives on the none-mixed branch only, where it is load-bearing: `none`
+    # ALONE is the legal way to declare no fallback, so the predicate must not fire on it.
+    bad[:fallback_order_blank_element] = raw if raw.strip.empty? || parts.any?(&:empty?)
+    bad[:fallback_order_none_mixed] = raw if parts.length > 1 && parts.any? { |p| p.downcase == NONE }
 
     # A chain that falls back to its own primary is not a fallback. This is the machine-checkable
     # SHADOW of the independence requirement, not the requirement itself: it catches the same-harness
     # case only, and a model-qualified restatement of the same harness escapes it (see `unsummonable`
     # for the matching-rule limitation this shares). ADR 0027 records why the rest is unverifiable.
+    #
+    # Compared through `plain`, not `downcase`: `unsummonable` already compares that way, and a raw
+    # `downcase` left the two seams disagreeing about the same string. A fallback authored as
+    # `` `**Copilot**` `` under a `Copilot` primary is a chain that falls back to itself, yet emphasis
+    # alone made BOTH seams silent - `invalid` saw "**copilot**" != "copilot", and `unsummonable`
+    # (which strips the emphasis) found a matching row and reported nothing.
     unless primary.empty?
-      repeat = fallback_entries(raw).any? { |e| e.downcase == primary.downcase }
+      repeat = fallback_entries(raw).any? { |e| plain(e) == plain(primary) }
       bad[:fallback_order_self_reference] = primary if repeat
     end
 

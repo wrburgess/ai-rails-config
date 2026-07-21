@@ -527,6 +527,23 @@ class ParityCheck
           "(write the value in backticks, e.g. `#{safe(Reviewer::DEFAULTS[key])}`)")
     end
 
+    # (3b) An AUTHORED cell offering MORE THAN ONE backticked value - a DIFFERENT fault from (3), and
+    # invisible to every other check here. `Reviewer.extract` reads the FIRST span and stops, so a
+    # list authored one code span per element (`` `Copilot`, `Gemini` `` - the very convention this
+    # file uses for its protected-branch list) silently loses everything after the first: the cell is
+    # backticked, so (3) is satisfied; and (1), (2) and (4) all run against the truncated read, so a
+    # `fallback-order` of `` `Copilot`, `Codex` `` under a `Codex` primary passes the self-reference
+    # invariant that the table plainly violates. Reported so the host learns the checker read
+    # something narrower than what their table shows.
+    Reviewer.ambiguous(text).each do |key, cell|
+      first = cell[Reviewer::BACKTICKED, 1].to_s.strip
+      err("Reviewer declaration: #{PROJECT_CONFIG} authors a `#{key.to_s.tr('_', '-')}` row whose " \
+          "setting cell #{safe(cell)} carries MORE THAN ONE backticked value - the checker reads " \
+          "only the FIRST (`#{safe(first)}`) and every value after it is invisible to every check " \
+          "above, so this row is validated as something narrower than the table shows (author the " \
+          "whole value inside a SINGLE pair of backticks, e.g. `Copilot, Gemini`)")
+    end
+
     check_reviewer_chain(text, fields, bad)
   end
 
@@ -549,10 +566,20 @@ class ParityCheck
     end
 
     if bad.key?(:fallback_order_blank_element)
-      err("Reviewer declaration: #{PROJECT_CONFIG} declares `fallback-order: " \
-          "#{safe(bad[:fallback_order_blank_element])}`, which has an EMPTY element - a stray or " \
-          "trailing comma reads as a fallback entry that names no harness (remove it, or write " \
-          "`none` alone for no fallback)")
+      # One key, two shapes a human reads very differently - a list with a hole in it, and a value
+      # that is nothing at all. The message names which one it found, mirroring the unreadable-cell
+      # message above; the shared key is correct because the FAULT is the same (a fallback entry that
+      # names no harness) and splitting it would report one defect under two headings.
+      raw = bad[:fallback_order_blank_element]
+      found = if raw.to_s.strip.empty?
+                "declares a `fallback-order` that is entirely BLANK - the fallback is silently " \
+                  "dropped from the chain, so the primary is the only reviewer that will ever be tried"
+              else
+                "declares `fallback-order: #{safe(raw)}`, which has an EMPTY element - a stray or " \
+                  "trailing comma reads as a fallback entry that names no harness"
+              end
+      err("Reviewer declaration: #{PROJECT_CONFIG} #{found} (name a harness with a row in " \
+          "Reviewer -> Invocation paths, or write `none` alone for no fallback)")
     end
 
     if bad.key?(:fallback_order_none_mixed)
