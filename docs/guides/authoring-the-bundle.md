@@ -43,6 +43,41 @@ to happen. Split the matcher by token shape:
 Test **both** branches — a positive case per branch **and** a case proving the innocent superword
 (`underspecified`) stays green, so the boundary rule itself can't silently regress.
 
+### Structured files: validate with the language's parser, never a regex over the raw text
+
+A check that asserts the **shape of a structured file** — YAML frontmatter, JSON, TOML — must hand the
+text to the language's parser. Assert on the parsed object, not on the source.
+
+`check_skills` originally proved a Skill's frontmatter carried a `name:` key with `/\Aname:\s*\S/`
+inside the `---` fence. That regex matches happily on frontmatter that **no YAML parser can read**: an
+unquoted `": "` inside a prose `description:` — the single most likely authoring mistake, since
+descriptions are prose and prose contains colons — passed the gate and shipped a Skill that was
+silently undiscoverable in every consuming tool. A regex proves the text *looks* parseable; every
+consumer needs it to *be* parseable, and the whole defect lives in that gap
+(issue [#103](https://github.com/wrburgess/ai-config/issues/103)).
+
+Three things the parse-based version had to get right, each of which is easy to get wrong:
+
+- **Distinguish _absent_ from _malformed_ in the state enum.** The helper returns `:none` (no fence at
+  all) and `:unterminated` (an opening `---` never closed) as **separate** states, because one caller —
+  the Claude Invocation Shim — is deliberately allowed to have no frontmatter. Collapse the two and
+  that "absent is allowed" rule silently becomes "**broken** is allowed", which is exactly the false
+  green a Reviewer caught in this check's own plan. Whenever one state is permitted, make sure the
+  enum permits *only* what it names.
+- **Report file-absolute line numbers.** A parser numbers lines within the string it is handed, so
+  parsing the fence-stripped block reports `line 2` for what is file line 3. An error that sends the
+  author to the wrong line is worse than no line number. Pad the block with one blank line per stripped
+  line (blank lines are valid YAML) so the counter agrees with the file, and pass the real path via
+  `filename:` so the message is not prefixed `(<unknown>)`.
+- **A non-mapping root parses cleanly.** `---\n- one\n- two\n---` yields an `Array` and `---\n---`
+  yields `nil`, neither raising. The explicit `is_a?(Hash)` assertion is load-bearing, not
+  belt-and-braces — and the caller's message must read correctly for the `nil` case rather than
+  emitting "parsed as NilClass".
+
+Choose the parser's strictness **deliberately** rather than inheriting a default: `YAML.safe_load`'s
+default `permitted_classes` and `aliases: false` are passed explicitly here, so a future key needing a
+`Date` becomes a reviewed widening instead of a silent one.
+
 ## Porting a template of record: copy byte-identical, verify with `diff -q`
 
 When porting an artifact that is **already business- and tool-neutral** (e.g. a skill body from the
