@@ -61,7 +61,8 @@ the same way but its contract is defined here, so every delegated phase has one:
 { threads: [ { id, surface: "issue_comment"|"inline_thread"|"review_body",
                author, severity, summary, quoted_excerpt } ],
   severity_tally: { critical, high, medium, low, discussion },
-  proposed_resolutions: [ { thread_id, action: "fix"|"explain"|"defer", detail } ],
+  proposed_resolutions: [ { thread_id, source_url, action: "fix"|"explain"|"defer", detail,
+                            status: "pending"|"applied"|"replied" } ],   # source_url + status pair each back to its thread
   quality_checks: [ { purpose, status: "pass"|"fail"|"not_run" } ],   # one row per PROJECT.md → Quality Checks
   verdict: "clean" | "needs_human_call" }
 ```
@@ -104,10 +105,13 @@ function over those artifacts** — no 14th skill and no separate `resume` comma
 | nothing | `assess` |
 | assessment, no plan | `devise` |
 | plan, no PR | `invoke` |
-| PR, no self-review | `verify` |
-| self-review posted, Reviewer summoned, no response yet (chain not exhausted) | `verify` — await/recheck the **already-issued** summons; **never re-summon** (that is the double-summons defect ADR 0026 closed) |
-| self-review, Reviewer findings still open | `listen` |
-| green, no open must-fix, no SOW | `final` |
+| PR, no self-review | `verify` — review, then summon the Reviewer |
+| self-review posted, Reviewer **not yet summoned** | `verify` — issue the summons |
+| self-review posted, summons issued to the current chain entry, its window still open, no response | `verify` — await **that entry**; do not re-summon **it** (the double-summons defect ADR 0026 closed — "never re-summon" is scoped to the same entry) |
+| self-review posted, the current entry's window **expired** and a fallback entry remains | `verify` — advance to the **next** chain entry and summon it |
+| self-review posted, Reviewer **responded**, findings still open | `listen` |
+| self-review posted, chain **exhausted** (every entry unreachable/silent) | `needs_human_call` — the `stop-and-ask` floor (posted as a durable stop pair; see below) |
+| Reviewer response **resolved**, green, no open must-fix, no SOW | `final` |
 | SOW posted | await human merge |
 
 Two reads are finer than "does an artifact exist," and both are load-bearing
@@ -137,8 +141,9 @@ Then run the phases from the derived point:
 4. **Verify** — follow [`verify`](../../skills/verify/SKILL.md): delegate the full-diff review, consume
    the `drift-report`, classify findings by severity, post the self-review on the PR.
 5. **Review response** — follow [`listen`](../../skills/listen/SKILL.md): delegate the fetch-and-fix churn
-   (`review-response` contract), but make the severity and stop-and-ask calls in the orchestrator and
-   summarize for the HC before any change is applied.
+   (`review-response` contract), make the severity and escalate-vs-resolve calls in the orchestrator, and
+   **dispose autonomously — post the disposition record and apply the resolvable findings, pausing to ask
+   the HC only on emergency stop #3** (an architectural/ambiguous finding).
 6. **Deliver** — follow [`final`](../../skills/final/SKILL.md) **in the orchestrator**: re-verify the
    PR is green with no open must-fix findings, post the Statement of Work, link it from the issue.
    **→ Human gate 2 (merge) — always human, never configurable.**
@@ -155,21 +160,28 @@ There is no path where `ship` returns the HC a list of commands to run.
 
 ### build-brief (orchestrator → the next build stretch)
 ```
-{ issue_ref, plan_comment_url, branch,
+{ issue_ref, plan_comment_url?, branch?,   # `?` = present once that artifact exists (null at assess/devise)
   resume_point:    assess | devise | invoke | verify | listen | final | await-merge,
-  human_decisions: [ { at, question, answer } ],   # the durable Q+A pairs, folded back in
+  human_decisions: [ { stop_id, at, question, answer, artifact_url } ],  # stable id + source ref per pair
   gates:           { plan_approval, merge } }       # read from PROJECT.md -> Human Gates
 ```
 
 ### build-result (a build stretch → orchestrator)
 ```
-{ pr_url, sow_posted, quality_checks: [ { purpose, status } ],
-  open_must_fix: [...], verdict: "delivered" | "needs_human_call",
-  paused_at, question }
+{ pr_url?,               # null until invoke opens the PR
+  sow_posted, quality_checks: [ { purpose, status } ], open_must_fix: [...],
+  verdict: "delivered" | "awaiting_reviewer" | "reseed" | "needs_human_call",
+  paused_at, question, stop_id }   # stop_id set on needs_human_call; pairs back to human_decisions
 ```
 
-`needs_human_call` is raised by any emergency stop or an exhausted Reviewer chain (the *Faithfulness
-backstop* below). On it the orchestrator **owns** the severity call and the stop-and-ask: it posts the
+Fields marked `?` are **null until their artifact exists** (no `pr_url` before `invoke` opens the PR; no
+`plan_comment_url`/`branch` at `assess`/`devise`), so the contracts represent every resume point rather
+than assuming a PR. Beyond `delivered` and `needs_human_call`, two verdicts are **reset-only transitions
+that need no human call** — preserving a firebreak without a pause: `awaiting_reviewer` (summoned, still
+inside the bounded window, no response yet — the loop re-polls) and `reseed` (a pure context reset, e.g.
+the dormant `auto` plan-boundary cross or the pre-`final` check). `needs_human_call` is raised by any
+emergency stop or an exhausted Reviewer chain (the *Faithfulness backstop* below), and carries a
+`stop_id` that pairs its durable question to the answer folded back into `build-brief.human_decisions`. On it the orchestrator **owns** the severity call and the stop-and-ask: it posts the
 question durably, waits for the HC's answer (**the pause**), folds it into `build-brief.human_decisions`,
 and re-seeds. On `delivered` it reports and the HC merges. *Who* crosses each boundary, and how the
 context reset happens, is *Gates as context boundaries* below.

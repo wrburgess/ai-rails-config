@@ -116,8 +116,11 @@ already described and what needs no new capability.
    by the emergency-stop bullet those lists keep.
 
 8. **Scope fence — this phase builds the mechanism; #116 flips the switch.** Plan approval still ships
-   `required` and `PROJECT.md` → *Human Gates* is untouched, so the `auto` context-reset branch
-   (decision 1, `auto` row) ships **dormant**: documented and reachable in prose, never exercised until
+   `required` and the *Human Gates* **gate table itself is unchanged** — the plan-approval and merge
+   settings are exactly as shipped (this PR edits only that section's boundary prose and removes its
+   `listen` carve-out, per decision 7; the settings a host reads are untouched). So the `auto`
+   context-reset branch (decision 1, `auto` row) ships **dormant**: documented and reachable in prose,
+   never exercised until
    [#116](https://github.com/wrburgess/ai-config/issues/116) flips the gate and adds the `ai-config-sync`
    reseed. What is **live now, under `required`**: the pause-not-terminate loop (decision 2), the resume
    derivation and `/ship` idempotency (decisions 3–5), and `listen`'s autonomous disposition inside a
