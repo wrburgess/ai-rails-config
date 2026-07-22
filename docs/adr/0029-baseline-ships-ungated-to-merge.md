@@ -73,15 +73,15 @@ gate) or ungated-to-merge (the AC drives itself to the one gate a human always o
   section's whole contract (ADR 0025) is that a host predating it is unaffected. Flipping the parser
   default would silently move every section-less vendored host to `auto` — a gate change nobody
   authored, in the unsafe direction.
-- **A `present-to-hc` default for rule suggestions.** Rejected as the *default*: it reintroduces a human
-  pause into the run the flip exists to make hands-off, and the merge gate already backstops a folded
-  change (a human reads and merges the same PR). It remains available as the opt-in for a host that wants
-  every rule edit reviewed separately.
-- **Fold everything, defer nothing.** Rejected: a large or contentious Rules-Layer change riding in a
+- **B — a `present-to-hc` default for rule suggestions.** Rejected as the *default*: it reintroduces a
+  human pause into the run the flip exists to make hands-off, and the merge gate already backstops a
+  folded change (a human reads and merges the same PR). It remains available as the opt-in for a host
+  that wants every rule edit reviewed separately.
+- **C — fold everything, defer nothing.** Rejected: a large or contentious Rules-Layer change riding in a
   feature PR buries a real judgment call under the feature's own review. The discretion bar keeps the
   merge-gate backstop meaningful — small and low-risk rides along; large or contentious earns its own
   issue and its own review.
-- **C — flip only the shipped `PROJECT.md`, keep the parser strict, add `autonomous-fold`, defer the
+- **D — flip only the shipped `PROJECT.md`, keep the parser strict, add `autonomous-fold`, defer the
   residual risks (chosen).** Ships the intended posture, changes no already-vendored host, and keeps
   merge the one human gate.
 
