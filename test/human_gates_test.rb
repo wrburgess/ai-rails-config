@@ -273,9 +273,11 @@ class HumanGatesTest < Minitest::Test
     text = File.read(File.join(root, "PROJECT.md"), encoding: "UTF-8")
     section = text[/### Rule-suggestion disposition.*?(?=\n## |\z)/m]
     refute_nil section, "PROJECT.md must declare a `### Rule-suggestion disposition` subsection"
-    # `[^`]*` spans the line wrap (but no other backticked token), so the assertion binds "shipped
-    # default" to `autonomous-fold` as its very next backticked value — not a bare substring.
-    assert_match(/shipped default[^`]*`autonomous-fold`/i, section,
+    # Anchor to the DECLARING sentence ("... shipped default is `autonomous-fold`"), not merely any
+    # in-subsection mention: `is\s+` binds the phrase to the declaration (the `\s+` spans the line
+    # wrap), so a later explanatory sentence naming both tokens cannot satisfy it after the real
+    # declaration changes.
+    assert_match(/shipped default is\s+`autonomous-fold`/i, section,
                  "the Rule-suggestion disposition must declare its shipped default as `autonomous-fold`")
   end
 end

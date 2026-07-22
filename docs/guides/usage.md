@@ -64,9 +64,10 @@ split is what keeps future updates mergeable.
 1. **Edit [`PROJECT.md`](../../PROJECT.md)** — the single Customization surface the agents read. Replace
    the business-neutral placeholders in its sections. The parity check requires five of them — *Quality
    Checks*, *Attribution & Model Declaration*, *Branch & PR Policy*, *Review Severity Framework*,
-   *Lifecycle Host* — and the rest are additive: omitting *Human Gates* falls back to the shipped strict
-   policy, while omitting *Intake Pipeline* or *Tool Roster* leaves `scout`/`restock` with no artifact
-   locations, so author those two if you use those skills:
+   *Lifecycle Host* — and the rest are additive: omitting *Human Gates* falls back to the parser's strict
+   fail-safe (plan approval `required`), which is **not** the shipped `auto` baseline — a host that wants
+   `auto` keeps the section — while omitting *Intake Pipeline* or *Tool Roster* leaves `scout`/`restock`
+   with no artifact locations, so author those two if you use those skills:
    - **Quality Checks** — the real commands an agent must run green before "done" (lint, tests,
      security, dependency audit).
    - **Attribution & Model Declaration** — the per-agent tool + model for commit trailers and comment
@@ -85,8 +86,9 @@ split is what keeps future updates mergeable.
      names that it self-selected; set *plan approval* back to `required` if your host wants the AC to
      stop and wait for a human. **Merge is not configurable:**
      `required` is its only legal value, so no host can express self-merge, and parity hard-fails any
-     attempt. Leaving this section out entirely is fine — a vendored copy that predates it parses to
-     the same strict defaults.
+     attempt. Leaving this section out falls back to the parser's strict fail-safe (plan approval
+     `required`) — the safe default for a vendored copy that predates the section, **not** the shipped
+     `auto` baseline; keep the section to ship `auto`.
    - **Reviewer** — the independent second-model reviewer chain the lifecycle summons: primary,
      fallback order, bounded window, degradation floor, plus an *Invocation paths* table giving each
      harness's summons mechanism ([ADR 0026](../adr/0026-reviewer-is-a-project-config-value-ac-summons-floor-preserved.md),

@@ -86,10 +86,12 @@ was chosen.
 
 ### Stage 2: Plan (`devise`)
 
-**Trigger:** HC picks an option.
+**Trigger:** an option is chosen — the AC's own recommendation under the shipped `auto` baseline, or
+the HC's pick where a host set plan approval back to `required`.
 
 **AC produces:** a plan **right-sized to the task** — a step-by-step plan with specific file paths when
-the change is well understood, or, for an HC-elected **exploratory/discovery issue**, a thin hypothesis
+the change is well understood, or, for an **exploratory/discovery issue** (AC-elected under the shipped
+`auto` baseline, HC-elected under `required`), a thin hypothesis
 + a spike/prototype step + an explicit re-plan checkpoint (a *plan to learn*, still posted and still
 approved); a **testing strategy decided now, not during implementation** (which test types, which
 scenarios, which edge cases) — for an exploratory plan the production-code strategy is decided in the

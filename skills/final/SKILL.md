@@ -28,7 +28,20 @@ context you actually re-read (the PR, its checks, its review threads), not on a 
 
 <procedure>
 
-1. **Verify the PR is ready:**
+1. **Dispose of Rules Layer / config improvements** learned during implementation — a convention that
+   isn't documented, a gap a Reviewer finding revealed, a new anti-pattern worth capturing — per
+   [`PROJECT.md`](../../PROJECT.md) → *Human Gates* → *Rule-suggestion disposition*. **Do this before
+   the verification and SOW below**, so a folded change is part of the diff those steps check and
+   record — never edited in after the SOW is posted:
+   - Under **`autonomous-fold`** (the shipped baseline): **fold** the well-scoped, low-risk ones into
+     **this PR** — the same PR a human merges, so the merge gate stays their backstop — and **defer**
+     the large or contentious ones to a tracked follow-up issue. The discretion bar is *well-scoped
+     **and** low-risk → fold; large **or** contentious → defer.* **Commit and push the folds** so
+     Step 2's checks run on the folded diff, and record BOTH — what was folded and what was deferred
+     (with the follow-up link) — in the SOW's *Folded Rule/Config Changes* section (Step 5).
+   - Under **`present-to-hc`**: **present** the suggestions to the HC and wait; **do not edit the Rules
+     Layer or config without approval** (nothing is folded, so the diff is unchanged).
+2. **Verify the PR is ready:**
    - Integrate the latest base branch (merge it in — do not rebase if the branch-protection guardrails
      refuse a mid-rebase detached HEAD; see [`PROJECT.md`](../../PROJECT.md) → *Branch & PR Policy*).
    - Run every check in [`PROJECT.md`](../../PROJECT.md) → *Quality Checks* and confirm the host's CI
@@ -38,10 +51,10 @@ context you actually re-read (the PR, its checks, its review threads), not on a 
      umbrella/epic sub-PR must close **nothing** (only the final phase closes the umbrella; see
      [`AGENTS.md`](../../AGENTS.md) → *Umbrella sub-PRs and closing keywords*). If wrong, reword the
      body/commits and re-check.
-2. **Resolve remaining Reviewer findings** by the [`PROJECT.md`](../../PROJECT.md) → *Review Severity
+3. **Resolve remaining Reviewer findings** by the [`PROJECT.md`](../../PROJECT.md) → *Review Severity
    Framework*: **all Critical and High findings must be resolved before the SOW.** Don't argue a
    finding unless it is factually incorrect — if the Reviewer flagged it, treat it as a real gap.
-3. **Confirm the faithfulness backstop actually ran.** [`verify`](../../skills/verify/SKILL.md) owns
+4. **Confirm the faithfulness backstop actually ran.** [`verify`](../../skills/verify/SKILL.md) owns
    the summons and carries its outcome forward; record here **which** reviewer from
    [`PROJECT.md`](../../PROJECT.md) → *Reviewer* answered — the primary, or which fallback. The SOW
    states this explicitly rather than implying a review happened because findings exist.
@@ -50,7 +63,7 @@ context you actually re-read (the PR, its checks, its review threads), not on a 
    configurable**, so an unreviewed PR does **not** reach a SOW — stop and ask the HC instead of
    delivering with a footnote. Reaching this step with no reviewer response means `verify`'s floor was
    skipped: stop and recheck.
-4. **Generate the Statement of Work** and post it as a PR comment via the lifecycle host:
+5. **Generate the Statement of Work** and post it as a PR comment via the lifecycle host:
    ```markdown
    ## Statement of Work
 
@@ -93,18 +106,8 @@ context you actually re-read (the PR, its checks, its review threads), not on a 
    ### Linked Issue
    [`Closes #N` for a leaf issue; `Part of #N` with NO adjacent closing keyword for an umbrella sub-PR]
    ```
-5. **Post a reference link on the original issue** pointing to the SOW on the PR (for an umbrella
+6. **Post a reference link on the original issue** pointing to the SOW on the PR (for an umbrella
    sub-PR whose closing references are empty, post on the `Part of #N` umbrella issue).
-6. **Dispose of Rules Layer / config improvements** learned during implementation — a convention that
-   isn't documented, a gap a Reviewer finding revealed, a new anti-pattern worth capturing — per
-   [`PROJECT.md`](../../PROJECT.md) → *Human Gates* → *Rule-suggestion disposition*:
-   - Under **`autonomous-fold`** (the shipped baseline): **fold** the well-scoped, low-risk ones into
-     **this PR** — the same PR a human merges, so the merge gate stays their backstop — and **defer**
-     the large or contentious ones to a tracked follow-up issue. The discretion bar is *well-scoped
-     **and** low-risk → fold; large **or** contentious → defer.* Record BOTH — what was folded and what
-     was deferred (with the follow-up link) — in the SOW's *Folded Rule/Config Changes* section.
-   - Under **`present-to-hc`**: **present** the suggestions to the HC and wait; **do not edit the Rules
-     Layer or config without approval.**
 7. **Notify the HC** the PR is ready for final review and merge.
 
 Sign every lifecycle-host comment with the attribution footer from [`PROJECT.md`](../../PROJECT.md) →

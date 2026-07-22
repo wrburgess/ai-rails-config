@@ -1,12 +1,14 @@
 ---
 name: devise
-description: Stage 2 of the development lifecycle. Turn the chosen option into a right-sized plan — a concrete, ordered implementation plan with its testing strategy decided up front for well-understood work, or an exploratory spike/re-plan plan (a plan to learn) whose production test strategy is decided in the post-spike re-plan. Use after an option is picked and before writing any code; who picks the option, and who elects the exploratory path, follows PROJECT.md → Human Gates (the HC by default).
+description: Stage 2 of the development lifecycle. Turn the chosen option into a right-sized plan — a concrete, ordered implementation plan with its testing strategy decided up front for well-understood work, or an exploratory spike/re-plan plan (a plan to learn) whose production test strategy is decided in the post-spike re-plan. Use after an option is picked and before writing any code; who picks the option, and who elects the exploratory path, follows PROJECT.md → Human Gates (the AC self-selects its recommendation under the shipped `auto` baseline; the HC picks where a host sets plan approval back to `required`).
 ---
 
 <what-to-do>
 
-Create an implementation plan for the tracked issue named in the invocation, based on the option the
-HC chose from the [assessment](../../skills/assess/SKILL.md). This is **Stage 2 (Plan)** of the
+Create an implementation plan for the tracked issue named in the invocation, based on the chosen
+option from the [assessment](../../skills/assess/SKILL.md) — the AC's own recommendation under the
+shipped `auto` baseline, or the HC's pick where a host set plan approval back to `required`. This is
+**Stage 2 (Plan)** of the
 [development lifecycle](../../docs/standards/development-lifecycle.md).
 
 Read host-specific values — the lifecycle host and artifact map, the branch/PR policy, the
@@ -19,8 +21,9 @@ quality-check commands, the attribution/model, and the **human-gate policy** —
 
 <procedure>
 
-1. **Read the issue and its comments** — the assessment and the HC's chosen option (and any answers to
-   the assessment's open questions).
+1. **Read the issue and its comments** — the assessment and the chosen option (the AC's own
+   recommendation under the shipped `auto` baseline, or the HC's pick under `required`), and any answers
+   to the assessment's open questions.
 2. **Right-size the plan to the task.** Match the plan's altitude to how much is actually known. For a
    well-understood change, write the full ordered plan below. For an **exploratory/discovery issue** —
    where the outcome is genuinely uncertain and a full ordered plan would be written against unknowns —
