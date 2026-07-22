@@ -68,6 +68,10 @@ context you actually re-read (the PR, its checks, its review threads), not on a 
    |------|--------|---------|
    | path/to/file | Created/Modified/Deleted | What changed and why |
 
+   ### Folded Rule/Config Changes
+   - [Well-scoped, low-risk Rules-Layer/config improvements folded into THIS PR under `autonomous-fold` — or "None"]
+   - Deferred (follow-up): [link to the follow-up issue for large/contentious suggestions — or "None"]
+
    ### Testing Coverage
    - [Coverage by test type, notable scenarios, and edge cases]
    - Results: [each check from PROJECT.md → Quality Checks and its outcome]
@@ -91,9 +95,16 @@ context you actually re-read (the PR, its checks, its review threads), not on a 
    ```
 5. **Post a reference link on the original issue** pointing to the SOW on the PR (for an umbrella
    sub-PR whose closing references are empty, post on the `Part of #N` umbrella issue).
-6. **Suggest Rules Layer / config improvements** learned during implementation — a convention that
-   isn't documented, a gap a Reviewer finding revealed, a new anti-pattern worth capturing. Present
-   the suggestions to the HC; **do not edit the Rules Layer or config without approval.**
+6. **Dispose of Rules Layer / config improvements** learned during implementation — a convention that
+   isn't documented, a gap a Reviewer finding revealed, a new anti-pattern worth capturing — per
+   [`PROJECT.md`](../../PROJECT.md) → *Human Gates* → *Rule-suggestion disposition*:
+   - Under **`autonomous-fold`** (the shipped baseline): **fold** the well-scoped, low-risk ones into
+     **this PR** — the same PR a human merges, so the merge gate stays their backstop — and **defer**
+     the large or contentious ones to a tracked follow-up issue. The discretion bar is *well-scoped
+     **and** low-risk → fold; large **or** contentious → defer.* Record BOTH — what was folded and what
+     was deferred (with the follow-up link) — in the SOW's *Folded Rule/Config Changes* section.
+   - Under **`present-to-hc`**: **present** the suggestions to the HC and wait; **do not edit the Rules
+     Layer or config without approval.**
 7. **Notify the HC** the PR is ready for final review and merge.
 
 Sign every lifecycle-host comment with the attribution footer from [`PROJECT.md`](../../PROJECT.md) →

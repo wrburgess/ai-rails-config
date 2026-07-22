@@ -78,10 +78,12 @@ split is what keeps future updates mergeable.
    - **Lifecycle Host** — the platform hosting issues/PRs and the artifact map (GitHub by default,
      remappable — [ADR 0006](../adr/0006-baseline-skill-set-and-github-default-lifecycle-host.md)).
    - **Human Gates** — which lifecycle pauses require a human
-     ([ADR 0025](../adr/0025-human-gate-policy-is-a-project-config-value.md)). Ships **strict**: plan
-     approval `required`, merge `required`. Set *plan approval* to `auto` if your host wants the AC to
-     proceed on its own recommendation — it still posts the assessment and the plan (under `auto` those
-     comments are the sole audit trail) and names that it self-selected. **Merge is not configurable:**
+     ([ADR 0025](../adr/0025-human-gate-policy-is-a-project-config-value.md),
+     [ADR 0029](../adr/0029-baseline-ships-ungated-to-merge.md)). Ships **ungated to merge**: plan
+     approval `auto`, merge `required`. Under `auto` the AC proceeds on its own recommendation — it
+     still posts the assessment and the plan (under `auto` those comments are the sole audit trail) and
+     names that it self-selected; set *plan approval* back to `required` if your host wants the AC to
+     stop and wait for a human. **Merge is not configurable:**
      `required` is its only legal value, so no host can express self-merge, and parity hard-fails any
      attempt. Leaving this section out entirely is fine — a vendored copy that predates it parses to
      the same strict defaults.
@@ -146,7 +148,8 @@ shim, and the native-discovery tools reach the same body by the documented "read
   `listen`, `final`) take the **PR** id that `invoke` opens.
 - Two human gates punctuate it — **plan approval** (after `devise`) and **merge** (after `final`).
   Which of them *pauses* is declared in [`PROJECT.md`](../../PROJECT.md) → *Human Gates*; the shipped
-  baseline is strict, so out of the box both wait for the HC. **Merge is never configurable.** And
+  baseline is **ungated to merge** (plan approval `auto`), so out of the box only merge waits for the
+  HC. **Merge is never configurable.** And
   whatever the setting, "plan posted" stays a **context boundary**: `invoke` re-reads the posted plan
   from the issue rather than trusting conversational memory.
 - Full stage spec, terminal artifacts, and when to compress stages →

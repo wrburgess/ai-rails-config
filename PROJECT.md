@@ -122,10 +122,12 @@ and stays green.
 - **At the PR gate, the AC summons the Reviewer, not the HC**, and [`verify`](skills/verify/SKILL.md)
   is the **sole owner** of that summons. No other Skill issues it — a duplicated summons produces two
   review requests and two windows, and makes "did the primary respond?" unanswerable.
-- **At the plan gate the HC still forwards** the assessment and plan. That is consistent while plan
-  approval is `required` (see *Human Gates* below) — a human is already standing at that gate. A host
-  running `auto` has nobody there, so the plan-gate summons needs an owner before that combination is
-  used; [ADR 0026](docs/adr/0026-reviewer-is-a-project-config-value-ac-summons-floor-preserved.md)
+- **At the plan gate the HC forwards** the assessment and plan **when plan approval is `required`** (see
+  *Human Gates* below) — a human is already standing at that gate. **The shipped baseline is now `auto`**
+  ([ADR 0029](docs/adr/0029-baseline-ships-ungated-to-merge.md)), and under `auto` nobody is at the plan
+  gate, so the plan-gate summons has no owner or mechanism yet; that residual risk is tracked in
+  [#129](https://github.com/wrburgess/ai-config/issues/129), and
+  [ADR 0026](docs/adr/0026-reviewer-is-a-project-config-value-ac-summons-floor-preserved.md)
   decision 2 records it as deliberately unsettled.
 - **A response** is a reply on **any** of the three surfaces — an issue-level PR comment, an **inline
   diff thread**, or a **review body**. Reading only the first makes an automated inline review
@@ -179,22 +181,27 @@ Which lifecycle pauses require a human, declared here so a generic Skill body na
 of hardcoding a policy a host would otherwise have to fork the file to change
 ([ADR 0025](docs/adr/0025-human-gate-policy-is-a-project-config-value.md), the same argument shape as
 the host-platform value in [ADR 0006](docs/adr/0006-baseline-skill-set-and-github-default-lifecycle-host.md)).
-The Generic Baseline ships the **strict** policy, and every Skill body states that default inline — so
-a Host App that never touches this section behaves exactly as it did before the section existed.
+The Generic Baseline now ships **ungated to merge**: plan approval is `auto`, so a hands-off run drives
+itself to the one standing human gate, and every Skill body states that default inline
+([ADR 0029](docs/adr/0029-baseline-ships-ungated-to-merge.md)). **Merge stays `required` and is never
+configurable** — it is the sole human gate. (A vendored `PROJECT.md` that predates this section still
+parses to the strict fail-safe — plan approval `required` — through the parser default; the flip lives
+in the shipped file, not in that default.)
 
 | Gate | Setting | Allowed values |
 |------|---------|----------------|
-| **Plan approval** — covers both the Stage-1 option pick and the Stage-2 plan approval | `required` | `required` · `auto` |
+| **Plan approval** — covers both the Stage-1 option pick and the Stage-2 plan approval | `auto` | `required` · `auto` |
 | **Merge** — the HC merges the delivered PR | `required` | `required` (not configurable) |
 
-- **`required`** (shipped default) — the AC stops and waits for the HC: it does not proceed past the
-  assessment without a chosen option, and it does not write code without an approved plan.
-- **`auto`** — a host may set the **plan-approval** row (and only that row) to `auto`. The AC then
-  proceeds on **its own stated recommendation** rather than waiting. It still **posts** the assessment
-  and the plan to the lifecycle host — under `auto` those comments are the *only* durable audit trail
-  of what was decided, so posting them becomes more load-bearing, not less — and it **names in the
-  posted comment** that it self-selected under `auto`. Under `auto` the AC may likewise elect the
-  exploratory (spike-then-plan) path itself, stating its rationale in the plan.
+- **`auto`** (shipped default) — the AC proceeds on **its own stated recommendation** rather than
+  waiting. It still **posts** the assessment and the plan to the lifecycle host — under `auto` those
+  comments are the *only* durable audit trail of what was decided, so posting them becomes more
+  load-bearing, not less — and it **names in the posted comment** that it self-selected under `auto`.
+  Under `auto` the AC may likewise elect the exploratory (spike-then-plan) path itself, stating its
+  rationale in the plan.
+- **`required`** — a host may set the **plan-approval** row (and only that row) back to `required`. The
+  AC then stops and waits for the HC: it does not proceed past the assessment without a chosen option,
+  and it does not write code without an approved plan.
 - **Merge is not configurable.** `required` is the only allowed value: **no Host App may express
   self-merge.** The parity check hard-fails any other value. `final` posts the SOW; a human merges.
 
@@ -222,6 +229,27 @@ a Host App that never touches this section behaves exactly as it did before the 
   ([ADR 0014](docs/adr/0014-manual-drop-inbox-for-unfetchable-sources.md),
   [ADR 0016](docs/adr/0016-interactive-sequential-disposition-scout.md)) — are out of scope too.
   `auto` is **not** licence to auto-merge any of their review PRs.
+
+### Rule-suggestion disposition
+
+How [`final`](skills/final/SKILL.md) handles the Rules-Layer / config improvements it learns during
+implementation, now that a hands-off run reaches the merge gate on its own
+([ADR 0029](docs/adr/0029-baseline-ships-ungated-to-merge.md)). Its shipped default is
+`autonomous-fold`; allowed values `autonomous-fold | present-to-hc`. This is a **documentary** value —
+prose, **not** a row in the gate table above (the parser reads a two-row table and must stay two-row),
+so a host changes it by editing this paragraph.
+
+- **`autonomous-fold`** (shipped default) — `final` **folds** well-scoped, low-risk Rules-Layer/config
+  improvements into the **same PR a human merges**, so the merge gate stays the backstop for them, and
+  **defers** large or contentious ones to a follow-up issue recorded in the SOW. The discretion bar:
+  well-scoped **and** low-risk → fold; large **or** contentious → defer.
+- **`present-to-hc`** — `final` **presents** the suggestions to the HC and waits, editing no Rules
+  Layer or config without approval (the pre-ungated behavior).
+
+This value governs only `final`'s rule-suggestion step. It does **not** touch the intake/authoring
+"a human disposes" gates — [`scout`](skills/scout/SKILL.md), [`clip`](skills/clip/SKILL.md),
+[`follow`](skills/follow/SKILL.md), [`restock`](skills/restock/SKILL.md),
+[`create-skill`](skills/create-skill/SKILL.md) — whose review PRs a human still disposes.
 
 ## Intake Pipeline
 

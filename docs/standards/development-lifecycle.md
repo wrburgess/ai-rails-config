@@ -36,9 +36,11 @@ over time is which gates require external review vs. self-review; what changes a
   HC"** — `stop-and-ask` is the floor's only allowed value, it is never silently dropped, and a run
   may not certify itself by delivering unreviewed.
 
-  **At the plan gate the HC still forwards** the assessment and plan (Stages 1–2 below). That is
-  consistent while plan approval is `required` — a human is already at that gate. A host running
-  `auto` has nobody there, so the plan-gate summons needs an owner before that combination is used.
+  **At the plan gate the HC forwards** the assessment and plan (Stages 1–2 below) **when plan approval
+  is `required`** — a human is already at that gate. Under the shipped baseline `auto` nobody is there,
+  so the plan-gate summons has no owner yet — a residual risk tracked in
+  [#129](https://github.com/wrburgess/ai-config/issues/129)
+  ([ADR 0029](../adr/0029-baseline-ships-ungated-to-merge.md)).
 
 ## The lifecycle host
 
@@ -76,10 +78,11 @@ codebase trace is offloaded to a read-only sub-agent that returns a compact **ex
 assumptions, requirements gaps, architectural concerns).
 
 **Terminal artifact:** the assessment posted on the issue. **Exit:** an option is chosen. Plan approval
-is **`required`** in the shipped baseline, so the **HC** picks it and the AC does not proceed without a
-chosen option. A Host App may set plan approval to `auto` in [`PROJECT.md`](../../PROJECT.md) → *Human
-Gates*; the AC then proceeds on its **own stated recommendation** and says so in the posted assessment.
-The assessment is posted either way — under `auto` it is the only record of what was chosen.
+is **`auto`** in the shipped baseline, so the AC proceeds on its **own stated recommendation** and says
+so in the posted assessment. A Host App may set plan approval back to `required` in
+[`PROJECT.md`](../../PROJECT.md) → *Human Gates*, where the **HC** picks the option and the AC does not
+proceed without one. The assessment is posted either way — under `auto` it is the only record of what
+was chosen.
 
 ### Stage 2: Plan (`devise`)
 
@@ -99,7 +102,7 @@ Implement (Stage 3) and its PR follow only once that final plan clears this gate
 patterns that don't match the codebase, unaddressed requirements).
 
 **Terminal artifact:** the plan posted on the issue. **This is the first human gate.** It is
-**`required`** in the shipped baseline; a Host App may set it to `auto` in
+**`auto`** in the shipped baseline; a Host App may set it back to `required` in
 [`PROJECT.md`](../../PROJECT.md) → *Human Gates*.
 **Exit:** under `required`, the HC approves the plan (or asks for revisions) and the AC does not write
 code without an approved plan. Under `auto`, the AC proceeds on the plan it just posted, naming in the
@@ -179,13 +182,14 @@ SOW posted; **HC merges.**
 ## The two human gates
 
 Two gates punctuate the lifecycle. Which of them *pauses* for a human is declared in
-[`PROJECT.md`](../../PROJECT.md) → *Human Gates*; the shipped baseline is the strict policy, so unless
-a Host App says otherwise both gates wait for the HC:
+[`PROJECT.md`](../../PROJECT.md) → *Human Gates*; the shipped baseline is **ungated to merge** — plan
+approval `auto`, merge `required` — so out of the box only the merge gate waits for the HC:
 
 1. **Plan approval** — after `devise` (and any Reviewer plan review), before any code. Shipped as
-   **`required`**: the AC does not write code without an approved plan. A host may set it to `auto`,
-   and the AC then proceeds on its own stated recommendation — still **posting** the assessment and the
-   plan (under `auto` they are the sole audit trail) and naming in the comment that it self-selected.
+   **`auto`**: the AC proceeds on its own stated recommendation — still **posting** the assessment and
+   the plan (under `auto` they are the sole audit trail) and naming in the comment that it
+   self-selected. A host may set it back to `required`, and the AC then does not write code without an
+   approved plan.
 2. **Merge** — after `final` posts the SOW with a green gate and no open must-fix findings. **`required`
    is its only legal value: merge is not configurable and the AC never merges.** No Host App may
    express self-merge; the parity check hard-fails any attempt to.
@@ -231,9 +235,10 @@ past it. Re-planning *upholds* the gate, it does not weaken or bypass it
 | Documentation-only change | Implement → Deliver |
 
 **The HC decides when to compress. The AC does not self-select a compressed workflow** — the one
-exception being a host that has set plan approval to `auto` in [`PROJECT.md`](../../PROJECT.md) →
-*Human Gates*, where the AC may elect the exploratory (spike-then-plan) row itself and must state its
-rationale in the posted plan. Compressing away a *stage* is still the HC's call.
+exception being the exploratory (spike-then-plan) row under plan approval `auto` (the shipped baseline;
+a host may set it back to `required` in [`PROJECT.md`](../../PROJECT.md) → *Human Gates*), where the AC
+may elect that row itself and must state its rationale in the posted plan. Compressing away a *stage* is
+still the HC's call.
 
 ## Automated / streamlined track (`ship`)
 
@@ -241,7 +246,8 @@ A Host App can run the whole lifecycle hands-off with the [`ship`](../../skills/
 orchestrator skill that sequences
 `assess → devise → invoke → verify → listen → final`, replacing the per-stage "wait for HC" pauses with
 exactly the **two human gates** above — honored as [`PROJECT.md`](../../PROJECT.md) → *Human Gates*
-declares them, strict by default — plus unconditional emergency stops (a check that can't be
+declares them, ungated to merge by default (plan approval `auto`, merge `required`) — plus unconditional
+emergency stops (a check that can't be
 auto-resolved; a discovery that the change touches core logic the plan didn't anticipate; an
 architectural or ambiguous review comment). Under a hands-off run those stops are **pauses that
 re-seed**, not terminations: `ship` records the question and its answer durably, resets its context, and
@@ -272,7 +278,7 @@ On tools without sub-agent fan-out the same phases run inline with a "compact be
 | Stage | Skill | Terminal artifact |
 |-------|-------|-------------------|
 | Assess | `assess` | Assessment on the issue |
-| Plan | `devise` | Plan on the issue (gate 1: plan approval — `required` by default, host-settable to `auto`) |
+| Plan | `devise` | Plan on the issue (gate 1: plan approval — `auto` by default, host-settable to `required`) |
 | Implement | `invoke` | Open PR |
 | Verify | `verify` | Self-review comment on the PR |
 | Review response | `listen` | Replies on the PR review threads |

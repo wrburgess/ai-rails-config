@@ -60,8 +60,8 @@ the first sub-PR merges, orphaning the remaining phases — close the specific p
 
 The lifecycle is issue/PR-shaped: **Assess → Plan → Implement → Verify → Deliver**, plus a
 review-response step. `assess`/`devise` post to an issue; `invoke` opens a PR; `verify`/`listen`/`final`
-operate on that PR. Two human gates: **plan approval** — `required` by default, a host may set it to
-`auto` in [`PROJECT.md`](PROJECT.md) → *Human Gates* — and **merge**, which is always human and **never
+operate on that PR. Two human gates: **plan approval** — `auto` by default, a host may set it back to
+`required` in [`PROJECT.md`](PROJECT.md) → *Human Gates* — and **merge**, which is always human and **never
 configurable**. Either way "plan posted" stays a context boundary: `invoke` re-reads the posted plan
 rather than trusting memory. GitHub is the default lifecycle host, set in `PROJECT.md` and remappable
 ([ADR 0006](docs/adr/0006-baseline-skill-set-and-github-default-lifecycle-host.md)). The full stage

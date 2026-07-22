@@ -133,8 +133,10 @@ independence rule below compares the chain against the harness you are actually 
 **`verify` is the sole owner of the PR-gate Reviewer summons** ([ADR 0026](../../docs/adr/0026-reviewer-is-a-project-config-value-ac-summons-floor-preserved.md)).
 The **AC** summons here — not the HC — so a run still gets its faithfulness backstop with no human in
 the loop. No other Skill issues this summons: a second one produces two review requests, two windows,
-and an unanswerable "did the primary respond?". (The *plan*-gate summons is a separate thing and stays
-with the HC while plan approval is `required` — see the ADR.)
+and an unanswerable "did the primary respond?". (The *plan*-gate summons is a separate thing: it stays
+with the HC where plan approval is `required`, but under the shipped baseline `auto` nobody is at the
+plan gate, so it has no owner yet — a residual risk tracked in
+[#129](https://github.com/wrburgess/ai-config/issues/129); see the ADR.)
 
 Read the chain from [`PROJECT.md`](../../PROJECT.md) → *Reviewer*: the **primary**, the **fallback
 order**, the **bounded window**, and the **degradation floor**. **Baseline — primary `Codex`,

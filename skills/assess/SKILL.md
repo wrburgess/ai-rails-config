@@ -10,10 +10,11 @@ Review the tracked issue named in the invocation and prepare an assessment for t
 
 Read host-specific values — the lifecycle host and its artifact map, the attribution/model, the review
 severities, the quality-check commands, and the **human-gate policy** — from
-[`PROJECT.md`](../../PROJECT.md). Never hardcode them here. **Baseline: plan approval is `required`,
-and it covers this stage's option pick** — the AC posts the assessment and does not proceed without a
-chosen option. A Host App may set it to `auto` in `PROJECT.md` → *Human Gates*; read that section
-before writing the Next Step. Name the lifecycle *verb* ("read the issue", "post the assessment to the
+[`PROJECT.md`](../../PROJECT.md). Never hardcode them here. **Baseline: plan approval is `auto`,
+and it covers this stage's option pick** — the AC posts the assessment and then proceeds on its own
+stated recommendation. A Host App may set it back to `required` in `PROJECT.md` → *Human Gates*, where
+the AC instead waits for a chosen option; read that section before writing the Next Step. Name the
+lifecycle *verb* ("read the issue", "post the assessment to the
 issue"); the concrete mechanism (which platform, which command) is set in `PROJECT.md` →
 *Lifecycle Host* (GitHub is the default).
 
@@ -124,14 +125,14 @@ HC can discuss before choosing. Use this template:
 Option [X] because [rationale].
 
 ### Next Step
-[plan approval `required` — the shipped baseline]
+[plan approval `auto` — the shipped baseline]
+Plan approval is `auto` in PROJECT.md -> Human Gates (the shipped baseline), so I am proceeding on my own
+recommendation above (Option [X]) without waiting for a choice; this comment is the record of what was
+selected. Next: the plan skill (`devise`) for the same issue.
+
+[plan approval `required` — only if PROJECT.md -> Human Gates sets it back]
 HC: send this assessment to the Reviewer, then reply with your chosen option and run the plan skill
 (`devise`) for the same issue.
-
-[plan approval `auto` — only if PROJECT.md -> Human Gates sets it]
-Plan approval is set to `auto` in PROJECT.md -> Human Gates, so I am proceeding on my own recommendation
-above (Option [X]) without waiting for a choice; this comment is the record of what was selected. Next:
-the plan skill (`devise`) for the same issue.
 ```
 
 Emit **one** of those two variants — the one the host's setting selects — never both.
@@ -140,10 +141,10 @@ Sign the comment with the attribution footer from [`PROJECT.md`](../../PROJECT.m
 Model Declaration* (e.g. `— Claude Code (Opus 4.8)`), using your runtime-actual model.
 
 **Terminal artifact:** the assessment posted on the issue — posted under **every** setting. **Exit:** an
-option is chosen. Under the baseline **`required`** the HC chooses it and the AC does not proceed
-without one; under `auto` the AC proceeds on its **own stated recommendation** and says so in the
-posted comment, which is then the only record of the choice. The recommendation must therefore be
-written to stand on its own — under `auto` nothing else vouches for it.
+option is chosen. Under the baseline **`auto`** the AC proceeds on its **own stated recommendation** and
+says so in the posted comment, which is then the only record of the choice; where a host set it back to
+`required` the HC chooses the option and the AC does not proceed without one. The recommendation must
+therefore be written to stand on its own — under `auto` nothing else vouches for it.
 
 ## Quality standard
 
