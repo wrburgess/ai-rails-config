@@ -1,6 +1,6 @@
 ---
 name: invoke
-description: Stage 3 of the development lifecycle. Execute the approved plan on a feature branch, run the host's quality checks to green, and open the PR. Use once the posted plan has cleared its approval gate — the HC approves it by default, or the AC proceeds on its own posted plan where PROJECT.md → Human Gates sets plan approval to `auto`. This is the only stage that creates a PR; commit is not done — the open PR is.
+description: Stage 3 of the development lifecycle. Execute the approved plan on a feature branch, run the host's quality checks to green, and open the PR. Use once the posted plan has cleared its approval gate — by default the AC proceeds on its own posted plan (plan approval ships `auto`), or the HC approves it where PROJECT.md → Human Gates sets plan approval back to `required`. This is the only stage that creates a PR; commit is not done — the open PR is.
 ---
 
 <what-to-do>
@@ -18,9 +18,9 @@ here.
 plan gate is a **context boundary** as well as an approval: `invoke` is the phase that begins right
 after it, so it must reconstruct the plan from the durable artifact, never from conversational memory.
 This holds **whatever [`PROJECT.md`](../../PROJECT.md) → *Human Gates* says.** The baseline is plan
-approval `required`; a host may set it to `auto`, which waives the *wait* for a human — it does **not**
-waive this re-read. A run that "already knows" the plan and skips the re-read has crossed the boundary
-without a firebreak.
+approval `auto`, which waives the *wait* for a human; a host may set it back to `required` — either way
+it does **not** waive this re-read. A run that "already knows" the plan and skips the re-read has crossed
+the boundary without a firebreak.
 
 **Terminal artifact: the open PR.** `invoke` creates the PR here and nowhere else — commit ≠ done.
 
@@ -85,8 +85,9 @@ change with no code to lint) — checks are **not applicable, not skipped**; sta
    Stage 2's terminal artifact was skipped — **stop and recheck; do not infer a plan.**
 
    This step is **unconditional** — it does not depend on [`PROJECT.md`](../../PROJECT.md) → *Human
-   Gates*. Under the baseline `required` the plan was approved by the HC; under `auto` the AC posted it
-   and proceeded on its own. Either way the posted comment, not the conversation, is the source.
+   Gates*. Under the baseline `auto` the AC posted the plan and proceeded on its own; where a host set
+   it back to `required` the plan was approved by the HC. Either way the posted comment, not the
+   conversation, is the source.
 2. **Check the current branch** — if on a protected branch, create the plan's feature branch first
    (the guardrails will block writes otherwise).
 3. **Execute each task in the planned order:**

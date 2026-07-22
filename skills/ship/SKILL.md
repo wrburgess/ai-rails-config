@@ -1,6 +1,6 @@
 ---
 name: ship
-description: The hands-off orchestrator. Sequences the six lifecycle skills (assess → devise → invoke → verify → listen → final) end to end while keeping a lean orchestrator context — delegating output-heavy work to discardable sub-agents and honoring the human gates as PROJECT.md declares them — merge is always human, and plan approval is host-settable (`required` by default). Use to run the whole development lifecycle for one issue in a single driven flow.
+description: The hands-off orchestrator. Sequences the six lifecycle skills (assess → devise → invoke → verify → listen → final) end to end while keeping a lean orchestrator context — delegating output-heavy work to discardable sub-agents and honoring the human gates as PROJECT.md declares them — merge is always human, and plan approval is host-settable (`auto` by default). Use to run the whole development lifecycle for one issue in a single driven flow.
 ---
 
 <what-to-do>
@@ -19,7 +19,7 @@ the two human gates, the emergency stops, and the faithfulness backstop.
 Read host-specific values — the lifecycle host and its artifact map, the branch/PR policy, the
 quality-check commands, the review severities, the attribution/model, and the **human-gate policy** —
 from [`PROJECT.md`](../../PROJECT.md). Never hardcode them here. **Baseline: plan approval is
-`required` and merge is `required`**; a Host App may set *plan approval* to `auto` in `PROJECT.md` →
+`auto` and merge is `required`**; a Host App may set *plan approval* back to `required` in `PROJECT.md` →
 *Human Gates*, and **merge is never configurable**. Read that section at the start of a run so the
 gates below are honored as the host declares them.
 
@@ -130,10 +130,10 @@ Then run the phases from the derived point:
    and folding the returned `exploration-summary` into the assessment you synthesize. Post the
    assessment to the issue.
 2. **Plan** — follow [`devise`](../../skills/devise/SKILL.md) **in the orchestrator** (no offload). Post
-   the plan to the issue. **→ Human gate 1 (plan approval).** Baseline `required`: stop and wait for
-   the HC. If the host set it to `auto` (`PROJECT.md` → *Human Gates*), proceed on the posted plan and
-   say so in the comment — but still **cross the context boundary here** (see *Gates as context
-   boundaries*), resetting context before Implement.
+   the plan to the issue. **→ Human gate 1 (plan approval).** Baseline `auto`: proceed on the posted
+   plan and **name in the comment** that you self-selected under `auto`. If the host set it back to
+   `required` (`PROJECT.md` → *Human Gates*), stop and wait for the HC instead. Either way still **cross
+   the context boundary here** (see *Gates as context boundaries*), resetting context before Implement.
 3. **Implement** — follow [`invoke`](../../skills/invoke/SKILL.md), which **re-reads the posted plan
    from the issue first** (unconditional): the orchestrator owns branch setup and
    all lifecycle-host I/O; the code + check + fix loop is delegated, returning a `check-result`.
@@ -179,7 +179,7 @@ Fields marked `?` are **null until their artifact exists** (no `pr_url` before `
 than assuming a PR. Beyond `delivered` and `needs_human_call`, two verdicts are **reset-only transitions
 that need no human call** — preserving a firebreak without a pause: `awaiting_reviewer` (summoned, still
 inside the bounded window, no response yet — the loop re-polls) and `reseed` (a pure context reset, e.g.
-the dormant `auto` plan-boundary cross or the pre-`final` check). `needs_human_call` is raised by any
+the `auto` plan-boundary cross or the pre-`final` check). `needs_human_call` is raised by any
 emergency stop or an exhausted Reviewer chain (the *Faithfulness backstop* below), and carries a
 `stop_id` that pairs its durable question to the answer folded back into `build-brief.human_decisions`. On it the orchestrator **owns** the severity call and the stop-and-ask: it posts the
 question durably, waits for the HC's answer (**the pause**), folds it into `build-brief.human_decisions`,
@@ -190,13 +190,14 @@ context reset happens, is *Gates as context boundaries* below.
 
 `ship` replaces every per-stage "wait for the HC" pause with exactly **two** gates, per the
 [development lifecycle](../../docs/standards/development-lifecycle.md). Which of them *pauses* is
-declared in [`PROJECT.md`](../../PROJECT.md) → *Human Gates*; **the shipped baseline is the strict
-policy — both `required` — so unless a host says otherwise, both wait for the HC**:
+declared in [`PROJECT.md`](../../PROJECT.md) → *Human Gates*; **the shipped baseline is ungated to
+merge — plan approval `auto`, merge `required` — so out of the box only the merge gate waits for the
+HC**:
 
 1. **Plan approval** — after `devise` (and any Reviewer plan review), before any code. Baseline
-   **`required`**: `ship` does not write code without an approved plan. A host may set it to `auto`,
-   and `ship` then proceeds on the plan it just posted, **naming in that comment** that it
-   self-selected under `auto`. The assessment and plan are posted either way — under `auto` they are
+   **`auto`**: `ship` proceeds on the plan it just posted, **naming in that comment** that it
+   self-selected under `auto`. A host may set it back to `required`, and `ship` then does not write
+   code without an approved plan. The assessment and plan are posted either way — under `auto` they are
    the only audit trail of what was decided.
 2. **Merge** — after `final` posts the SOW with a green gate and no open must-fix findings. **`required`
    is its only legal value: merge is not configurable and `ship` never merges** — merge is the HC's.
@@ -227,11 +228,11 @@ the failure where a run carries a half-remembered plan straight into implementat
 *Who* performs the reset, and *how*, follows the plan-approval setting
 ([ADR 0028](../../docs/adr/0028-context-reset-boundary-resumable-stops-autonomous-listen.md) decision 1):
 
-- **`required`** (shipped): the reset **is a session boundary** — the human crosses. "Plan posted" ends
+- **`required`**: the reset **is a session boundary** — the human crosses. "Plan posted" ends
   the session; `ship` stops there and the run resumes when the HC re-runs `/ship {issue}` (or runs
   `/invoke`) in a fresh session.
-- **`auto`** ([#116](https://github.com/wrburgess/ai-config/issues/116), **dormant** until it flips the
-  gate): **`ship` resets its own context in place** — the *same agent*, re-seeded from the `build-brief`,
+- **`auto`** (the shipped baseline — [ADR 0029](../../docs/adr/0029-baseline-ships-ungated-to-merge.md)):
+  **`ship` resets its own context in place** — the *same agent*, re-seeded from the `build-brief`,
   never a spawned orchestrator (nested delegation is hard-blocked — ADR 0026 / ADR 0028). `auto` stops
   the *pause*, not the firebreak: `ship` still discards its context at "plan posted" before Implement.
 
@@ -281,8 +282,9 @@ severity discipline, and `final`'s merge-readiness. A weaker tool degrades the d
 (inline + compact between phases), never a gate.
 
 Before declaring a `ship` run complete: both human gates were honored **as
-[`PROJECT.md`](../../PROJECT.md) → *Human Gates* declares them** (baseline: both `required`; merge is
-`required` always — a run that merged its own PR is a failed run regardless of the setting), and each
+[`PROJECT.md`](../../PROJECT.md) → *Human Gates* declares them** (baseline: plan approval `auto`, merge
+`required`; merge is `required` always — a run that merged its own PR is a failed run regardless of the
+setting), and each
 gate's **context reset** was observed even where the pause was waived; no emergency stop is
 outstanding (a stop is a pause the loop re-seeds from, not a silent skip); every delegated phase
 returned and was reconciled against its handoff contract; the

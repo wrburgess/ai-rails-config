@@ -54,8 +54,8 @@ value" is itself a standing rule — the two rules pull against each other, and 
 obvious until the failure mode is named.
 
 The resolution adopted: state the shipped default **inline** in every body that reads the value —
-*"plan approval is required; a Host App may set it to `auto` in `PROJECT.md` → Human Gates"* — making
-the Project Config the **override** rather than the sole source. Prose stays generic (no host's
+*"plan approval is `auto`; a Host App may set it back to `required` in `PROJECT.md` → Human Gates"* —
+making the Project Config the **override** rather than the sole source. Prose stays generic (no host's
 setting is baked in) while remaining legible to a tool that reads only the file in front of it.
 
 **Why a check does not save you here.** The same PR added a parity assertion that each gate-aware body

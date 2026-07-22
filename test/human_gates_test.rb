@@ -241,13 +241,43 @@ class HumanGatesTest < Minitest::Test
 
   # --- data contract: the REAL shipped PROJECT.md ------------------------------------------------
 
-  def test_real_project_md_ships_the_strict_defaults
-    # The neutral-default guarantee (mirrors protected_branches_test's committed-sidecar drift guard):
-    # the Generic Baseline must ship the STRICT policy, so vendoring it changes no host's behavior.
-    # If someone flips the shipped default to `auto`, every vendoring host silently loses its gate.
+  def test_real_project_md_ships_auto
+    # The baseline now ships UNGATED TO MERGE (ADR 0029): plan approval is `auto`, so a hands-off
+    # `/ship` run drives itself to the merge gate, while merge stays `required` — the sole human gate.
+    # This test's job FLIPPED. It once guarded the strict default; it now guards the MERGE FLOOR while
+    # plan-approval is auto, so an edit that flipped merge to `auto` (silently self-merging every
+    # vendoring host) cannot pass. Plan-approval and merge are asserted together here, and merge alone
+    # in the next test, so a plan-approval edit can never mask a merge regression.
     root = File.expand_path("..", __dir__)
     gates = HumanGates.from_file(File.join(root, "PROJECT.md"))
-    assert_equal({ plan_approval: "required", merge: "required" }, gates,
-                 "the shipped PROJECT.md must declare the strict baseline policy")
+    assert_equal({ plan_approval: "auto", merge: "required" }, gates,
+                 "the shipped PROJECT.md must declare plan approval `auto` and merge `required`")
+  end
+
+  def test_real_project_md_ships_merge_required
+    # Merge is the non-configurable floor (ADR 0025, reaffirmed by ADR 0029). Asserted on its own,
+    # isolated from plan-approval, so a plan-approval edit can never mask a merge regression: whatever
+    # happens to the first gate, the shipped merge value must stay `required`.
+    root = File.expand_path("..", __dir__)
+    gates = HumanGates.from_file(File.join(root, "PROJECT.md"))
+    assert_equal "required", gates[:merge],
+                 "the shipped PROJECT.md must keep merge `required` — no baseline may express self-merge"
+  end
+
+  def test_real_project_md_declares_autonomous_fold
+    # The rule-suggestion disposition is a DOCUMENTARY value (not parsed by HumanGates), so read the
+    # PROJECT.md text directly and assert the declared default in its own declaring context — the
+    # `### Rule-suggestion disposition` subsection — rather than a bare substring a stray mention
+    # elsewhere could false-green.
+    root = File.expand_path("..", __dir__)
+    text = File.read(File.join(root, "PROJECT.md"), encoding: "UTF-8")
+    section = text[/### Rule-suggestion disposition.*?(?=\n## |\z)/m]
+    refute_nil section, "PROJECT.md must declare a `### Rule-suggestion disposition` subsection"
+    # Anchor to the DECLARING sentence ("... shipped default is `autonomous-fold`"), not merely any
+    # in-subsection mention: `is\s+` binds the phrase to the declaration (the `\s+` spans the line
+    # wrap), so a later explanatory sentence naming both tokens cannot satisfy it after the real
+    # declaration changes.
+    assert_match(/shipped default is\s+`autonomous-fold`/i, section,
+                 "the Rule-suggestion disposition must declare its shipped default as `autonomous-fold`")
   end
 end

@@ -1,26 +1,29 @@
 ---
 name: devise
-description: Stage 2 of the development lifecycle. Turn the chosen option into a right-sized plan — a concrete, ordered implementation plan with its testing strategy decided up front for well-understood work, or an exploratory spike/re-plan plan (a plan to learn) whose production test strategy is decided in the post-spike re-plan. Use after an option is picked and before writing any code; who picks the option, and who elects the exploratory path, follows PROJECT.md → Human Gates (the HC by default).
+description: Stage 2 of the development lifecycle. Turn the chosen option into a right-sized plan — a concrete, ordered implementation plan with its testing strategy decided up front for well-understood work, or an exploratory spike/re-plan plan (a plan to learn) whose production test strategy is decided in the post-spike re-plan. Use after an option is picked and before writing any code; who picks the option, and who elects the exploratory path, follows PROJECT.md → Human Gates (the AC self-selects its recommendation under the shipped `auto` baseline; the HC picks where a host sets plan approval back to `required`).
 ---
 
 <what-to-do>
 
-Create an implementation plan for the tracked issue named in the invocation, based on the option the
-HC chose from the [assessment](../../skills/assess/SKILL.md). This is **Stage 2 (Plan)** of the
+Create an implementation plan for the tracked issue named in the invocation, based on the chosen
+option from the [assessment](../../skills/assess/SKILL.md) — the AC's own recommendation under the
+shipped `auto` baseline, or the HC's pick where a host set plan approval back to `required`. This is
+**Stage 2 (Plan)** of the
 [development lifecycle](../../docs/standards/development-lifecycle.md).
 
 Read host-specific values — the lifecycle host and artifact map, the branch/PR policy, the
 quality-check commands, the attribution/model, and the **human-gate policy** — from
-[`PROJECT.md`](../../PROJECT.md). Never hardcode them here. **Baseline: plan approval is `required`**
-— the AC posts the plan and waits for the HC — and a Host App may set it to `auto` in `PROJECT.md` →
-*Human Gates*. Read that section before writing the Next Step.
+[`PROJECT.md`](../../PROJECT.md). Never hardcode them here. **Baseline: plan approval is `auto`**
+— the AC posts the plan and proceeds on it — and a Host App may set it back to `required` in `PROJECT.md` →
+*Human Gates*, where the AC instead waits for the HC. Read that section before writing the Next Step.
 
 </what-to-do>
 
 <procedure>
 
-1. **Read the issue and its comments** — the assessment and the HC's chosen option (and any answers to
-   the assessment's open questions).
+1. **Read the issue and its comments** — the assessment and the chosen option (the AC's own
+   recommendation under the shipped `auto` baseline, or the HC's pick under `required`), and any answers
+   to the assessment's open questions.
 2. **Right-size the plan to the task.** Match the plan's altitude to how much is actually known. For a
    well-understood change, write the full ordered plan below. For an **exploratory/discovery issue** —
    where the outcome is genuinely uncertain and a full ordered plan would be written against unknowns —
@@ -29,11 +32,11 @@ quality-check commands, the attribution/model, and the **human-gate policy** —
    real plan is written. That *is* the right-sized plan for a discovery task — *a plan to learn*, not a
    lighter gate: it is still posted and still approved.
 
-   **Who elects it depends on the gate setting.** Under the baseline `required`, the AC **surfaces**
+   **Who elects it depends on the gate setting.** Under `required`, the AC **surfaces**
    the exploratory path and its rationale and the **HC elects it** — the AC never self-selects a
    compressed or exploratory workflow (see the
-   [development lifecycle](../../docs/standards/development-lifecycle.md)). Where a host has set plan
-   approval to `auto` ([`PROJECT.md`](../../PROJECT.md) → *Human Gates*), the AC **may elect the
+   [development lifecycle](../../docs/standards/development-lifecycle.md)). Under the baseline `auto`
+   ([`PROJECT.md`](../../PROJECT.md) → *Human Gates*), the AC **may elect the
    exploratory path itself** — it must then state the rationale in the posted plan and name that it
    self-selected under `auto`, so the choice stays auditable. Compressing away a whole *stage* remains
    the HC's call under either setting.
@@ -108,15 +111,15 @@ post-spike re-plan; here, state only what the spike must *learn*.)
 - [Migration, authorization, search/index, or breaking-change concerns]
 
 ### Next Step
-[plan approval `required` — the shipped baseline]
+[plan approval `auto` — the shipped baseline]
+Plan approval is `auto` in PROJECT.md -> Human Gates (the shipped baseline), so I am proceeding on this
+plan without waiting for approval; this comment is the record of what was decided. [If exploratory: I
+elected the spike-then-plan path myself under `auto`, because <rationale>.] Next: the implement skill
+(`invoke`) for the same issue, which re-reads this posted plan before writing any code.
+
+[plan approval `required` — only if PROJECT.md -> Human Gates sets it back]
 HC: send this plan to the Reviewer, then approve to proceed with the implement skill (`invoke`) for the
 same issue.
-
-[plan approval `auto` — only if PROJECT.md -> Human Gates sets it]
-Plan approval is set to `auto` in PROJECT.md -> Human Gates, so I am proceeding on this plan without
-waiting for approval; this comment is the record of what was decided. [If exploratory: I elected the
-spike-then-plan path myself under `auto`, because <rationale>.] Next: the implement skill (`invoke`)
-for the same issue, which re-reads this posted plan before writing any code.
 ```
 
 Emit **one** of those two variants — the one the host's setting selects — never both.
@@ -126,9 +129,9 @@ Declaration*, using your runtime-actual model.
 
 **Terminal artifact:** the plan posted on the issue — posted under **every** setting; it is the durable
 record the next stage re-reads. **This is the first human gate (plan approval).** Its setting comes from
-[`PROJECT.md`](../../PROJECT.md) → *Human Gates*: the shipped baseline is **`required`**, and the AC
-does not write code without an approved plan; a host may set it to `auto`, and the AC then proceeds on
-this plan, naming that in the comment.
+[`PROJECT.md`](../../PROJECT.md) → *Human Gates*: the shipped baseline is **`auto`**, and the AC proceeds
+on this plan, naming that in the comment; a host may set it back to `required`, and the AC then does not
+write code without an approved plan.
 
 **The gate is also a context boundary, and that role is unconditional.** "Plan posted" forces a context
 reset under `required` *and* under `auto` — a session boundary under `required`, `ship`'s own context
@@ -151,6 +154,6 @@ testing strategy cover the full definition of done in [`rules/testing.md`](../..
 including edge and sad paths? Would a critical reviewer find a missing scenario or an unstated risk? If
 the plan is exploratory, is the spike the *smallest* experiment that resolves the uncertainty, is the
 re-plan checkpoint explicit, and was the path elected by whoever the gate setting says elects it — the
-HC under the baseline `required`, the AC (with its rationale stated) only under `auto`?
+HC under `required`, the AC (with its rationale stated) under the baseline `auto`?
 
 </output>

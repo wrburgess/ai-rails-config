@@ -127,6 +127,7 @@ class ParityCheck
     "docs/adr/0026-reviewer-is-a-project-config-value-ac-summons-floor-preserved.md",
     "docs/adr/0027-reviewer-chain-validated-against-invocation-paths.md",
     "docs/adr/0028-context-reset-boundary-resumable-stops-autonomous-listen.md",
+    "docs/adr/0029-baseline-ships-ungated-to-merge.md",
     # Standards
     "docs/standards/development-lifecycle.md",
     # Out-of-band research (the per-tool discovery re-verification AGENTS.md cites) and Stack Overlays
