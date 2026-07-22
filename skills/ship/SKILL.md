@@ -12,8 +12,9 @@ skills** — [`assess`](../../skills/assess/SKILL.md) → [`devise`](../../skill
 [`listen`](../../skills/listen/SKILL.md) → [`final`](../../skills/final/SKILL.md). `ship` **adds no phase
 procedure of its own**: each phase's steps, gates, and terminal artifact remain defined once in that
 phase's canonical body, which `ship` reads and follows in order. What `ship` owns is the *sequencing*
-— the delegation policy, the session boundaries, the two human gates, the emergency stops, and the
-faithfulness backstop.
+— the delegation policy, the **context boundaries** and the **driving loop** (a stop is a pause that
+re-seeds, never a termination — [ADR 0028](../../docs/adr/0028-context-reset-boundary-resumable-stops-autonomous-listen.md)),
+the two human gates, the emergency stops, and the faithfulness backstop.
 
 Read host-specific values — the lifecycle host and its artifact map, the branch/PR policy, the
 quality-check commands, the review severities, the attribution/model, and the **human-gate policy** —
@@ -38,16 +39,17 @@ the decisions that matter are made on context the orchestrator actually saw.
 
 | Phase | Disposition | What the orchestrator keeps | Handoff contract |
 |-------|-------------|------------------------------|------------------|
+| entry: resume derivation + driving loop | **Keep** | The resume-point read over durable artifacts; the pause/re-seed control flow across every phase | — (judgment-heavy; no offload) |
 | `assess` exploration | **Delegate** | Assessment synthesis, option framing, the recommendation | `exploration-summary` ([`assess`](../../skills/assess/SKILL.md)) |
 | `devise` | **Keep** | Plan authoring + reconciliation against the codebase | — (judgment-heavy; no offload) |
 | `invoke` code + check + fix loop | **Delegate** | Branch setup, commit, push, open PR, issue linking | `check-result` ([`invoke`](../../skills/invoke/SKILL.md)) |
 | `verify` full-diff review | **Delegate** | Reading the report, classifying by severity, posting the self-review | `drift-report` ([`verify`](../../skills/verify/SKILL.md)) |
-| `listen` fetch-and-fix churn | **Delegate** | Severity classification, the stop-and-ask call, the HC summary | `review-response` (defined below) |
+| `listen` fetch-and-fix churn | **Delegate** | Severity classification, the escalate-vs-resolve call, the autonomous disposition under `ship` (HC summary when standalone) | `review-response` (defined below) |
 | `final` merge-readiness | **Keep** | The green-gate + no-open-must-fix judgment; the SOW | — (judgment-heavy; no offload) |
 
-**Keep in the orchestrator (never delegate):** assessment synthesis, plan authoring/reconciliation,
-`listen` severity + stop-and-ask, and the `final` merge-readiness call. These are the decisions a lossy
-summary would corrupt.
+**Keep in the orchestrator (never delegate):** the resume derivation and the driving loop, assessment
+synthesis, plan authoring/reconciliation, `listen` severity + the escalate-vs-resolve (stop-and-ask)
+call, and the `final` merge-readiness call. These are the decisions a lossy summary would corrupt.
 
 ### review-response (sub-agent → orchestrator)
 
@@ -59,16 +61,21 @@ the same way but its contract is defined here, so every delegated phase has one:
 { threads: [ { id, surface: "issue_comment"|"inline_thread"|"review_body",
                author, severity, summary, quoted_excerpt } ],
   severity_tally: { critical, high, medium, low, discussion },
-  proposed_resolutions: [ { thread_id, action: "fix"|"explain"|"defer", detail } ],
+  proposed_resolutions: [ { thread_id, source_url, action: "fix"|"explain"|"defer", detail,
+                            status: "pending"|"applied"|"replied" } ],   # source_url + status pair each back to its thread
   quality_checks: [ { purpose, status: "pass"|"fail"|"not_run" } ],   # one row per PROJECT.md → Quality Checks
   verdict: "clean" | "needs_human_call" }
 ```
 
 `severity` uses [`PROJECT.md`](../../PROJECT.md) → *Review Severity Framework* plus a `discussion`
 bucket for non-defect questions. `verdict` is `needs_human_call` whenever any thread is architectural,
-ambiguous, or Critical — the sub-agent proposes, but the **orchestrator** owns the severity call and
-the stop-and-ask (it never auto-applies fixes past that line). The sub-agent gathers and drafts; it
-never posts to the lifecycle host — the orchestrator owns that I/O and the attribution.
+ambiguous, or open to more than one interpretation — that is **`ship`'s emergency stop #3, not a
+severity threshold.** A Critical finding that is *unambiguous* is auto-addressed under `ship`, per
+[ADR 0028](../../docs/adr/0028-context-reset-boundary-resumable-stops-autonomous-listen.md) decision 6;
+the bar is *"can I resolve this without guessing at intent?"* The sub-agent proposes; the
+**orchestrator** owns the escalate-vs-resolve call — under `ship` it autonomously applies the resolvable
+findings and pauses only past the ambiguity line. The sub-agent gathers and drafts; it never posts to
+the lifecycle host — the orchestrator owns that I/O and the attribution.
 
 *Graceful degradation ([ADR 0003](../../docs/adr/0003-skills-canonical-body-thin-shims-graceful-degradation.md),
 [ADR 0005](../../docs/adr/0005-ship-hybrid-delegation-offload-retrieval-protect-judgment.md)):* on a
@@ -79,8 +86,45 @@ mechanism degrades; the phase procedures, the handoff contracts, and the quality
 
 <procedure>
 
-Run the phases in order, following each phase's canonical body for its steps and terminal artifact.
-`ship` layers the sequencing controls below on top.
+**Every `/ship {issue}` run begins by deriving its resume point** (below), then runs the remaining
+phases in order under the driving loop — following each phase's canonical body for its steps and
+terminal artifact. `ship` layers the sequencing controls below on top and adds no phase procedure of
+its own.
+
+## Entry — derive the resume point (runs first, every run)
+
+`/ship {issue}` is **idempotent and safe to re-run at any point**: it does not assume it starts at
+Assess. It reads the durable artifacts and resumes from the first incomplete stage, because *a stage is
+not done until its terminal artifact exists* (the
+[development lifecycle](../../docs/standards/development-lifecycle.md)). The derivation is a **pure
+function over those artifacts** — no 14th skill and no separate `resume` command
+([ADR 0028](../../docs/adr/0028-context-reset-boundary-resumable-stops-autonomous-listen.md) decision 3):
+
+| Durable artifacts present | Resume point |
+|---|---|
+| nothing | `assess` |
+| assessment, no plan | `devise` |
+| plan, no PR | `invoke` |
+| PR, no self-review | `verify` — review, then summon the Reviewer |
+| self-review posted, Reviewer **not yet summoned** | `verify` — issue the summons |
+| self-review posted, summons issued to the current chain entry, its window still open, no response | `verify` — await **that entry**; do not re-summon **it** (the double-summons defect ADR 0026 closed — "never re-summon" is scoped to the same entry) |
+| self-review posted, the current entry's window **expired** and a fallback entry remains | `verify` — advance to the **next** chain entry and summon it |
+| self-review posted, Reviewer **responded**, findings still open | `listen` |
+| self-review posted, chain **exhausted** (every entry unreachable/silent) | `needs_human_call` — the `stop-and-ask` floor (posted as a durable stop pair; see below) |
+| Reviewer response **resolved**, green, no open must-fix, no SOW | `final` |
+| SOW posted | await human merge |
+
+Two reads are finer than "does an artifact exist," and both are load-bearing
+([ADR 0028](../../docs/adr/0028-context-reset-boundary-resumable-stops-autonomous-listen.md) decisions 4–5):
+
+- **A durable stop is a *pair*.** A stop posts its question to the issue/PR; resume advances only when a
+  **paired answer** is present. A posted-but-unanswered stop is *not* the same as no stop — it resumes
+  as "still paused at that phase, awaiting the HC," never as "start the run over."
+- **`listen` vs `final` turns on the findings, not on the self-review comment.** Both leave a self-review
+  comment, so the derivation reads the Reviewer findings' **addressed/open** state: findings open →
+  `listen`; findings addressed → `final`.
+
+Then run the phases from the derived point:
 
 1. **Assess** — follow [`assess`](../../skills/assess/SKILL.md), delegating the codebase exploration
    and folding the returned `exploration-summary` into the assessment you synthesize. Post the
@@ -88,7 +132,8 @@ Run the phases in order, following each phase's canonical body for its steps and
 2. **Plan** — follow [`devise`](../../skills/devise/SKILL.md) **in the orchestrator** (no offload). Post
    the plan to the issue. **→ Human gate 1 (plan approval).** Baseline `required`: stop and wait for
    the HC. If the host set it to `auto` (`PROJECT.md` → *Human Gates*), proceed on the posted plan and
-   say so in the comment — but still **end the session here** (see *Gates as session boundaries*).
+   say so in the comment — but still **cross the context boundary here** (see *Gates as context
+   boundaries*), resetting context before Implement.
 3. **Implement** — follow [`invoke`](../../skills/invoke/SKILL.md), which **re-reads the posted plan
    from the issue first** (unconditional): the orchestrator owns branch setup and
    all lifecycle-host I/O; the code + check + fix loop is delegated, returning a `check-result`.
@@ -96,11 +141,50 @@ Run the phases in order, following each phase's canonical body for its steps and
 4. **Verify** — follow [`verify`](../../skills/verify/SKILL.md): delegate the full-diff review, consume
    the `drift-report`, classify findings by severity, post the self-review on the PR.
 5. **Review response** — follow [`listen`](../../skills/listen/SKILL.md): delegate the fetch-and-fix churn
-   (`review-response` contract), but make the severity and stop-and-ask calls in the orchestrator and
-   summarize for the HC before any change is applied.
+   (`review-response` contract), make the severity and escalate-vs-resolve calls in the orchestrator, and
+   **dispose autonomously — post the disposition record and apply the resolvable findings, pausing to ask
+   the HC only on emergency stop #3** (an architectural/ambiguous finding).
 6. **Deliver** — follow [`final`](../../skills/final/SKILL.md) **in the orchestrator**: re-verify the
    PR is green with no open must-fix findings, post the Statement of Work, link it from the issue.
    **→ Human gate 2 (merge) — always human, never configurable.**
+
+## The driving loop — a stop is a pause, not a termination
+
+The phases above are sequenced by a loop in which **an emergency stop or a gate pauses the run; it never
+ends it** ([ADR 0028](../../docs/adr/0028-context-reset-boundary-resumable-stops-autonomous-listen.md)
+decision 2). The orchestrator seeds each build stretch from a compact **build brief**, runs to the next
+stop or to delivery, and — on a stop — records the question and its answer **durably** (see *Gates as
+context boundaries*), folds the answer into the brief, **resets its context, and resumes from the
+re-derived point**. The loop exits **only** at `delivered`, where the HC merges (the one standing stop).
+There is no path where `ship` returns the HC a list of commands to run.
+
+### build-brief (orchestrator → the next build stretch)
+```
+{ issue_ref, plan_comment_url?, branch?,   # `?` = present once that artifact exists (null at assess/devise)
+  resume_point:    assess | devise | invoke | verify | listen | final | await-merge,
+  human_decisions: [ { stop_id, at, question, answer, artifact_url } ],  # stable id + source ref per pair
+  gates:           { plan_approval, merge } }       # read from PROJECT.md -> Human Gates
+```
+
+### build-result (a build stretch → orchestrator)
+```
+{ pr_url?,               # null until invoke opens the PR
+  sow_posted, quality_checks: [ { purpose, status } ], open_must_fix: [...],
+  verdict: "delivered" | "awaiting_reviewer" | "reseed" | "needs_human_call",
+  paused_at, question, stop_id }   # stop_id set on needs_human_call; pairs back to human_decisions
+```
+
+Fields marked `?` are **null until their artifact exists** (no `pr_url` before `invoke` opens the PR; no
+`plan_comment_url`/`branch` at `assess`/`devise`), so the contracts represent every resume point rather
+than assuming a PR. Beyond `delivered` and `needs_human_call`, two verdicts are **reset-only transitions
+that need no human call** — preserving a firebreak without a pause: `awaiting_reviewer` (summoned, still
+inside the bounded window, no response yet — the loop re-polls) and `reseed` (a pure context reset, e.g.
+the dormant `auto` plan-boundary cross or the pre-`final` check). `needs_human_call` is raised by any
+emergency stop or an exhausted Reviewer chain (the *Faithfulness backstop* below), and carries a
+`stop_id` that pairs its durable question to the answer folded back into `build-brief.human_decisions`. On it the orchestrator **owns** the severity call and the stop-and-ask: it posts the
+question durably, waits for the HC's answer (**the pause**), folds it into `build-brief.human_decisions`,
+and re-seeds. On `delivered` it reports and the HC merges. *Who* crosses each boundary, and how the
+context reset happens, is *Gates as context boundaries* below.
 
 ## The two human gates
 
@@ -117,9 +201,10 @@ policy — both `required` — so unless a host says otherwise, both wait for th
 2. **Merge** — after `final` posts the SOW with a green gate and no open must-fix findings. **`required`
    is its only legal value: merge is not configurable and `ship` never merges** — merge is the HC's.
 
-`auto` waives a *pause*, nothing else: the emergency stops below, the session boundaries below,
-`listen`'s "wait for the HC to choose", and the intake/authoring skills' "a human disposes" gates all
-still apply in full.
+`auto` waives a *pause*, nothing else: the emergency stops below, the context boundaries below, and the
+intake/authoring skills' "a human disposes" gates all still apply in full. (`listen`'s disposition is no
+longer on this list — it is decoupled from the gate setting and disposes autonomously under `ship`, per
+[ADR 0028](../../docs/adr/0028-context-reset-boundary-resumable-stops-autonomous-listen.md) decisions 6–7.)
 
 ## Emergency stops (unconditional)
 
@@ -132,22 +217,33 @@ works around them:
 - Any handoff contract returns a `needs_human_call` / `failing` verdict the orchestrator cannot
   resolve from context.
 
-## Gates as session boundaries (unconditional)
+## Gates as context boundaries (unconditional)
 
 A gate does two separate jobs: it **pauses for a human** (gate-as-approval, configurable per *Human
-Gates*) and it **ends a session** (gate-as-boundary, a context firebreak). **Only the pause is ever
-waived.** Under `auto`, `ship` still stops the session at "plan posted" — it just does not wait for a
-reply. Waiving the pause must never delete the firebreak: that is precisely the failure where a run
-carries a half-remembered plan straight into implementation.
+Gates*) and it **forces a context reset** (gate-as-boundary, a context firebreak). **Only the pause is
+ever waived, never the reset.** Waiving the pause must never delete the firebreak — that is precisely
+the failure where a run carries a half-remembered plan straight into implementation.
 
-To keep the orchestrator lean through the delegated heavy ops, **externalize state** to the issue / PR
-/ git rather than carrying it in context:
+*Who* performs the reset, and *how*, follows the plan-approval setting
+([ADR 0028](../../docs/adr/0028-context-reset-boundary-resumable-stops-autonomous-listen.md) decision 1):
 
-- Run **assess + plan in one clean session**; "plan posted" is the boundary — under `required` *and*
-  under `auto`.
-- Run **build (`invoke` → `final`) in a fresh session** so the orchestrator starts lean before the
-  delegated code/verify/review churn. `invoke` opens by **re-reading the posted plan from the issue**.
-- A **pre-`final` context check** offers another reset before the merge-readiness judgment — also
+- **`required`** (shipped): the reset **is a session boundary** — the human crosses. "Plan posted" ends
+  the session; `ship` stops there and the run resumes when the HC re-runs `/ship {issue}` (or runs
+  `/invoke`) in a fresh session.
+- **`auto`** ([#116](https://github.com/wrburgess/ai-config/issues/116), **dormant** until it flips the
+  gate): **`ship` resets its own context in place** — the *same agent*, re-seeded from the `build-brief`,
+  never a spawned orchestrator (nested delegation is hard-blocked — ADR 0026 / ADR 0028). `auto` stops
+  the *pause*, not the firebreak: `ship` still discards its context at "plan posted" before Implement.
+
+To keep the orchestrator lean through the delegated heavy ops, **externalize state** to the issue / PR /
+git rather than carrying it in context — under either setting:
+
+- Run **assess + plan with a clean context**; "plan posted" is the boundary under `required` *and* under
+  `auto` (a session end under `required`; `ship`'s own context reset under `auto`).
+- Cross into **build (`invoke` → `final`) with a fresh context** so the orchestrator starts lean before
+  the delegated code/verify/review churn. `invoke` opens by **re-reading the posted plan from the
+  issue**, never from carried-over context.
+- A **pre-`final` context check** forces another reset before the merge-readiness judgment — also
   unconditional.
 - On resume, a fresh phase **re-reads its durable artifacts** (the issue, the plan comment, the PR)
   rather than trusting a compaction summary — a stage is not done until its terminal artifact exists
@@ -163,11 +259,16 @@ cannot silently steer the outcome.
 no phase procedure of its own, and a second summons would produce two review requests, two windows,
 and an unanswerable "did the primary respond?" ([ADR 0026](../../docs/adr/0026-reviewer-is-a-project-config-value-ac-summons-floor-preserved.md)).
 `ship`'s job here is only to **honor the outcome `verify` carries forward**: proceed when a reviewer
-answered, and treat an exhausted chain as an emergency stop.
+answered, and treat an exhausted chain as an emergency stop — a `needs_human_call` the driving loop
+**pauses** on and re-seeds from, never a termination
+([ADR 0028](../../docs/adr/0028-context-reset-boundary-resumable-stops-autonomous-listen.md) decision 2).
 
 If **the whole chain is exhausted**, the backstop applies its degradation floor: **`stop-and-ask` is
 the shipped default and is not configurable** — the orchestrator stops and asks the HC. It is never
-silently dropped, and a run may not certify itself by delivering unreviewed with a footnote.
+silently dropped, and a run may not certify itself by delivering unreviewed with a footnote. Under the
+pause-not-terminate loop the floor is cheap — one durable question and a re-seed — which is exactly the
+reasoning [ADR 0026](../../docs/adr/0026-reviewer-is-a-project-config-value-ac-summons-floor-preserved.md)
+decision 3 used to keep it at full strength.
 
 </procedure>
 
@@ -182,8 +283,9 @@ severity discipline, and `final`'s merge-readiness. A weaker tool degrades the d
 Before declaring a `ship` run complete: both human gates were honored **as
 [`PROJECT.md`](../../PROJECT.md) → *Human Gates* declares them** (baseline: both `required`; merge is
 `required` always — a run that merged its own PR is a failed run regardless of the setting), and each
-gate's **session boundary** was observed even where the pause was waived; no emergency stop is
-outstanding; every delegated phase returned and was reconciled against its handoff contract; the
+gate's **context reset** was observed even where the pause was waived; no emergency stop is
+outstanding (a stop is a pause the loop re-seeds from, not a silent skip); every delegated phase
+returned and was reconciled against its handoff contract; the
 terminal artifact of each phase exists (assessment, plan, PR, self-review, review replies, SOW). Sign
 every lifecycle-host comment with the attribution footer from [`PROJECT.md`](../../PROJECT.md) →
 *Attribution & Model Declaration*, using your runtime-actual model.

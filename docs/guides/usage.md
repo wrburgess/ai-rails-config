@@ -147,7 +147,7 @@ shim, and the native-discovery tools reach the same body by the documented "read
 - Two human gates punctuate it — **plan approval** (after `devise`) and **merge** (after `final`).
   Which of them *pauses* is declared in [`PROJECT.md`](../../PROJECT.md) → *Human Gates*; the shipped
   baseline is strict, so out of the box both wait for the HC. **Merge is never configurable.** And
-  whatever the setting, "plan posted" stays a **session boundary**: `invoke` re-reads the posted plan
+  whatever the setting, "plan posted" stays a **context boundary**: `invoke` re-reads the posted plan
   from the issue rather than trusting conversational memory.
 - Full stage spec, terminal artifacts, and when to compress stages →
   [`development-lifecycle.md`](../standards/development-lifecycle.md).

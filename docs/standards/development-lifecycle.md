@@ -104,9 +104,9 @@ patterns that don't match the codebase, unaddressed requirements).
 **Exit:** under `required`, the HC approves the plan (or asks for revisions) and the AC does not write
 code without an approved plan. Under `auto`, the AC proceeds on the plan it just posted, naming in the
 comment that it self-selected under `auto`; the plan is still posted, and it may also elect the
-exploratory path itself, stating its rationale. **The gate's session-boundary role is unconditional:**
-whatever the setting, "plan posted" ends the session and Stage 3 re-reads the plan from the issue (see
-*The two human gates* below). An approved plan is **revisable direction, not a frozen contract** — a
+exploratory path itself, stating its rationale. **The gate's context-boundary role is unconditional:**
+whatever the setting, "plan posted" forces a context reset and Stage 3 re-reads the plan from the issue
+(see *The two human gates* below). An approved plan is **revisable direction, not a frozen contract** — a
 mid-`invoke` discovery that it was wrong loops back through this gate to re-plan, an expected outcome
 rather than a failure
 ([ADR 0020](../adr/0020-right-size-plan-revisable-direction.md)).
@@ -116,7 +116,7 @@ rather than a failure
 **Trigger:** the plan is approved (by the HC under `required`; by the AC's own posted plan under `auto`).
 
 **AC does:** **re-reads the posted plan from the issue first** — unconditionally, whatever the *Human
-Gates* setting says, because the plan gate is a session boundary and Stage 3 must never run on
+Gates* setting says, because the plan gate is a context boundary and Stage 3 must never run on
 conversational memory of a plan it cannot re-quote; then creates the feature branch (the
 branch-protection guardrails block writes on a protected
 branch — see [`PROJECT.md`](../../PROJECT.md) → *Branch & PR Policy*); implements the plan step by
@@ -158,10 +158,13 @@ on the PR. **Exit:** self-review passes and `verify` summons the Reviewer per `P
 **Trigger:** the Reviewer has responded to the summons `verify` issued.
 
 **AC responds to Reviewer feedback (`listen`):** fetches all review threads via the lifecycle host,
-classifies each by the *Review Severity Framework*, summarizes for the HC, and — **after the HC
-chooses** which findings to address — fixes them, re-runs the *Quality Checks*, and replies on each
-thread. The fetch-and-fix churn may be offloaded; the severity and stop-and-ask judgment stays with
-the orchestrator (ADR 0005).
+classifies each by the *Review Severity Framework*, then disposes — **autonomously within a `ship`
+run** (escalating only architectural/ambiguous findings via `ship`'s emergency stop #3), or **after
+the HC chooses** when run standalone — fixes the addressed findings, re-runs the *Quality Checks*, and
+replies on each thread
+([ADR 0028](../adr/0028-context-reset-boundary-resumable-stops-autonomous-listen.md) decision 6). The
+fetch-and-fix churn may be offloaded; the severity and stop-and-ask judgment stays with the
+orchestrator (ADR 0005).
 
 **AC delivers (`final`):** re-verifies the PR is green with no open must-fix findings, then posts a
 **Statement of Work** on the PR (issue link; option chosen; technical decisions; what changed; testing
@@ -190,13 +193,18 @@ a Host App says otherwise both gates wait for the HC:
 ### What holds whatever the setting says
 
 - **Merge is always human** (gate 2 above).
-- **Gate-as-session-boundary is separate from gate-as-approval, and survives the approval being
-  waived.** "Plan posted" is a hard session boundary under `required` *and* under `auto`: Stage 3
+- **Gate-as-context-boundary is separate from gate-as-approval, and survives the approval being
+  waived.** "Plan posted" is a hard context boundary under `required` *and* under `auto` — a session
+  boundary under `required`, `ship`'s own context reset under `auto`
+  ([ADR 0028](../adr/0028-context-reset-boundary-resumable-stops-autonomous-listen.md)): Stage 3
   (`invoke`) **begins by re-reading the posted plan from the issue**, never continuing on conversational
   memory, and the pre-`final` context check still applies. `auto` removes the *wait*, not the context
   firebreak — a stage is still not done until its terminal artifact exists.
-- **`ship`'s emergency stops** (below) are unconditional.
-- **`listen`'s "after the HC chooses"** is outside this setting's scope and remains mandatory.
+- **`ship`'s emergency stops** (below) are unconditional — and under the hands-off driving loop each is
+  a *pause* that re-seeds, not a termination
+  ([ADR 0028](../adr/0028-context-reset-boundary-resumable-stops-autonomous-listen.md)). `listen`'s
+  disposition is no longer listed here: it is decoupled from this setting entirely — autonomous within a
+  `ship` run, stop-and-ask standalone — never governed by the plan-approval gate (ADR 0028 decisions 6–7).
 - **"The HC decides when to compress"** remains mandatory for every row of
   [*When to skip or compress stages*](#when-to-skip-or-compress-stages) **but one**. `auto` waives
   exactly three pauses: the Stage-1 option pick, the Stage-2 plan approval, and — because it is a
@@ -235,7 +243,10 @@ orchestrator skill that sequences
 exactly the **two human gates** above — honored as [`PROJECT.md`](../../PROJECT.md) → *Human Gates*
 declares them, strict by default — plus unconditional emergency stops (a check that can't be
 auto-resolved; a discovery that the change touches core logic the plan didn't anticipate; an
-architectural or ambiguous review comment).
+architectural or ambiguous review comment). Under a hands-off run those stops are **pauses that
+re-seed**, not terminations: `ship` records the question and its answer durably, resets its context, and
+resumes — deriving its resume point from the durable artifacts, so `/ship {issue}` is **idempotent and
+safe to re-run** ([ADR 0028](../adr/0028-context-reset-boundary-resumable-stops-autonomous-listen.md)).
 
 Its design **offloads output-heavy work and protects judgment**
 ([ADR 0005](../adr/0005-ship-hybrid-delegation-offload-retrieval-protect-judgment.md)): the `assess`
@@ -244,9 +255,11 @@ churn are delegated to sub-agents whose context is discarded (each returns a com
 `exploration-summary`, `check-result`, `drift-report`); assessment synthesis, plan authoring, `listen`
 severity calls, and the `final` merge-readiness call stay in a clean orchestrator context.
 
-**The plan gate doubles as a session boundary, and that role is unconditional** — it holds whether or
-not the gate pauses for a human (*Human Gates* may waive the pause; it never waives the boundary).
-State is externalized to the issue/PR so a fresh phase re-reads it rather than trusting context.
+**The plan gate doubles as a context boundary, and that role is unconditional** — it holds whether or
+not the gate pauses for a human (*Human Gates* may waive the pause; it never waives the reset). Under
+`required` the human crosses (a session boundary); under `auto` `ship` resets its own context
+([ADR 0028](../adr/0028-context-reset-boundary-resumable-stops-autonomous-listen.md)). State is
+externalized to the issue/PR so a fresh phase re-reads it rather than trusting context.
 On tools without sub-agent fan-out the same phases run inline with a "compact between phases" fallback
 (ADR 0003) — mechanism degrades, bar does not.
 
