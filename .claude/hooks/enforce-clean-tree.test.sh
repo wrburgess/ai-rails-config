@@ -37,14 +37,18 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
 # --- build fixture repos ----------------------------------------------------
-new_repo() {  # new_repo <path> — a repo with one committed tracked file, clean tree
+new_repo() {  # new_repo <path> — a repo with two committed tracked files, clean tree
   local path="$1"
   git init -q -b work "$path"
   git -C "$path" config user.email t@t.test
   git -C "$path" config user.name test
   printf 'original\n' > "$path/tracked.txt"
-  git -C "$path" add tracked.txt
+  printf 'sibling\n'  > "$path/other.txt"
+  git -C "$path" add tracked.txt other.txt
   git -C "$path" commit -q -m init
+  # A real branch ref, so a bare `git checkout otherbranch` resolves as a ref
+  # (the FIX-2 ref-vs-pathspec distinction) rather than being read as a pathspec.
+  git -C "$path" branch otherbranch
 }
 
 CLEAN_REPO="$TMP/clean";          new_repo "$CLEAN_REPO"
@@ -64,6 +68,28 @@ PASS=0; FAIL=0
 expect() {
   local name="$1" want="$2" payload="$3" got
   printf '%s' "$payload" | "$HOOK" >/dev/null 2>&1
+  got=$?
+  if [ "$got" = "$want" ]; then
+    PASS=$((PASS + 1)); printf '  ok   %-64s (exit %s)\n' "$name" "$got"
+  else
+    FAIL=$((FAIL + 1)); printf '  FAIL %-64s (want %s, got %s)\n' "$name" "$want" "$got"
+  fi
+}
+
+# Resolve a timeout wrapper so a FIX-1 regression (the shift-2 infinite loop in
+# the global-option walk) surfaces as a LOUD failure — exit 124 ≠ the expected 0
+# — instead of hanging the whole suite. Falls back to running unwrapped only on a
+# host with neither `timeout` nor `gtimeout` (accepting the hang risk there).
+TIMEOUT=""
+if command -v timeout >/dev/null 2>&1; then TIMEOUT="timeout 5"
+elif command -v gtimeout >/dev/null 2>&1; then TIMEOUT="gtimeout 5"; fi
+
+# expect_bounded <name> <expected-exit> <json-payload> — like expect, but runs the
+# hook under $TIMEOUT so a hang becomes a visible FAIL (124), never a stuck suite.
+expect_bounded() {
+  local name="$1" want="$2" payload="$3" got
+  # shellcheck disable=SC2086
+  printf '%s' "$payload" | $TIMEOUT "$HOOK" >/dev/null 2>&1
   got=$?
   if [ "$got" = "$want" ]; then
     PASS=$((PASS + 1)); printf '  ok   %-64s (exit %s)\n' "$name" "$got"
@@ -186,6 +212,26 @@ expect "absent tool_name -> allow (degraded, fail-open)" 0 \
   "$(jq -nc --arg c "$TRACKED_DIRTY" '{cwd:$c, tool_input:{command:"git reset --hard"}}')"
 expect "empty tool_name -> allow (degraded, fail-open)" 0 \
   "$(jq -nc --arg c "$TRACKED_DIRTY" '{tool_name:"", cwd:$c, tool_input:{command:"git reset --hard"}}')"
+
+echo "FIX 1 — a trailing value-expecting global option must not hang (shift-2 guard):"
+expect_bounded "git -C (value option as final token) -> allow, no hang" 0 \
+  "$(bash_payload 'git -C' "$TRACKED_DIRTY")"
+expect_bounded "git -c (value option as final token) -> allow, no hang" 0 \
+  "$(bash_payload 'git -c' "$TRACKED_DIRTY")"
+
+echo "FIX 2 — bare 'git checkout <tok>' (no --): pathspec discard vs ref switch:"
+expect "git checkout <dirty-tracked-file> (not a ref) on dirty -> block" 2 \
+  "$(bash_payload 'git checkout tracked.txt' "$TRACKED_DIRTY")"
+expect "git checkout <existing-branch> (a ref) on dirty -> allow (branch switch)" 0 \
+  "$(bash_payload 'git checkout otherbranch' "$TRACKED_DIRTY")"
+expect "git checkout <tracked-file> on a clean tree -> allow (nothing to lose)" 0 \
+  "$(bash_payload 'git checkout tracked.txt' "$CLEAN_REPO")"
+
+echo "FIX 4 — path-scoped dirty test names only what is actually dirty:"
+expect "git checkout -- <clean-file> while a DIFFERENT file is dirty -> allow" 0 \
+  "$(bash_payload 'git checkout -- other.txt' "$TRACKED_DIRTY")"
+expect "git checkout -- <dirty-file> -> block (named path loses changes)" 2 \
+  "$(bash_payload 'git checkout -- tracked.txt' "$TRACKED_DIRTY")"
 
 echo
 echo "Passed: $PASS  Failed: $FAIL"

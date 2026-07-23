@@ -267,13 +267,21 @@ guard_bash() {
     shift   # drop the `git` token
 
     # Walk git's global options to find -C <dir> and the subcommand.
+    #
+    # A value-expecting global option as the FINAL token (e.g. `git -C`, `git -c`)
+    # has no following value AND no subcommand after it. `shift 2` on a 1-element
+    # "$@" is a no-op in bash, so `continue` would re-enter the same token forever
+    # (an infinite loop → the hook hangs). Guard each value-option: consume the
+    # pair only when a second token exists; otherwise stop walking — a trailing
+    # value-option means no subcommand follows, so there is nothing ref-moving to
+    # inspect and we fall through to allow.
     local repodir="$curdir" sub=""
     while [ "$#" -gt 0 ]; do
       case "$1" in
-        -C)            repodir="$(resolve_dir "${2:-.}" "$curdir")"; shift 2; continue ;;
+        -C)            repodir="$(resolve_dir "${2:-.}" "$curdir")"; if [ "$#" -ge 2 ]; then shift 2; continue; else break; fi ;;
         --git-dir=*)   repodir="$(resolve_dir "${1#--git-dir=}" "$curdir")"; shift; continue ;;
-        --git-dir)     repodir="$(resolve_dir "${2:-.}" "$curdir")"; shift 2; continue ;;
-        -c)            shift 2; continue ;;     # `-c key=val` config override
+        --git-dir)     repodir="$(resolve_dir "${2:-.}" "$curdir")"; if [ "$#" -ge 2 ]; then shift 2; continue; else break; fi ;;
+        -c)            if [ "$#" -ge 2 ]; then shift 2; continue; else break; fi ;;   # `-c key=val` config override
         -*)            shift; continue ;;       # any other global flag
         *)             sub="$1"; shift; break ;;
       esac

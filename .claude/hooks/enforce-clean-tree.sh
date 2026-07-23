@@ -139,6 +139,33 @@ checkout_is_discard() {
   return 1
 }
 
+# `git checkout` creates a branch (never a worktree discard) when it carries a
+# branch-creating flag. Used to exclude those from the bare-positional path check
+# below — `git checkout -b <name>` must not be mistaken for a pathspec discard.
+checkout_makes_branch() {
+  local a
+  for a in "$@"; do
+    case "$a" in -b|-B|--orphan) return 0 ;; esac
+  done
+  return 1
+}
+
+# For a `git checkout` that is NOT already a known discard and does NOT create a
+# branch, echo its SOLE non-flag positional token when there is exactly one; echo
+# nothing for zero or multiple positionals. That lone token is either a ref (a
+# branch/commit switch — git self-guards) or a pathspec whose uncommitted changes
+# a bare `git checkout <path>` would silently discard; the caller resolves which.
+lone_positional() {
+  local a n=0 tok=""
+  for a in "$@"; do
+    case "$a" in
+      -*) ;;                       # flag or `--` — not a positional
+      *)  n=$((n + 1)); tok="$a" ;;
+    esac
+  done
+  [ "$n" -eq 1 ] && printf '%s' "$tok"
+}
+
 # `git restore` touches the worktree unless it is a --staged-ONLY (index) restore.
 # Default (no --staged) is worktree; explicit --worktree/-W is worktree even
 # alongside --staged.
@@ -209,6 +236,15 @@ EOF
 # `-C`/--git-dir, then inspect the subcommand. Quotes/backticks are NOT unwrapped,
 # so a commit message or heredoc that merely MENTIONS a destructive command stays
 # data. Block on the first destructive-op-on-dirty segment; otherwise allow.
+#
+# RESIDUAL (documented, not covered here — the same residual the branch guard
+# carries): the separator split is quote-BLIND by design, so an INLINE message
+# that literally contains a command separator AND destructive git text — e.g.
+# `git commit -m "undo; git reset --hard"` — can over-block: the `;` splits the
+# message and the trailing fragment reads as a real `git reset --hard`. This
+# over-block degrades toward the Lean-Core self-review rule (the floor), never to
+# a silent discard. For such messages use a heredoc (`git commit -F - <<EOF…`) or
+# `-F <file>`, whose body is cut before scanning and stays data.
 # ---------------------------------------------------------------------------
 guard_bash() {
   local cmd="$1"
@@ -267,13 +303,21 @@ guard_bash() {
     shift   # drop the `git` token
 
     # Walk git's global options to find -C <dir> / --git-dir and the subcommand.
+    #
+    # A value-expecting global option as the FINAL token (e.g. `git -C`, `git -c`)
+    # has no following value AND no subcommand after it. `shift 2` on a 1-element
+    # "$@" is a no-op in bash, so `continue` would re-enter the same token forever
+    # (an infinite loop → the hook hangs). Guard each value-option: consume the
+    # pair only when a second token exists; otherwise stop walking — a trailing
+    # value-option means no subcommand follows, so there is nothing destructive to
+    # inspect and we fall through to allow.
     local repodir="$curdir" sub=""
     while [ "$#" -gt 0 ]; do
       case "$1" in
-        -C)            repodir="$(resolve_dir "${2:-.}" "$curdir")"; shift 2; continue ;;
+        -C)            repodir="$(resolve_dir "${2:-.}" "$curdir")"; if [ "$#" -ge 2 ]; then shift 2; continue; else break; fi ;;
         --git-dir=*)   repodir="$(resolve_dir "${1#--git-dir=}" "$curdir")"; shift; continue ;;
-        --git-dir)     repodir="$(resolve_dir "${2:-.}" "$curdir")"; shift 2; continue ;;
-        -c)            shift 2; continue ;;     # `-c key=val` config override
+        --git-dir)     repodir="$(resolve_dir "${2:-.}" "$curdir")"; if [ "$#" -ge 2 ]; then shift 2; continue; else break; fi ;;
+        -c)            if [ "$#" -ge 2 ]; then shift 2; continue; else break; fi ;;   # `-c key=val` config override
         -*)            shift; continue ;;       # any other global flag
         *)             sub="$1"; shift; break ;;
       esac
@@ -282,25 +326,82 @@ guard_bash() {
 
     # Classify the subcommand into a destructive class + its dirty-test flavor.
     # `dirty_kind` is `tracked` (reset/checkout/restore) or `untracked` (clean).
-    local dirty_kind=""
+    # `discard_paths` names the EXPLICIT pathspec a discard op targets, so the
+    # dirty test can be scoped to just those paths (FIX 4); it stays empty for a
+    # pathless op (`reset --hard`, `checkout .` / `<ref> -f`, `clean`), which uses
+    # a whole-repo test. Scoping only ever RELAXES a block (a clean named path →
+    # allow), so a mis-scope degrades toward the rule floor, never to a false block.
+    local dirty_kind="" _p _tok _after
+    local -a discard_paths=()
     case "$sub" in
-      reset)    reset_is_hard "$@"        && dirty_kind=tracked ;;
-      checkout) checkout_is_discard "$@"  && dirty_kind=tracked ;;
-      restore)  restore_is_discard "$@"   && dirty_kind=tracked ;;
-      clean)    clean_is_destructive "$@" && dirty_kind=untracked ;;
+      reset)
+        reset_is_hard "$@" && dirty_kind=tracked
+        ;;
+      checkout)
+        if checkout_is_discard "$@"; then
+          dirty_kind=tracked
+          # Only the `-- <path>...` form names an explicit pathspec; `.` / `:/` /
+          # `-f` are whole-tree discards (leave discard_paths empty).
+          _after=0
+          for _p in "$@"; do
+            if [ "$_after" -eq 1 ]; then discard_paths+=("$_p"); continue; fi
+            [ "$_p" = "--" ] && _after=1
+          done
+        elif ! checkout_makes_branch "$@"; then
+          # Bare `git checkout <tok>` — a single non-flag positional, no `--`/`-b`.
+          # If <tok> resolves to a commit it is a branch/ref switch (git enforces
+          # its own overwrite safety) → allow. If it does NOT resolve, it is a
+          # pathspec whose uncommitted changes checkout would silently discard.
+          _tok="$(lone_positional "$@")"
+          if [ -n "$_tok" ] && \
+             ! git -C "$repodir" rev-parse --verify --quiet "${_tok}^{commit}" >/dev/null 2>&1; then
+            dirty_kind=tracked
+            discard_paths+=("$_tok")
+          fi
+        fi
+        ;;
+      restore)
+        if restore_is_discard "$@"; then
+          dirty_kind=tracked
+          # Collect positional pathspecs; skip flags and the -s/--source tree-ish
+          # value; after `--`, every token is a path.
+          _after=0
+          local _skip=0
+          for _p in "$@"; do
+            if [ "$_after" -eq 1 ]; then discard_paths+=("$_p"); continue; fi
+            if [ "$_skip" -eq 1 ]; then _skip=0; continue; fi
+            case "$_p" in
+              --)          _after=1 ;;
+              -s|--source) _skip=1 ;;
+              -*)          : ;;
+              *)           discard_paths+=("$_p") ;;
+            esac
+          done
+        fi
+        ;;
+      clean)
+        clean_is_destructive "$@" && dirty_kind=untracked
+        ;;
     esac
     [ -n "$dirty_kind" ] || continue
 
-    # Op-aware dirty test in the resolved repo. If git status cannot run (not a
-    # repo), we cannot confirm dirtiness — do NOT block (the rule is the floor).
+    # Op-aware dirty test in the resolved repo. Scope to the explicit pathspec when
+    # the op named one; otherwise test the whole tree. If git status cannot run
+    # (not a repo), we cannot confirm dirtiness — do NOT block (rule is the floor).
     local status_out
-    if ! status_out="$(git -C "$repodir" status --porcelain 2>/dev/null)"; then
-      continue
+    if [ "${#discard_paths[@]}" -gt 0 ]; then
+      status_out="$(git -C "$repodir" status --porcelain -- "${discard_paths[@]}" 2>/dev/null)" || continue
+    else
+      status_out="$(git -C "$repodir" status --porcelain 2>/dev/null)" || continue
     fi
 
     if [ "$dirty_kind" = "tracked" ]; then
       if has_tracked_change "$status_out"; then
-        block "Refusing 'git $sub' on a dirty working tree in '$repodir' - it would silently discard uncommitted tracked changes. Run 'git status', then stash or commit first."
+        if [ "${#discard_paths[@]}" -gt 0 ]; then
+          block "Refusing 'git $sub ${discard_paths[*]}' in '$repodir' - it would discard uncommitted tracked changes to that path. Run 'git status', then stash or commit first."
+        else
+          block "Refusing 'git $sub' on a dirty working tree in '$repodir' - it would discard uncommitted tracked changes. Run 'git status', then stash or commit first."
+        fi
       fi
     else
       if has_untracked "$status_out"; then
