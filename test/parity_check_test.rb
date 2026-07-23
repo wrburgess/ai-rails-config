@@ -1187,6 +1187,17 @@ class ParityCheckTest < Minitest::Test
     end
   end
 
+  def test_valid_adr_numbering_with_zero_padded_octal_range_passes
+    # Guards the LOAD-BEARING base-10 parse: 0008/0009 are zero-padded to a shape Ruby reads as octal,
+    # so a default-base Integer() would raise on them. A contiguous 8..10 run must still pass — if the
+    # parse ever regresses off base 10, this test errors/reddens where the <=4 fixtures above stay green.
+    with_bundle do |dir|
+      write_adrs(dir, [8, 9, 10])
+      code, out = run_check(dir)
+      assert_equal 0, code, out
+    end
+  end
+
   def test_adr_number_gap_fails
     # A missing number between min and max -> the contiguity invariant reddens (0003 is absent).
     with_bundle do |dir|
