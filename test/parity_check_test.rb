@@ -242,6 +242,20 @@ class ParityCheckTest < Minitest::Test
     end
   end
 
+  # The clean-tree destructive-op hook (ADR 0031) is a required guardrail file:
+  # a bundle that ships the guardrails must ship it, so its absence reddens the
+  # gate exactly like any other guardrail file's would.
+  def test_clean_tree_hook_is_a_required_guardrail
+    assert_includes ParityCheck::GUARDRAIL_FILES, ".claude/hooks/enforce-clean-tree.sh"
+    with_bundle do |dir|
+      add_guardrails(dir)
+      File.delete(File.join(dir, ".claude/hooks/enforce-clean-tree.sh"))
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(%r{Guardrail file missing: \.claude/hooks/enforce-clean-tree\.sh}, out)
+    end
+  end
+
   def test_missing_import_fails
     with_bundle do |dir|
       File.write(File.join(dir, "CLAUDE.md"), "no import token here\n")

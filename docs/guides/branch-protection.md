@@ -67,3 +67,33 @@ environment.
    up to the em dash are the authored list).
 2. Run `bin/install-git-hooks` to regenerate `.githooks/protected-branches`.
 3. Commit both files. The `parity` check fails if the sidecar drifts from `PROJECT.md`.
+
+## A sibling guard: destructive git ops on a dirty tree
+
+A related hazard is not about *which branch* you are on but about *losing uncommitted work*: a single
+git command can silently and unrecoverably discard it. A second Layer-3 accelerator,
+`.claude/hooks/enforce-clean-tree.sh` ([ADR 0031](../adr/0031-clean-tree-destructive-op-guard.md)),
+blocks the destructive op **before it runs** — but only when the working tree is dirty in the sense
+that op would destroy. It guards three op classes:
+
+| Class | Commands | "Dirty" means |
+|-------|----------|---------------|
+| **Reset-hard** | `git reset --hard [...]` | a **tracked** change is present |
+| **Checkout-discard** | `git checkout -- <path>` / `git checkout .` / `git checkout :/` / `git checkout <ref> -f`, and `git restore <path>` in worktree mode | a **tracked** change is present |
+| **Clean** | `git clean -f[...]` (without `-n` / `--dry-run`) | an **untracked** file is present |
+
+The dirty test is **op-aware**: `git clean -f` with only tracked edits (nothing untracked), or `git
+reset --hard` with only untracked files (no tracked change), destroys nothing and is allowed.
+Non-destructive spellings pass untouched on a dirty tree — `git checkout -b <new>`, a bare `git
+checkout <branch>`, `git reset --soft/--mixed`, `git stash`, `git clean -n`, `git restore --staged
+<path>`. Message and heredoc text that merely *mentions* a destructive command is treated as data, not
+a command.
+
+**Unlike the protected-branch guard, this has no Layer-1/Layer-2 git-level backstop** — git ships no
+`pre-checkout` / `pre-reset` / `pre-clean` hook to intercept these ops. Its degradation floor is
+therefore the Lean-Core rule in [`rules/self-review.md`](../../rules/self-review.md) → *Anti-Patterns*
+(never run a destructive git op on a dirty tree without `git status` + stash/commit first). On a
+harness with no `PreToolUse` mechanism the guard **degrades to rule-only**, which is why ADR 0009's
+"a Layer-3 accelerator must never be the only guard" still holds here — satisfied by the rule, not by
+another enforcement layer. The hook is **fail-open** (it never exits 1): a parser miss degrades to the
+rule catching it, never to a false block.

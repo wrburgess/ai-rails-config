@@ -129,6 +129,7 @@ class ParityCheck
     "docs/adr/0028-context-reset-boundary-resumable-stops-autonomous-listen.md",
     "docs/adr/0029-baseline-ships-ungated-to-merge.md",
     "docs/adr/0030-adr-numbering-preflight-enforcement.md",
+    "docs/adr/0031-clean-tree-destructive-op-guard.md",
     # Standards
     "docs/standards/development-lifecycle.md",
     # Out-of-band research (the per-tool discovery re-verification AGENTS.md cites) and Stack Overlays
@@ -330,7 +331,8 @@ class ParityCheck
   GUARDRAIL_FILES = [
     ".githooks/pre-commit", ".githooks/pre-push", ".githooks/pre-merge-commit", ".githooks/pre-rebase",
     "bin/guard-protected-branch", "bin/install-git-hooks", "bin/protected-branches",
-    ".claude/hooks/enforce-branch-creation.sh", ".claude/settings.json"
+    ".claude/hooks/enforce-branch-creation.sh", ".claude/hooks/enforce-clean-tree.sh",
+    ".claude/settings.json"
   ].freeze
 
   IMPORT_TOKEN = /(?:^|\s)@AGENTS\.md(?:\s|$)/.freeze
