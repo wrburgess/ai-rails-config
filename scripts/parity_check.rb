@@ -922,12 +922,15 @@ class ParityCheck
 
   # ADR numbering discipline (#133 / #131). Runs only when the bundle ships a docs/adr/ tree, so a
   # minimal bundle without ADRs is unaffected (the same gate stance as check_rules / check_guides). The
-  # leading number is parsed from each ADR basename with base 10 (never `to_i`'s implicit octal on a
-  # `0`-padded string). Two invariants over those numbers:
+  # leading number is parsed from each ADR basename with an explicit base 10: a bare `Integer("0008")`
+  # reads the leading zero as octal and raises on an 8 or 9, so the radix is required (`"0008".to_i`
+  # would not raise, but the check needs the strict parse, not a silent coercion). Two invariants over
+  # those numbers:
   #   (1) UNIQUENESS — no two ADR files may share a leading number (a reserved number authored twice).
   #   (2) CONTIGUITY — the sorted unique numbers must form an unbroken run min..max (no gap).
   # A gap or a duplicate is the tell of a number taken from stale local state; the message points the
-  # author at computing the next number from `origin/main` instead of reserving one ahead of authoring.
+  # author at computing the next number from the remote's default branch instead of reserving one ahead
+  # of authoring.
   def check_adr_numbering
     return unless Dir.exist?(path(ADR_DIR))
 
@@ -940,15 +943,21 @@ class ParityCheck
     # (1) UNIQUENESS — report each number that more than one ADR file carries.
     numbers.tally.select { |_number, count| count > 1 }.each_key do |dup|
       err("ADR numbering: #{ADR_DIR}/ has a duplicate ADR number #{format('%04d', dup)} - two ADRs " \
-          "share it (compute the next ADR number from `origin/main`, never reserve one ahead of authoring)")
+          "share it (compute the next ADR number from the remote's default branch, never reserve one " \
+          "ahead of authoring)")
     end
 
-    # (2) CONTIGUITY — the sorted unique numbers must equal (min..max).to_a; report each gap.
+    # (2) CONTIGUITY — the sorted unique numbers must form an unbroken run; report the first missing
+    # number of each gap. Scanning consecutive pairs (rather than materializing min..max) keeps this
+    # bounded — a stray large number like 99999999 yields a deterministic "gap at ..." instead of
+    # allocating the whole range and hanging the gate.
     unique = numbers.uniq.sort
-    ((unique.first..unique.last).to_a - unique).each do |missing|
-      err("ADR numbering: #{ADR_DIR}/ has a gap at #{format('%04d', missing)} - the numbers must be " \
-          "contiguous with no gap (compute the next ADR number from `origin/main`, never reserve one " \
-          "ahead of authoring)")
+    unique.each_cons(2) do |lower, higher|
+      next if higher == lower + 1
+
+      err("ADR numbering: #{ADR_DIR}/ has a gap at #{format('%04d', lower + 1)} - the numbers must be " \
+          "contiguous with no gap (compute the next ADR number from the remote's default branch, never " \
+          "reserve one ahead of authoring)")
     end
   end
 

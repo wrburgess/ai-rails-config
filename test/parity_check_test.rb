@@ -1227,6 +1227,18 @@ class ParityCheckTest < Minitest::Test
     end
   end
 
+  def test_adr_dir_present_but_empty_passes
+    # An existing docs/adr/ that holds no ADR files -> past the presence gate, the empty number set is a
+    # no-op pass. This exercises the "dir present, nothing to number" branch, distinct from the absent-dir
+    # case above (which short-circuits at the presence gate).
+    with_bundle do |dir|
+      FileUtils.mkdir_p(File.join(dir, "docs/adr"))
+      assert Dir.exist?(File.join(dir, "docs/adr"))
+      code, out = run_check(dir)
+      assert_equal 0, code, out
+    end
+  end
+
   # --- Link checking: code spans are not links (issue #96) ---------------------------------------
   #
   # check_links must resolve REAL links only. A markdown link that exists as an ILLUSTRATION — inside

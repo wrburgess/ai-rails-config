@@ -24,7 +24,7 @@ Only include these when they add genuine value. Most ADRs won't need them.
 
 ## Numbering
 
-Compute the next number from the **remote-authoritative** state, not a possibly-stale local checkout. Run `git fetch origin main`, list the ADRs as they stand on `origin/main` (`git ls-tree --name-only origin/main docs/adr/`), take the highest leading number, and add one. Do **not** reserve a number ahead of authoring the ADR — a parallel branch that reserves the same number leaves a gap or a duplicate, which the parity check rejects.
+Compute the next number from the **remote-authoritative** state, not a possibly-stale local checkout. Fetch your remote's **default branch** and list the ADRs as they stand there, take the highest leading number, and add one. For a bundle whose default branch is `main` that is `git fetch origin main` then `git ls-tree --name-only origin/main docs/adr/`; a host whose protected default is `master` or `develop` (per `PROJECT.md` → *Branch & PR Policy*) substitutes that ref. Do **not** reserve a number ahead of authoring the ADR — a parallel branch that reserves the same number leaves a gap or a duplicate, which the parity check rejects.
 
 ## When to offer an ADR
 
