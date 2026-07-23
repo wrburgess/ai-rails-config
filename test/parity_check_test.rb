@@ -157,6 +157,20 @@ class ParityCheckTest < Minitest::Test
     File.write(File.join(dir, "README.md"), "# Host\n\n#{refs}\n")
   end
 
+  # Writes one ADR file per integer in `numbers` under docs/adr/ in `dir` — the presence of that dir is
+  # what activates check_adr_numbering. Each number is zero-padded to four digits (`0001`) and given a
+  # distinct slug (its index), so a REPEATED number yields two files that share a leading number but
+  # differ by filename (`0002-slug1.md` and `0002-slug2.md`) — the duplicate shape. The body is minimal
+  # and link-free, so no OTHER parity check reddens. Individual tests pass the number set they need.
+  # Mirrors add_rules / add_guides.
+  def write_adrs(dir, numbers)
+    FileUtils.mkdir_p(File.join(dir, "docs/adr"))
+    numbers.each_with_index do |n, i|
+      padded = format("%04d", n)
+      File.write(File.join(dir, "docs/adr/#{padded}-slug#{i}.md"), "# ADR #{padded}\n\nA recorded decision.\n")
+    end
+  end
+
   # --- happy paths -------------------------------------------------------------------------------
 
   def test_valid_bundle_passes
@@ -1155,6 +1169,73 @@ class ParityCheckTest < Minitest::Test
       code, out = run_check(dir)
       assert_equal 1, code
       assert_match(/Dead link/, out)
+    end
+  end
+
+  # --- ADR numbering (#133 / #131) ---------------------------------------------------------------
+  #
+  # A gap or a duplicate in docs/adr/ is the signature of an ADR number picked or reserved from stale
+  # local state instead of computed from origin/main. check_adr_numbering is presence-gated on
+  # docs/adr/, so a fixture/bundle without ADRs is unaffected (the same gate stance as check_rules).
+
+  def test_valid_adr_numbering_passes
+    # A contiguous, unique run passes.
+    with_bundle do |dir|
+      write_adrs(dir, [1, 2, 3])
+      code, out = run_check(dir)
+      assert_equal 0, code, out
+    end
+  end
+
+  def test_valid_adr_numbering_with_zero_padded_octal_range_passes
+    # Guards the LOAD-BEARING base-10 parse: 0008/0009 are zero-padded to a shape Ruby reads as octal,
+    # so a default-base Integer() would raise on them. A contiguous 8..10 run must still pass — if the
+    # parse ever regresses off base 10, this test errors/reddens where the <=4 fixtures above stay green.
+    with_bundle do |dir|
+      write_adrs(dir, [8, 9, 10])
+      code, out = run_check(dir)
+      assert_equal 0, code, out
+    end
+  end
+
+  def test_adr_number_gap_fails
+    # A missing number between min and max -> the contiguity invariant reddens (0003 is absent).
+    with_bundle do |dir|
+      write_adrs(dir, [1, 2, 4])
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/ADR numbering.*gap at 0003/, out)
+    end
+  end
+
+  def test_duplicate_adr_number_fails
+    # Two ADRs sharing a leading number -> the uniqueness invariant reddens.
+    with_bundle do |dir|
+      write_adrs(dir, [1, 2, 2])
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/ADR numbering.*duplicate ADR number 0002/, out)
+    end
+  end
+
+  def test_adr_dir_absent_not_checked
+    # No docs/adr/ dir -> check_adr_numbering is a no-op, so a bundle without ADRs still passes.
+    with_bundle do |dir|
+      refute Dir.exist?(File.join(dir, "docs/adr"))
+      code, = run_check(dir)
+      assert_equal 0, code
+    end
+  end
+
+  def test_adr_dir_present_but_empty_passes
+    # An existing docs/adr/ that holds no ADR files -> past the presence gate, the empty number set is a
+    # no-op pass. This exercises the "dir present, nothing to number" branch, distinct from the absent-dir
+    # case above (which short-circuits at the presence gate).
+    with_bundle do |dir|
+      FileUtils.mkdir_p(File.join(dir, "docs/adr"))
+      assert Dir.exist?(File.join(dir, "docs/adr"))
+      code, out = run_check(dir)
+      assert_equal 0, code, out
     end
   end
 

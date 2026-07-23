@@ -128,6 +128,7 @@ class ParityCheck
     "docs/adr/0027-reviewer-chain-validated-against-invocation-paths.md",
     "docs/adr/0028-context-reset-boundary-resumable-stops-autonomous-listen.md",
     "docs/adr/0029-baseline-ships-ungated-to-merge.md",
+    "docs/adr/0030-adr-numbering-preflight-enforcement.md",
     # Standards
     "docs/standards/development-lifecycle.md",
     # Out-of-band research (the per-tool discovery re-verification AGENTS.md cites) and Stack Overlays
@@ -221,6 +222,13 @@ class ParityCheck
   # check_links, since README is in LINK_CHECKED).
   GUIDES_DIR = "docs/guides"
   REQUIRED_GUIDES = ["docs/guides/usage.md"].freeze
+
+  # ADR numbering discipline (#133 / #131). Checked only for a bundle that ships a docs/adr/ tree (the
+  # ADR_DIR gate) so a minimal fixture bundle is unaffected — the same "only for a bundle that ships
+  # them" stance as check_rules / check_skills / check_guides. The leading number of each ADR filename
+  # is parsed here; a gap or a duplicate is the signature of a number picked or reserved from stale
+  # local state instead of computed from origin/main.
+  ADR_DIR = "docs/adr"
 
   # Tier-1 Lean Core rule files (ADR 0004). Each must exist, be referenced by AGENTS.md so every tool
   # can reach the Lean Core, and declare its Patterns + Anti-Patterns sections. Checked only for a
@@ -352,6 +360,7 @@ class ParityCheck
     check_skills
     check_guardrails
     check_guides
+    check_adr_numbering
     check_links
     report
     @errors.empty? ? 0 : 1
@@ -908,6 +917,47 @@ class ParityCheck
 
     REQUIRED_GUIDES.each do |rel|
       err("Required guide missing: #{rel} not found") unless exist?(rel)
+    end
+  end
+
+  # ADR numbering discipline (#133 / #131). Runs only when the bundle ships a docs/adr/ tree, so a
+  # minimal bundle without ADRs is unaffected (the same gate stance as check_rules / check_guides). The
+  # leading number is parsed from each ADR basename with an explicit base 10: a bare `Integer("0008")`
+  # reads the leading zero as octal and raises on an 8 or 9, so the radix is required (`"0008".to_i`
+  # would not raise, but the check needs the strict parse, not a silent coercion). Two invariants over
+  # those numbers:
+  #   (1) UNIQUENESS — no two ADR files may share a leading number (a reserved number authored twice).
+  #   (2) CONTIGUITY — the sorted unique numbers must form an unbroken run min..max (no gap).
+  # A gap or a duplicate is the tell of a number taken from stale local state; the message points the
+  # author at computing the next number from the remote's default branch instead of reserving one ahead
+  # of authoring.
+  def check_adr_numbering
+    return unless Dir.exist?(path(ADR_DIR))
+
+    numbers = Dir.glob("*.md", base: path(ADR_DIR)).filter_map do |name|
+      m = name.match(/\A(\d+)/)
+      Integer(m[1], 10) if m
+    end
+    return if numbers.empty?
+
+    # (1) UNIQUENESS — report each number that more than one ADR file carries.
+    numbers.tally.select { |_number, count| count > 1 }.each_key do |dup|
+      err("ADR numbering: #{ADR_DIR}/ has a duplicate ADR number #{format('%04d', dup)} - two ADRs " \
+          "share it (compute the next ADR number from the remote's default branch, never reserve one " \
+          "ahead of authoring)")
+    end
+
+    # (2) CONTIGUITY — the sorted unique numbers must form an unbroken run; report the first missing
+    # number of each gap. Scanning consecutive pairs (rather than materializing min..max) keeps this
+    # bounded — a stray large number like 99999999 yields a deterministic "gap at ..." instead of
+    # allocating the whole range and hanging the gate.
+    unique = numbers.uniq.sort
+    unique.each_cons(2) do |lower, higher|
+      next if higher == lower + 1
+
+      err("ADR numbering: #{ADR_DIR}/ has a gap at #{format('%04d', lower + 1)} - the numbers must be " \
+          "contiguous with no gap (compute the next ADR number from the remote's default branch, never " \
+          "reserve one ahead of authoring)")
     end
   end
 
