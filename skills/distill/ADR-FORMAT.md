@@ -24,7 +24,7 @@ Only include these when they add genuine value. Most ADRs won't need them.
 
 ## Numbering
 
-Scan `docs/adr/` for the highest existing number and increment by one.
+Compute the next number from the **remote-authoritative** state, not a possibly-stale local checkout. Run `git fetch origin main`, list the ADRs as they stand on `origin/main` (`git ls-tree --name-only origin/main docs/adr/`), take the highest leading number, and add one. Do **not** reserve a number ahead of authoring the ADR — a parallel branch that reserves the same number leaves a gap or a duplicate, which the parity check rejects.
 
 ## When to offer an ADR
 
