@@ -131,6 +131,7 @@ class ParityCheck
     "docs/adr/0029-baseline-ships-ungated-to-merge.md",
     "docs/adr/0030-adr-numbering-preflight-enforcement.md",
     "docs/adr/0031-clean-tree-destructive-op-guard.md",
+    "docs/adr/0032-enforcement-gap-second-loop-distributed-enforcement.md",
     # Standards
     "docs/standards/development-lifecycle.md",
     # Out-of-band research (the per-tool discovery re-verification AGENTS.md cites) and Stack Overlays
@@ -150,6 +151,7 @@ class ParityCheck
     "docs/rules/testing-postmortems.md",
     # Tier-1 Lean Core (ADR 0004)
     "rules/backend.md",
+    "rules/communication.md",
     "rules/frontend.md",
     "rules/scripting.md",
     "rules/security.md",
@@ -238,7 +240,7 @@ class ParityCheck
   # the same "only for a bundle that ships them" stance as check_guardrails.
   RULES_DIR = "rules"
   REQUIRED_RULES = [
-    "rules/backend.md", "rules/frontend.md", "rules/testing.md",
+    "rules/backend.md", "rules/communication.md", "rules/frontend.md", "rules/testing.md",
     "rules/security.md", "rules/self-review.md", "rules/scripting.md", "rules/skills.md"
   ].freeze
   # Section presence is asserted (the heading line), not content — so a host freely extends the body.

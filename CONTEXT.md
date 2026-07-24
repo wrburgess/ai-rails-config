@@ -110,6 +110,12 @@ roster of *voices*. Its mechanism is Generic Baseline; the populated roster is i
 _Avoid_: "the pegboard" (its former name), "the tracker", "the grid", "the matrix" (it is two
 normalized lists, not a harness×model pairing grid)
 
+### Self-improvement
+
+**Enforcement Gap** (a.k.a. the **learning→enforcement gap**):
+The failure mode where an AC *operational* learning — captured in agent memory or a prior issue — is never promoted into the **enforceable** Config Bundle, so the same friction recurs. Closing it is a **second self-improvement loop** (AC operational learnings → enforced config), distinct from the **Intake Pipeline** (which folds *external* field voices) and from a passive drift/bloat audit (which finds *surface* rot, not un-promoted learnings).
+_Avoid_: "tech debt", "the backlog", "drift" (drift is passive surface rot; this is a captured-but-unenforced learning)
+
 ## Relationships
 
 - The **Config Bundle** contains one **Canonical Source**, many **Adapters**, many **Skills**, one **Rules Layer**, and one **Project Config**.
@@ -123,6 +129,9 @@ normalized lists, not a harness×model pairing grid)
   Tool Roster tracks *tools* (**harnesses** and **models**) as a current-state snapshot that feeds
   tool-selection. Both keep the **Config Bundle** current; they differ by *kind of thing* — opinions vs.
   facts. Two rosters: one of voices to learn from, one of tools to pick from.
+- The **Enforcement Gap** is closed by promoting *internal* AC operational learnings into enforceable
+  config — a **second self-improvement loop**, sibling to but distinct from the **Intake Pipeline**
+  (external voices) and the **Tool Roster** (tool facts).
 
 ## Example dialogue
 

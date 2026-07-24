@@ -121,6 +121,7 @@ business-neutral, *extend per host*) and **Tier 2 — Deferred Deep Docs**
 | Tests | [`rules/testing.md`](rules/testing.md) | `docs/rules/testing-postmortems.md` |
 | Secrets, auth, or input | [`rules/security.md`](rules/security.md) | `docs/rules/security-postmortems.md` |
 | Before-done checklist | [`rules/self-review.md`](rules/self-review.md) | — |
+| Communicating with the HC | [`rules/communication.md`](rules/communication.md) | — |
 | Bundled / CLI scripts | [`rules/scripting.md`](rules/scripting.md) | `docs/rules/scripting-postmortems.md` |
 | Skill bodies + shims | [`rules/skills.md`](rules/skills.md) | `docs/rules/skills-postmortems.md` |
 
