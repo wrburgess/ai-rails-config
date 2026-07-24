@@ -147,9 +147,11 @@ Then run the phases from the derived point:
 6. **Deliver** — follow [`final`](../../skills/final/SKILL.md) **in the orchestrator**: re-verify the
    PR is green with no open must-fix findings, post the Statement of Work, link it from the issue. Run
    the **run-level ask-completeness check** ([`rules/self-review.md`](../../rules/self-review.md)) at this
-   terminal: enumerate every explicit ask made across the whole run and confirm each is delivered or
-   handed to a tracked follow-up (the asks-ledger) — this terminal pass catches a late ask that landed
-   *after* `invoke`-time self-review, which the per-phase check cannot see.
+   terminal: reconcile `build-brief.asks_ledger` — the **durable** record each phase appended to as asks
+   arrived (below) — and confirm every explicit ask is delivered or handed to a tracked follow-up. Because
+   the ledger is durable rather than in-context, this terminal pass still catches a late ask that landed
+   *after* `invoke`-time self-review even though the pre-`final` reset discarded the conversation that
+   raised it — the exact gap an in-memory ledger would drop.
    **→ Human gate 2 (merge) — always human, never configurable.**
 
 ## The driving loop — a stop is a pause, not a termination
@@ -175,6 +177,7 @@ the same pause-not-terminate loop, [ADR 0028](../../docs/adr/0028-context-reset-
 { issue_ref, plan_comment_url?, branch?,   # `?` = present once that artifact exists (null at assess/devise)
   resume_point:    assess | devise | invoke | verify | listen | final | await-merge,
   human_decisions: [ { stop_id, at, question, answer, artifact_url } ],  # stable id + source ref per pair
+  asks_ledger:     [ { ask, at, status: "delivered"|"handed-off", ref } ],  # each explicit ask recorded DURABLY (issue/PR comment, or a tracked follow-up) as it arrives; reconstructed from those artifacts on every reseed, so `final` reconciles a run-complete ledger, never from in-context memory
   gates:           { plan_approval, merge } }       # read from PROJECT.md -> Human Gates
 ```
 
@@ -258,6 +261,11 @@ git rather than carrying it in context — under either setting:
   issue**, never from carried-over context.
 - A **pre-`final` context check** forces another reset before the merge-readiness judgment — also
   unconditional.
+- **Record each explicit ask durably as it arrives**, never only in context — post it (or a tracked
+  follow-up) to the issue/PR the moment it lands, exactly as a stop posts to `human_decisions`. The
+  `build-brief.asks_ledger` is then reconstructed from those durable records on every reseed, so a late
+  ask cannot be lost to the pre-`final` reset; `final`'s terminal ask-check reconciles against that
+  durable ledger, not a memory the reset already discarded.
 - On resume, a fresh phase **re-reads its durable artifacts** (the issue, the plan comment, the PR)
   rather than trusting a compaction summary — a stage is not done until its terminal artifact exists
   (see the [development lifecycle](../../docs/standards/development-lifecycle.md)).
@@ -301,8 +309,9 @@ gate's **context reset** was observed even where the pause was waived; no emerge
 outstanding (a stop is a pause the loop re-seeds from, not a silent skip); every delegated phase
 returned and was reconciled against its handoff contract; the
 terminal artifact of each phase exists (assessment, plan, PR, self-review, review replies, SOW); and the
-**run-level asks-ledger** was emitted at `final`, with every explicit session ask delivered or handed to
-a tracked follow-up. Sign
+**run-level asks-ledger** was reconciled at `final` from its durable record (`build-brief.asks_ledger`,
+which survives every context reset), with every explicit session ask delivered or handed to a tracked
+follow-up. Sign
 every lifecycle-host comment with the attribution footer from [`PROJECT.md`](../../PROJECT.md) →
 *Attribution & Model Declaration*, using your runtime-actual model.
 
