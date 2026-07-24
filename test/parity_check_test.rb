@@ -10,6 +10,7 @@ require "minitest/autorun"
 require "tmpdir"
 require "fileutils"
 require "stringio"
+require "json"
 require_relative "../scripts/parity_check"
 
 class ParityCheckTest < Minitest::Test
@@ -66,6 +67,10 @@ class ParityCheckTest < Minitest::Test
       FileUtils.mkdir_p(File.join(dir, File.dirname(f)))
       File.write(File.join(dir, f), "stub\n")
     end
+    # A settings.json that actually WIRES both guardrail hooks (check_hooks_wired). The GUARDRAIL_FILES
+    # loop above wrote it as a "stub", so overwrite it with valid, wired JSON here; the wiring failure
+    # tests overwrite it again with a broken/partial one.
+    write_settings_json(dir)
     File.write(File.join(dir, ParityCheck::SIDECAR), sidecar.map { |b| "#{b}\n" }.join)
     File.write(File.join(dir, "PROJECT.md"), <<~MD)
       # Project Config
@@ -76,6 +81,26 @@ class ParityCheckTest < Minitest::Test
       ## Review Severity Framework
       ## Lifecycle Host
     MD
+  end
+
+  # Writes a .claude/settings.json whose PreToolUse hooks wire BOTH guardrail .sh hooks (the wiring
+  # check_hooks_wired asserts). `commands:` overrides the wired set for the failure tests (e.g. omit one
+  # basename, or pass [] to wire nothing).
+  def write_settings_json(dir, commands: nil)
+    commands ||= %w[
+      $CLAUDE_PROJECT_DIR/.claude/hooks/enforce-branch-creation.sh
+      $CLAUDE_PROJECT_DIR/.claude/hooks/enforce-clean-tree.sh
+    ]
+    FileUtils.mkdir_p(File.join(dir, ".claude"))
+    settings = {
+      "hooks" => {
+        "PreToolUse" => [
+          { "matcher" => "Bash",
+            "hooks" => commands.map { |c| { "type" => "command", "command" => c } } }
+        ]
+      }
+    }
+    File.write(File.join(dir, ParityCheck::SETTINGS_JSON), JSON.pretty_generate(settings))
   end
 
   # Writes the six Tier-1 Lean Core rule files (each with the required sections) into `dir` and adds
@@ -253,6 +278,79 @@ class ParityCheckTest < Minitest::Test
       code, out = run_check(dir)
       assert_equal 1, code
       assert_match(%r{Guardrail file missing: \.claude/hooks/enforce-clean-tree\.sh}, out)
+    end
+  end
+
+  # --- Hook wiring (ADR 0009 / ADR 0031, issue #136) ---------------------------------------------
+  # A guardrail hook that ships under .claude/hooks/ but is not wired into settings.json as a PreToolUse
+  # hook never runs — a present-but-unwired hook ships green while the protection is silently absent.
+
+  def test_wired_guardrail_hooks_pass
+    # add_guardrails writes a settings.json that wires BOTH guardrail hooks, so a valid bundle passes.
+    with_bundle do |dir|
+      add_guardrails(dir)
+      code, out = run_check(dir)
+      assert_equal 0, code, out
+    end
+  end
+
+  def test_unwired_clean_tree_hook_fails
+    # settings.json wires only the branch hook, not enforce-clean-tree.sh -> the disconnected hook reddens.
+    with_bundle do |dir|
+      add_guardrails(dir)
+      write_settings_json(dir, commands: %w[$CLAUDE_PROJECT_DIR/.claude/hooks/enforce-branch-creation.sh])
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(%r{Hook wiring: \.claude/hooks/enforce-clean-tree\.sh ships but}, out)
+      assert_match(/references `enforce-clean-tree\.sh`/, out)
+    end
+  end
+
+  def test_unwired_branch_hook_fails
+    # The symmetric case: settings.json wires only the clean-tree hook, so the branch hook is unwired.
+    # Proves the check covers BOTH guardrail hooks, not just the one this PR added.
+    with_bundle do |dir|
+      add_guardrails(dir)
+      write_settings_json(dir, commands: %w[$CLAUDE_PROJECT_DIR/.claude/hooks/enforce-clean-tree.sh])
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(%r{Hook wiring: \.claude/hooks/enforce-branch-creation\.sh ships but}, out)
+    end
+  end
+
+  def test_no_pretooluse_hooks_wired_fails
+    # A settings.json with an empty PreToolUse array wires nothing -> both guardrail hooks reddens.
+    with_bundle do |dir|
+      add_guardrails(dir)
+      write_settings_json(dir, commands: [])
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/enforce-branch-creation\.sh ships but/, out)
+      assert_match(/enforce-clean-tree\.sh ships but/, out)
+    end
+  end
+
+  def test_invalid_settings_json_fails
+    # settings.json present but not parseable JSON -> the wiring cannot be verified, so it reddens
+    # rather than passing blind.
+    with_bundle do |dir|
+      add_guardrails(dir)
+      File.write(File.join(dir, ParityCheck::SETTINGS_JSON), "{ not valid json ]")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(/Hook wiring: .*settings\.json is not valid JSON/, out)
+    end
+  end
+
+  def test_hooks_wired_not_checked_without_hooks
+    # No guardrail hooks shipped (a minimal bundle) -> check_hooks_wired is a no-op even if a bare
+    # settings.json exists, so the vendored-partial case is unaffected.
+    with_bundle do |dir|
+      FileUtils.mkdir_p(File.join(dir, ".claude"))
+      File.write(File.join(dir, ParityCheck::SETTINGS_JSON), "{}\n")
+      refute File.exist?(File.join(dir, ".claude/hooks/enforce-clean-tree.sh"))
+      code, out = run_check(dir)
+      assert_equal 0, code, out
     end
   end
 

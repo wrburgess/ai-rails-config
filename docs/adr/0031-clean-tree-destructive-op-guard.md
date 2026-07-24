@@ -52,16 +52,24 @@ not another enforcement layer.
    **untracked** file (a line starting with `??`). A destroyer on a clean tree —
    or on a tree dirty only in the *other* sense — destroys nothing and is allowed.
 
-2. **The degradation floor is a rule, not a layer.** Because there is no git-level
-   pre-hook to build (see Context), the all-harness coverage that ADR 0009 demands
-   cannot come from another enforcement layer. It comes from a Tier-1 Lean-Core
-   anti-pattern in [`rules/self-review.md`](../../rules/self-review.md): *never run
+2. **This is a documented Layer-3-ONLY exception; the "floor" is guidance, not a
+   mechanical layer.** Because git exposes no pre-hook to build (see Context), there
+   is **no mechanical Layer-1/Layer-2 backstop** for these ops — nothing like the
+   git-level pre-commit/pre-push hooks that make the protected-branch guard
+   genuinely defense-in-depth. So this guard does **not** satisfy ADR 0009's "a
+   Layer-3 accelerator must never be the only guard" the way that guard does: it is
+   genuinely **Layer-3-only**, a deliberate, **documented EXCEPTION** to that
+   invariant, with the residual risk explicitly accepted. The Tier-1 Lean-Core
+   anti-pattern in [`rules/self-review.md`](../../rules/self-review.md) — *never run
    a destructive git op on a dirty tree without first running `git status` and
-   stashing/committing.* Every configured harness reads that rule; on a harness
-   with no `PreToolUse` mechanism the guard is rule-only, which is the correct
-   degradation ([ADR 0003](0003-skills-canonical-body-thin-shims-graceful-degradation.md)).
-   The hook is a best-UX accelerator that blocks the destruction *before* it runs;
-   the rule is the floor that holds everywhere.
+   stashing/committing* — is **guidance an agent reads, not an enforcement gate**:
+   every configured harness receives it, and on a harness with no `PreToolUse`
+   mechanism the guard degrades to that rule alone
+   ([ADR 0003](0003-skills-canonical-body-thin-shims-graceful-degradation.md)), but
+   a rule a run can forget is not a mechanical floor. This hook is therefore a
+   **best-effort, fail-open ACCELERATOR** that reduces the frequency of *accidental*
+   destructive ops on a dirty tree — it is **NOT a security boundary** and does not
+   defend against deliberate bypass (see *Residual risks / known bypasses*).
 
 3. **Fail-open, never exit 1.** The hook's exit contract is `0` = allow, `2` =
    block, and it **never** exits 1 — any non-2 nonzero would let the tool run
@@ -102,15 +110,52 @@ ADR guards a single agent's own destructive commands, not concurrency.
 - On Claude, a destructive git op on a dirty tree is blocked before it runs, with
   a message telling the agent to `git status` and stash/commit first. The hook's
   full contract is pinned by `.claude/hooks/enforce-clean-tree.test.sh` (run
-  unconditionally in CI, like the branch-hook self-test), and the file is added to
-  the parity check's `GUARDRAIL_FILES` so its absence reddens the gate.
-- On any harness without a `PreToolUse` hook, the guard is the Lean-Core rule
-  alone — the intended degradation, and the reason ADR 0009's "never the only
-  guard" holds here without a second enforcement layer.
-- **Known limit — parser, not sandbox.** A string parser cannot defeat a
-  Turing-complete shell: an op reached through `bash -c '<quoted>'`, `eval`, a
-  base64-decoded command, or a repo path built at runtime can still slip past,
-  and — because the guard is deliberately fail-open — a genuinely novel spelling
-  degrades to the rule rather than to a block. That trade is intentional: the cost
-  of a miss is "the rule catches it", not a corrupted repo, whereas the cost of
-  over-blocking would be an agent stranded mid-task.
+  unconditionally in CI, like the branch-hook self-test); the file is in the parity
+  check's `GUARDRAIL_FILES` so its absence reddens the gate, and `check_hooks_wired`
+  additionally asserts it is actually **wired** into `.claude/settings.json` as a
+  `PreToolUse` hook — a shipped-but-disconnected hook reddens too, closing the
+  false-green where the guard would silently never run (#136).
+- On any harness without a `PreToolUse` hook — and on Claude when a novel spelling
+  slips the parser — the guard is the Lean-Core rule alone. That is the intended
+  degradation, but note honestly (per the Decision) that the rule is **guidance, not
+  a mechanical layer**: this op class has no git-level backstop, so this guard is a
+  documented exception to ADR 0009's "never the only guard", not a case of it
+  holding.
+- **Known limit — parser, not sandbox, and fail-open by design.** A string parser
+  cannot defeat a Turing-complete shell, and a fail-open accelerator is not a
+  security boundary. The residual bypasses are enumerated below; each degrades
+  fail-open to the rule. The trade is intentional: the cost of a miss is "the rule
+  (maybe) catches it", not a false block that strands an agent mid-task.
+
+## Residual risks / known bypasses (accepted)
+
+This guard is a best-effort accelerator, not a sandbox. The following slip past it;
+each degrades **fail-open** to the Lean-Core rule and is **accepted** — fail-open is
+the correct direction for an accelerator over a rule (a miss costs "the rule maybe
+catches it", never a false block):
+
+- **Deliberate shell indirection.** A destructive op reached through `eval`,
+  `bash -c '<quoted compound>'`, or command substitution `$(...)` building the
+  command at runtime is not statically visible to a string parser. (A here-string
+  `<<<WORD` is scanned — including any `&& ...` after it — because #136 stopped the
+  heredoc cut from firing on `<<<`; only content built *inside* a `$(...)` is opaque.)
+- **Explicit repo selectors the parser does not resolve.** `GIT_DIR=` /
+  `GIT_WORK_TREE=` environment assignments (stripped as leading `ENV=val` and not
+  applied to the repo under test) and `git --work-tree=...` point the op at a repo
+  whose dirtiness the hook never checked. (`-C` and `--git-dir` ARE honored.)
+- **Untracked-file collisions.** The op-aware dirty test treats "only untracked =>
+  reset/checkout destroys nothing" as true, but a `git reset --hard` /
+  `git checkout -f` can overwrite an untracked file that collides with a same-named
+  tracked file in the target ref. That specific loss is not caught, so "only
+  untracked" is a heuristic, not a proof.
+- **Exotic argv forms.** `git checkout --pathspec-from-file=<f>` (pathspecs read
+  from a file, never on argv), unambiguous long-option abbreviations git accepts
+  (e.g. `git reset --har` for `--hard`, which the classifier matches only in full),
+  and combined branch-create-and-switch spellings like `-fb <name>` are outside the
+  classifier's recognized forms.
+
+None of these is a defense against a determined bypass; the hook's job is to catch
+the *accidental* dirty-tree destruction that has actually bitten this repo
+([#114](https://github.com/wrburgess/ai-config/issues/114),
+[#134](https://github.com/wrburgess/ai-config/issues/134)), and to hand every other
+case to the rule.

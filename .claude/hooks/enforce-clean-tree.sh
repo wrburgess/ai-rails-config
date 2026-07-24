@@ -8,13 +8,18 @@
 #   - RESET_HARD       `git reset --hard [...]`            (a tracked change is lost)
 #   - CHECKOUT_DISCARD `git checkout -- <path>` / `.` / `:/` / `<ref> -f`,
 #                      and `git restore <path>` in worktree mode               (ditto)
-#   - CLEAN            `git clean -f[...]` without `-n`/--dry-run  (untracked files deleted)
+#   - CLEAN            `git clean -f[...]` without `-n`/--dry-run  (untracked files deleted;
+#                      `-x` also deletes ignored files, `-X` deletes ONLY ignored)
 #
 # The dirty test is OP-AWARE: reset/checkout/restore look for a *tracked* change
 # (a `git status --porcelain` line NOT starting with `??`); clean looks for an
-# *untracked* file (a line starting with `??`). So `git clean -f` with only
-# tracked edits, or `git reset --hard` with only untracked files, is allowed —
-# the op would destroy nothing.
+# *untracked* file (`??`), plus IGNORED files (`!!`, via `--ignored`) for `-x`/`-X`.
+# So `git clean -f` with only tracked edits, or `git reset --hard` with only
+# untracked files, is generally allowed — the op usually destroys nothing. This is
+# NOT universal: a `reset --hard` / `checkout -f` can overwrite an UNTRACKED file
+# that collides with a same-named tracked file in the target ref, so "only
+# untracked => destroys nothing" is a heuristic, not a proof. That residual
+# degrades fail-open to the Lean-Core rule (see ADR 0031, Residual risks).
 #
 # Wired in .claude/settings.json as a PreToolUse hook matching "Bash". The full
 # tool payload arrives as JSON on stdin; we read it rather than trusting
@@ -32,9 +37,14 @@
 # the safety net.
 #
 # Git has no pre-checkout / pre-reset / pre-clean hook, so — unlike the
-# protected-branch guard — there is no Layer-1/Layer-2 git-level backstop for
-# these ops. The Lean-Core rule (rules/self-review.md) is the all-harness floor
-# that satisfies ADR 0009's "a Layer-3 accelerator must never be the only guard".
+# protected-branch guard — there is NO mechanical Layer-1/Layer-2 git-level
+# backstop for these ops. This guard is therefore genuinely Layer-3-ONLY, a
+# deliberate, documented EXCEPTION to ADR 0009's "a Layer-3 accelerator must never
+# be the only guard": the Lean-Core rule (rules/self-review.md) is guidance an
+# agent reads, NOT a mechanical gate, so it is not a lower enforcement layer. This
+# hook is a best-effort, fail-open ACCELERATOR that reduces *accidental* destructive
+# ops on a dirty tree; it is NOT a security boundary and does not defend against
+# deliberate bypass (see ADR 0031, Residual risks / known bypasses).
 
 allow() { exit 0; }
 block() { echo "$1" >&2; exit 2; }
@@ -150,22 +160,6 @@ checkout_makes_branch() {
   return 1
 }
 
-# For a `git checkout` that is NOT already a known discard and does NOT create a
-# branch, echo its SOLE non-flag positional token when there is exactly one; echo
-# nothing for zero or multiple positionals. That lone token is either a ref (a
-# branch/commit switch — git self-guards) or a pathspec whose uncommitted changes
-# a bare `git checkout <path>` would silently discard; the caller resolves which.
-lone_positional() {
-  local a n=0 tok=""
-  for a in "$@"; do
-    case "$a" in
-      -*) ;;                       # flag or `--` — not a positional
-      *)  n=$((n + 1)); tok="$a" ;;
-    esac
-  done
-  [ "$n" -eq 1 ] && printf '%s' "$tok"
-}
-
 # `git restore` touches the worktree unless it is a --staged-ONLY (index) restore.
 # Default (no --staged) is worktree; explicit --worktree/-W is worktree even
 # alongside --staged.
@@ -204,6 +198,29 @@ clean_is_destructive() {
   return 0
 }
 
+# What ignored-file scope a `git clean` invocation touches, from its flags. `-x`
+# removes untracked AND ignored; `-X` removes ONLY ignored; plain clean removes
+# untracked only. `-x` and `-X` are distinct short flags (case-sensitive) and may
+# be clustered (`-fdx`, `-xf`); there is no long form. Echoes `x` (untracked +
+# ignored), `X` (ignored only), or nothing (untracked only). `x` wins when both
+# appear, since it is the strictly wider deletion.
+clean_ignored_mode() {
+  local a cluster hx=0 hX=0
+  for a in "$@"; do
+    case "$a" in
+      --*) : ;;                        # long flag — no -x/-X long form exists
+      -*)
+        cluster="${a#-}"
+        case "$cluster" in *x*) hx=1 ;; esac
+        case "$cluster" in *X*) hX=1 ;; esac
+        ;;
+    esac
+  done
+  if [ "$hx" -eq 1 ]; then printf 'x'
+  elif [ "$hX" -eq 1 ]; then printf 'X'
+  fi
+}
+
 # --- op-aware dirty tests (read a `git status --porcelain` blob) -------------
 # Untracked lines start with `??`; every other non-empty line is a tracked
 # change (` M`, `M `, `A `, `D `, ...). `??` is QUOTED in each case pattern so it
@@ -227,45 +244,110 @@ $1
 EOF
   return 1
 }
+# Ignored lines start with `!!` and appear only when `git status` is run with
+# `--ignored`. `!!` is QUOTED so it matches literally, not as a glob.
+has_ignored() {
+  local line
+  while IFS= read -r line; do
+    case "$line" in '!!'*) return 0 ;; esac
+  done <<EOF
+$1
+EOF
+  return 1
+}
+
+# Cut a real heredoc body — everything from a `<<WORD` / `<<-WORD` operator to the
+# end is DATA fed to a command, not commands to run. A here-string `<<<WORD` is
+# NOT a heredoc: its word is a single inline token, so it is left intact and any
+# `&& …` after it is still scanned. Scans for the first `<<` that is not part of
+# a `<<<`, and truncates there; returns the whole string when none is found.
+cut_heredoc() {
+  local s="$1" i=0 n=${#1}
+  while [ "$i" -lt "$n" ]; do
+    if [ "${s:i:2}" = "<<" ]; then
+      if [ "${s:i+2:1}" = "<" ]; then
+        i=$((i + 3)); continue          # here-string `<<<` — not a heredoc, keep scanning
+      fi
+      printf '%s' "${s:0:i}"; return    # real heredoc operator — cut the body off
+    fi
+    i=$((i + 1))
+  done
+  printf '%s' "$s"
+}
+
+# Split a command line into segments on the shell separators (&& || | ; &), one
+# per line. QUOTE-AWARE: a separator inside single or double quotes does NOT split,
+# so a `;` in a commit message (`git commit -m "undo; git reset --hard"`) keeps the
+# command one segment instead of spawning a phantom `git reset --hard`. Only the
+# SPLIT respects quotes — the per-segment token scan never unwraps them, so message
+# text stays data while a real separator between two commands still splits. A
+# backslash inside double quotes escapes the next char (so `\"` cannot close the
+# quote); single quotes are literal (no escapes), matching the shell.
+split_segments() {
+  local s="$1" i=0 n=${#1} out="" ch next sq=0 dq=0
+  while [ "$i" -lt "$n" ]; do
+    ch="${s:i:1}"
+    if [ "$sq" -eq 1 ]; then                 # inside single quotes: literal until the next '
+      out+="$ch"; [ "$ch" = "'" ] && sq=0; i=$((i + 1)); continue
+    fi
+    if [ "$dq" -eq 1 ]; then                 # inside double quotes: honor backslash escapes
+      if [ "$ch" = "\\" ]; then
+        out+="$ch"; i=$((i + 1))
+        [ "$i" -lt "$n" ] && { out+="${s:i:1}"; i=$((i + 1)); }
+        continue
+      fi
+      out+="$ch"; [ "$ch" = '"' ] && dq=0; i=$((i + 1)); continue
+    fi
+    case "$ch" in
+      "'") sq=1; out+="$ch"; i=$((i + 1)); continue ;;
+      '"') dq=1; out+="$ch"; i=$((i + 1)); continue ;;
+    esac
+    next="${s:i+1:1}"
+    if [ "$ch" = "&" ] && [ "$next" = "&" ]; then out+=$'\n'; i=$((i + 2)); continue; fi
+    if [ "$ch" = "|" ] && [ "$next" = "|" ]; then out+=$'\n'; i=$((i + 2)); continue; fi
+    case "$ch" in
+      "|"|";"|"&") out+=$'\n'; i=$((i + 1)); continue ;;
+    esac
+    out+="$ch"; i=$((i + 1))
+  done
+  printf '%s' "$out"
+}
 
 # ---------------------------------------------------------------------------
 # Bash tool: scan each command segment for a destructive git op on a dirty tree.
-# Reuses the branch guard's parser wholesale: cut heredoc bodies, split on the
-# shell separators with pure param-expansion (never sed — a missing tool must not
-# silently blank the command), strip leading ENV=val, track `cd`, honor
-# `-C`/--git-dir, then inspect the subcommand. Quotes/backticks are NOT unwrapped,
-# so a commit message or heredoc that merely MENTIONS a destructive command stays
-# data. Block on the first destructive-op-on-dirty segment; otherwise allow.
+# Reuses the branch guard's parser shape: cut real heredoc bodies, split on the
+# shell separators (quote-AWARE, so a separator inside a quoted string does not
+# split — never sed, a missing tool must not silently blank the command), strip
+# leading ENV=val, track `cd`, honor `-C`/--git-dir, then inspect the subcommand.
+# Per-segment token scanning NEVER unwraps quotes, so a commit message or heredoc
+# that merely MENTIONS a destructive command stays data. Block on the first
+# destructive-op-on-dirty segment; otherwise allow.
 #
-# RESIDUAL (documented, not covered here — the same residual the branch guard
-# carries): the separator split is quote-BLIND by design, so an INLINE message
-# that literally contains a command separator AND destructive git text — e.g.
-# `git commit -m "undo; git reset --hard"` — can over-block: the `;` splits the
-# message and the trailing fragment reads as a real `git reset --hard`. This
-# over-block degrades toward the Lean-Core self-review rule (the floor), never to
-# a silent discard. For such messages use a heredoc (`git commit -F - <<EOF…`) or
-# `-F <file>`, whose body is cut before scanning and stays data.
+# RESIDUAL (documented, degrades fail-open to the Lean-Core rule — see ADR 0031):
+# a string parser cannot defeat a Turing-complete shell. A destructive op reached
+# through `eval`, `bash -c '<quoted>'`, command substitution `$(…)`, an explicit
+# repo selector the parser does not resolve (`GIT_DIR=`/`GIT_WORK_TREE=` env, or
+# `git --work-tree=`), or an exotic argv form (`--pathspec-from-file`, `--har`
+# abbreviations, `-fb`) can slip past. Every miss degrades to "the rule catches
+# it", never to a false block.
 # ---------------------------------------------------------------------------
 guard_bash() {
   local cmd="$1"
   [ -n "$cmd" ] || allow
 
-  # Everything from the first `<<` to the end is a heredoc body — DATA fed to a
-  # command, not commands to run. Cut it before inspecting anything.
-  cmd="${cmd%%<<*}"
+  # Cut a real heredoc body before inspecting anything (a here-string `<<<` is
+  # left intact — see cut_heredoc). The leading command survives the cut.
+  cmd="$(cut_heredoc "$cmd")"
 
   case "$cmd" in *git*) ;; *) allow ;; esac      # no git token → nothing to guard
 
   set -f   # no globbing: `set -- $seg` must word-split only, never expand `*.rb`
   local curdir="$cwd" seg
-  # Split on command separators into one segment per line, using pure bash
-  # parameter expansion. Crude (ignores quoting) but only ever WIDENS what we
-  # inspect; the op-classifier + dirty test below is what actually gates a block.
-  local normalized="$cmd"
-  normalized="${normalized//&&/$'\n'}"   # `a && b`
-  normalized="${normalized//||/$'\n'}"   # `a || b`
-  normalized="${normalized//|/$'\n'}"    # `a | b`
-  normalized="${normalized//;/$'\n'}"    # `a ; b`
+  # Split on the shell separators into one segment per line, QUOTE-AWARE so a
+  # separator inside a quoted string (a commit message) does not split. The
+  # op-classifier + dirty test below is what actually gates a block.
+  local normalized
+  normalized="$(split_segments "$cmd")"
 
   while IFS= read -r seg; do
     # shellcheck disable=SC2086
@@ -325,13 +407,15 @@ guard_bash() {
     [ -n "$sub" ] || continue
 
     # Classify the subcommand into a destructive class + its dirty-test flavor.
-    # `dirty_kind` is `tracked` (reset/checkout/restore) or `untracked` (clean).
+    # `dirty_kind` is `tracked` (reset/checkout/restore) for a tracked-change loss,
+    # or `untracked` / `ignored` / `untracked_or_ignored` (clean) for a deletion,
+    # the last two chosen by the clean `-x`/`-X` flags.
     # `discard_paths` names the EXPLICIT pathspec a discard op targets, so the
     # dirty test can be scoped to just those paths (FIX 4); it stays empty for a
-    # pathless op (`reset --hard`, `checkout .` / `<ref> -f`, `clean`), which uses
-    # a whole-repo test. Scoping only ever RELAXES a block (a clean named path →
+    # pathless op (`reset --hard`, `checkout .` / `<ref> -f`, bare `clean`), which
+    # uses a whole-repo test. Scoping only ever RELAXES a block (a named clean path →
     # allow), so a mis-scope degrades toward the rule floor, never to a false block.
-    local dirty_kind="" _p _tok _after
+    local dirty_kind="" _p _tok _after _mode
     local -a discard_paths=()
     case "$sub" in
       reset)
@@ -348,16 +432,20 @@ guard_bash() {
             [ "$_p" = "--" ] && _after=1
           done
         elif ! checkout_makes_branch "$@"; then
-          # Bare `git checkout <tok>` — a single non-flag positional, no `--`/`-b`.
-          # If <tok> resolves to a commit it is a branch/ref switch (git enforces
-          # its own overwrite safety) → allow. If it does NOT resolve, it is a
-          # pathspec whose uncommitted changes checkout would silently discard.
-          _tok="$(lone_positional "$@")"
-          if [ -n "$_tok" ] && \
-             ! git -C "$repodir" rev-parse --verify --quiet "${_tok}^{commit}" >/dev/null 2>&1; then
-            dirty_kind=tracked
+          # Bare `git checkout <tok>...` — no `--`, no `-b`/`-B`/`--orphan`. Each
+          # non-flag positional is either a ref (a branch/commit switch git
+          # self-guards → allow) or a pathspec whose uncommitted changes checkout
+          # would silently discard. Collect EVERY positional that does NOT resolve
+          # to a commit as a discard pathspec, so multi-pathspec forms
+          # (`git checkout f1 f2`, `git checkout <ref> f1`) are covered, not only a
+          # lone positional. A single token that DOES resolve leaves discard_paths
+          # empty → a ref switch, allowed.
+          for _tok in "$@"; do
+            case "$_tok" in -*) continue ;; esac
+            git -C "$repodir" rev-parse --verify --quiet "${_tok}^{commit}" >/dev/null 2>&1 && continue
             discard_paths+=("$_tok")
-          fi
+          done
+          [ "${#discard_paths[@]}" -gt 0 ] && dirty_kind=tracked
         fi
         ;;
       restore)
@@ -380,34 +468,74 @@ guard_bash() {
         fi
         ;;
       clean)
-        clean_is_destructive "$@" && dirty_kind=untracked
+        if clean_is_destructive "$@"; then
+          # Pick the dirty flavor from the clean flags: `-x` deletes untracked AND
+          # ignored, `-X` deletes ONLY ignored, plain clean deletes untracked only.
+          case "$(clean_ignored_mode "$@")" in
+            x) dirty_kind=untracked_or_ignored ;;
+            X) dirty_kind=ignored ;;
+            *) dirty_kind=untracked ;;
+          esac
+          # Scope the dirty test to the clean pathspec (tokens after `--` and bare
+          # non-flag positionals), the same mechanism checkout/restore use, so a
+          # `git clean -f -- <clean-or-tracked-path>` with an unrelated untracked
+          # file elsewhere is not wrongly blocked. No pathspec → whole-repo test.
+          _after=0
+          for _p in "$@"; do
+            if [ "$_after" -eq 1 ]; then discard_paths+=("$_p"); continue; fi
+            case "$_p" in
+              --) _after=1 ;;
+              -*) : ;;
+              *)  discard_paths+=("$_p") ;;
+            esac
+          done
+        fi
         ;;
     esac
     [ -n "$dirty_kind" ] || continue
 
     # Op-aware dirty test in the resolved repo. Scope to the explicit pathspec when
-    # the op named one; otherwise test the whole tree. If git status cannot run
-    # (not a repo), we cannot confirm dirtiness — do NOT block (rule is the floor).
+    # the op named one; otherwise test the whole tree. `clean -x`/`-X` inspect
+    # IGNORED files, which `git status --porcelain` hides unless asked, so those
+    # kinds add `--ignored`. If git status cannot run (not a repo), we cannot
+    # confirm dirtiness — do NOT block (rule is the floor).
+    local -a _status_cmd=(status --porcelain)
+    case "$dirty_kind" in
+      ignored|untracked_or_ignored) _status_cmd+=(--ignored) ;;
+    esac
     local status_out
     if [ "${#discard_paths[@]}" -gt 0 ]; then
-      status_out="$(git -C "$repodir" status --porcelain -- "${discard_paths[@]}" 2>/dev/null)" || continue
+      status_out="$(git -C "$repodir" "${_status_cmd[@]}" -- "${discard_paths[@]}" 2>/dev/null)" || continue
     else
-      status_out="$(git -C "$repodir" status --porcelain 2>/dev/null)" || continue
+      status_out="$(git -C "$repodir" "${_status_cmd[@]}" 2>/dev/null)" || continue
     fi
 
-    if [ "$dirty_kind" = "tracked" ]; then
-      if has_tracked_change "$status_out"; then
-        if [ "${#discard_paths[@]}" -gt 0 ]; then
-          block "Refusing 'git $sub ${discard_paths[*]}' in '$repodir' - it would discard uncommitted tracked changes to that path. Run 'git status', then stash or commit first."
-        else
-          block "Refusing 'git $sub' on a dirty working tree in '$repodir' - it would discard uncommitted tracked changes. Run 'git status', then stash or commit first."
+    case "$dirty_kind" in
+      tracked)
+        if has_tracked_change "$status_out"; then
+          if [ "${#discard_paths[@]}" -gt 0 ]; then
+            block "Refusing 'git $sub ${discard_paths[*]}' in '$repodir' - it would discard uncommitted tracked changes to that path. Run 'git status', then stash or commit first."
+          else
+            block "Refusing 'git $sub' on a dirty working tree in '$repodir' - it would discard uncommitted tracked changes. Run 'git status', then stash or commit first."
+          fi
         fi
-      fi
-    else
-      if has_untracked "$status_out"; then
-        block "Refusing 'git $sub' on a tree with untracked files in '$repodir' - it would permanently delete them. Run 'git status', then review or stash first."
-      fi
-    fi
+        ;;
+      untracked)
+        if has_untracked "$status_out"; then
+          block "Refusing 'git $sub' on a tree with untracked files in '$repodir' - it would permanently delete them. Run 'git status', then review or stash first."
+        fi
+        ;;
+      ignored)
+        if has_ignored "$status_out"; then
+          block "Refusing 'git $sub' on a tree with ignored files in '$repodir' - it would permanently delete them. Run 'git status --ignored', then review first."
+        fi
+        ;;
+      untracked_or_ignored)
+        if has_untracked "$status_out" || has_ignored "$status_out"; then
+          block "Refusing 'git $sub' on a tree with untracked or ignored files in '$repodir' - it would permanently delete them. Run 'git status --ignored', then review first."
+        fi
+        ;;
+    esac
   done <<EOF
 $normalized
 EOF

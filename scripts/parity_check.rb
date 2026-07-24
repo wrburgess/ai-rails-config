@@ -21,6 +21,7 @@
 
 require "optparse"
 require "yaml"
+require "json"
 require_relative "protected_branches"
 require_relative "human_gates"
 require_relative "reviewer"
@@ -335,6 +336,12 @@ class ParityCheck
     ".claude/settings.json"
   ].freeze
 
+  # Claude Code's hook configuration. A guardrail hook that ships under .claude/hooks/ but is not WIRED
+  # into this file as a PreToolUse hook is dead — it never runs, and the gate stays green while the
+  # protection is silently absent (ADR 0009 / ADR 0031). check_hooks_wired asserts every shipped
+  # guardrail .sh hook is referenced by a PreToolUse command here.
+  SETTINGS_JSON = ".claude/settings.json"
+
   IMPORT_TOKEN = /(?:^|\s)@AGENTS\.md(?:\s|$)/.freeze
   # Markers are only recognized when alone on their own line — so prose that *describes* a marker
   # (e.g. inside a backtick span in documentation) is never mistaken for a real one.
@@ -361,6 +368,7 @@ class ParityCheck
     check_rules
     check_skills
     check_guardrails
+    check_hooks_wired
     check_guides
     check_adr_numbering
     check_links
@@ -907,6 +915,43 @@ class ParityCheck
     if derived != committed
       err("Protected-branch sidecar drift: #{SIDECAR} has #{committed.inspect} but PROJECT.md derives " \
           "#{derived.inspect} - run bin/install-git-hooks to regenerate it")
+    end
+  end
+
+  # Hook wiring (ADR 0009 / ADR 0031, issue #136). A guardrail hook that ships under .claude/hooks/ but
+  # is not WIRED into .claude/settings.json as a PreToolUse hook never runs — a present-but-unwired hook
+  # is a false green: the gate passes while the protection is silently absent. For every GUARDRAIL_FILES
+  # entry under .claude/hooks/ ending in .sh that is actually SHIPPED, assert settings.json declares a
+  # PreToolUse hook whose command references that hook's basename. Gated on the hooks actually being
+  # present (not on the sidecar), so a bundle that ships no such hooks — or a Host App that vendored
+  # settings.json but not the guardrail hooks — is unaffected.
+  def check_hooks_wired
+    hook_files = GUARDRAIL_FILES.select { |f| f.start_with?(".claude/hooks/") && f.end_with?(".sh") && exist?(f) }
+    return if hook_files.empty?
+
+    unless exist?(SETTINGS_JSON)
+      err("Hook wiring: guardrail hooks ship under .claude/hooks/ but #{SETTINGS_JSON} is missing - the " \
+          "PreToolUse hooks are not wired, so none of them run")
+      return
+    end
+
+    settings = begin
+      JSON.parse(read(SETTINGS_JSON))
+    rescue JSON::ParserError => e
+      err("Hook wiring: #{SETTINGS_JSON} is not valid JSON (#{e.message}) - cannot verify the PreToolUse " \
+          "hooks are wired")
+      return
+    end
+
+    pretooluse = settings.dig("hooks", "PreToolUse")
+    commands = pretooluse.is_a?(Array) ? pretooluse.flat_map { |e| Array(e["hooks"]).map { |h| h["command"] } }.compact : []
+
+    hook_files.each do |rel|
+      base = File.basename(rel)
+      next if commands.any? { |c| c.to_s.include?(base) }
+
+      err("Hook wiring: #{rel} ships but #{SETTINGS_JSON} has no PreToolUse hook whose command references " \
+          "`#{base}` - a present-but-unwired hook never runs (wire it under hooks.PreToolUse)")
     end
   end
 

@@ -54,6 +54,8 @@ new_repo() {  # new_repo <path> — a repo with two committed tracked files, cle
 CLEAN_REPO="$TMP/clean";          new_repo "$CLEAN_REPO"
 TRACKED_DIRTY="$TMP/tracked";     new_repo "$TRACKED_DIRTY"
 UNTRACKED_DIRTY="$TMP/untracked"; new_repo "$UNTRACKED_DIRTY"
+MULTI_DIRTY="$TMP/multi";         new_repo "$MULTI_DIRTY"
+IGNORED_DIRTY="$TMP/ignored";     new_repo "$IGNORED_DIRTY"
 NEUTRAL="$TMP/neutral";           new_repo "$NEUTRAL"    # clean; a cwd to run -C from
 NONREPO="$TMP/plain_dir";         mkdir -p "$NONREPO"    # not a git repo
 
@@ -61,6 +63,16 @@ NONREPO="$TMP/plain_dir";         mkdir -p "$NONREPO"    # not a git repo
 printf 'changed\n' > "$TRACKED_DIRTY/tracked.txt"
 # UNTRACKED_DIRTY: an untracked file present, NO tracked changes.
 printf 'brand new\n' > "$UNTRACKED_DIRTY/untracked.txt"
+# MULTI_DIRTY: TWO tracked files modified (for multi-pathspec `git checkout f1 f2`).
+printf 'changed a\n' > "$MULTI_DIRTY/tracked.txt"
+printf 'changed b\n' > "$MULTI_DIRTY/other.txt"
+# IGNORED_DIRTY: a committed .gitignore (`*.log`) plus a present IGNORED file, and
+# NO untracked (non-ignored) files and NO tracked changes. So plain `git status`
+# is empty; only `git status --ignored` shows the `!!` line.
+printf '*.log\n' > "$IGNORED_DIRTY/.gitignore"
+git -C "$IGNORED_DIRTY" add .gitignore
+git -C "$IGNORED_DIRTY" commit -q -m gitignore
+printf 'log data\n' > "$IGNORED_DIRTY/debug.log"
 
 PASS=0; FAIL=0
 
@@ -232,6 +244,56 @@ expect "git checkout -- <clean-file> while a DIFFERENT file is dirty -> allow" 0
   "$(bash_payload 'git checkout -- other.txt' "$TRACKED_DIRTY")"
 expect "git checkout -- <dirty-file> -> block (named path loses changes)" 2 \
   "$(bash_payload 'git checkout -- tracked.txt' "$TRACKED_DIRTY")"
+
+echo "FIX 6 (#136) — pathspec-scope the clean dirty test:"
+expect "git clean -f -- <clean-tracked-path> while an unrelated untracked file exists -> allow" 0 \
+  "$(bash_payload 'git clean -f -- tracked.txt' "$UNTRACKED_DIRTY")"
+expect "git clean -f <clean-tracked-path> (bare positional) with unrelated untracked -> allow" 0 \
+  "$(bash_payload 'git clean -f tracked.txt' "$UNTRACKED_DIRTY")"
+expect "git clean -f (no pathspec) with untracked present -> block (whole-repo)" 2 \
+  "$(bash_payload 'git clean -f' "$UNTRACKED_DIRTY")"
+expect "git clean -f -- <the-untracked-path> -> block (that path is deleted)" 2 \
+  "$(bash_payload 'git clean -f -- untracked.txt' "$UNTRACKED_DIRTY")"
+
+echo "FIX 1 (#136) — flag-aware clean: -x/-X inspect ignored files:"
+expect "git clean -fdx, only an ignored file present -> block (-x deletes ignored)" 2 \
+  "$(bash_payload 'git clean -fdx' "$IGNORED_DIRTY")"
+expect "git clean -fX, only an ignored file present -> block (-X deletes ignored)" 2 \
+  "$(bash_payload 'git clean -fX' "$IGNORED_DIRTY")"
+expect "git clean -fd (no x), only an ignored file present -> allow (plain clean skips ignored)" 0 \
+  "$(bash_payload 'git clean -fd' "$IGNORED_DIRTY")"
+expect "git clean -fX, only untracked (no ignored) present -> allow (-X removes only ignored)" 0 \
+  "$(bash_payload 'git clean -fX' "$UNTRACKED_DIRTY")"
+expect "git clean -fdx, only untracked present -> block (-x also deletes untracked)" 2 \
+  "$(bash_payload 'git clean -fdx' "$UNTRACKED_DIRTY")"
+
+echo "FIX 7 (#136) — quote-aware segment split: a separator inside a message is data:"
+expect "git commit -m \"undo; git reset --hard HEAD\" on dirty -> allow (; is inside quotes)" 0 \
+  "$(bash_payload 'git commit -m "undo; git reset --hard HEAD"' "$TRACKED_DIRTY")"
+expect "git commit -m \"revert && git checkout .\" on dirty -> allow (&& inside quotes)" 0 \
+  "$(bash_payload 'git commit -m "revert && git checkout ."' "$TRACKED_DIRTY")"
+expect "real multi-segment git status && git reset --hard on dirty -> block (&& outside quotes)" 2 \
+  "$(bash_payload 'git status && git reset --hard' "$TRACKED_DIRTY")"
+expect "real multi-segment git status ; git reset --hard on dirty -> block (; outside quotes)" 2 \
+  "$(bash_payload 'git status ; git reset --hard' "$TRACKED_DIRTY")"
+
+echo "FIX 3 (#136) — a here-string <<< is not a heredoc; a following command is still scanned:"
+expect "cat <<<x && git reset --hard on dirty -> block (reset not truncated away)" 2 \
+  "$(bash_payload 'cat <<<x && git reset --hard' "$TRACKED_DIRTY")"
+expect "real heredoc body mentioning git reset --hard on dirty -> allow (body is cut)" 0 \
+  "$(bash_payload "cat > notes.txt <<'EOF'
+git reset --hard
+EOF" "$TRACKED_DIRTY")"
+
+echo "FIX 5 (#136) — bare git checkout with MULTIPLE pathspecs:"
+expect "git checkout f1 f2 (both dirty tracked paths, neither a ref) -> block" 2 \
+  "$(bash_payload 'git checkout tracked.txt other.txt' "$MULTI_DIRTY")"
+expect "git checkout <branch> (single ref) on dirty -> allow (branch switch, unchanged)" 0 \
+  "$(bash_payload 'git checkout otherbranch' "$TRACKED_DIRTY")"
+expect "git checkout <branch> <dirty-file> (ref + non-ref pathspec) -> block" 2 \
+  "$(bash_payload 'git checkout otherbranch tracked.txt' "$TRACKED_DIRTY")"
+expect "git checkout f1 f2 where both are clean tracked paths -> allow" 0 \
+  "$(bash_payload 'git checkout tracked.txt other.txt' "$CLEAN_REPO")"
 
 echo
 echo "Passed: $PASS  Failed: $FAIL"
