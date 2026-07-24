@@ -11,6 +11,8 @@ Ask the questions one at a time, waiting for feedback on each question before co
 
 If a question can be answered by exploring the codebase, explore the codebase instead.
 
+**Relentless on open branches, not settled ones.** The relentlessness targets *unresolved* decision-tree branches and genuine ambiguity — not a priority I have already stated plainly. When I state a rule or a priority plainly, **register it and move on**: don't re-ask an answered question, and don't re-anchor on a technical framing I didn't raise (that is the communication calibration in [`rules/communication.md`](../../rules/communication.md)). Convergence is not "grill less" — it is grilling the *right* thing. To make it legible, surface a **`remaining open branches: N`** count each round; the session converges when `N` reaches 0, which is the visible terminus that keeps relentlessness from becoming re-litigation.
+
 </what-to-do>
 
 <supporting-info>

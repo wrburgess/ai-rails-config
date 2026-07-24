@@ -145,7 +145,11 @@ Then run the phases from the derived point:
    **dispose autonomously — post the disposition record and apply the resolvable findings, pausing to ask
    the HC only on emergency stop #3** (an architectural/ambiguous finding).
 6. **Deliver** — follow [`final`](../../skills/final/SKILL.md) **in the orchestrator**: re-verify the
-   PR is green with no open must-fix findings, post the Statement of Work, link it from the issue.
+   PR is green with no open must-fix findings, post the Statement of Work, link it from the issue. Run
+   the **run-level ask-completeness check** ([`rules/self-review.md`](../../rules/self-review.md)) at this
+   terminal: enumerate every explicit ask made across the whole run and confirm each is delivered or
+   handed to a tracked follow-up (the asks-ledger) — this terminal pass catches a late ask that landed
+   *after* `invoke`-time self-review, which the per-phase check cannot see.
    **→ Human gate 2 (merge) — always human, never configurable.**
 
 ## The driving loop — a stop is a pause, not a termination
@@ -157,6 +161,14 @@ stop or to delivery, and — on a stop — records the question and its answer *
 context boundaries*), folds the answer into the brief, **resets its context, and resumes from the
 re-derived point**. The loop exits **only** at `delivered`, where the HC merges (the one standing stop).
 There is no path where `ship` returns the HC a list of commands to run.
+
+**Emit a stage-transition heartbeat.** At each phase boundary — entering `assess`, `devise`, `invoke`,
+`verify`, `listen`, `final`, or `await-merge` — emit a one-line progress marker naming the phase just
+entered (and, on a resume, the re-derived point). The run is already legible *asynchronously* through
+the artifact each phase posts (assessment, plan, PR, self-review, review replies, SOW); the heartbeat
+closes the *synchronous* gap, so a human watching a long hands-off run sees motion between those posts.
+It is a progress signal only — it changes no gate, no context boundary, and no control flow (it rides
+the same pause-not-terminate loop, [ADR 0028](../../docs/adr/0028-context-reset-boundary-resumable-stops-autonomous-listen.md)).
 
 ### build-brief (orchestrator → the next build stretch)
 ```
@@ -288,7 +300,9 @@ setting), and each
 gate's **context reset** was observed even where the pause was waived; no emergency stop is
 outstanding (a stop is a pause the loop re-seeds from, not a silent skip); every delegated phase
 returned and was reconciled against its handoff contract; the
-terminal artifact of each phase exists (assessment, plan, PR, self-review, review replies, SOW). Sign
+terminal artifact of each phase exists (assessment, plan, PR, self-review, review replies, SOW); and the
+**run-level asks-ledger** was emitted at `final`, with every explicit session ask delivered or handed to
+a tracked follow-up. Sign
 every lifecycle-host comment with the attribution footer from [`PROJECT.md`](../../PROJECT.md) →
 *Attribution & Model Declaration*, using your runtime-actual model.
 
