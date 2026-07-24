@@ -36,9 +36,13 @@ build — only a per-tool (Layer 3) interception is available at all.
 Ship a **Layer-3-only** guard: a Claude `PreToolUse` hook,
 `.claude/hooks/enforce-clean-tree.sh`, wired in `.claude/settings.json` on the
 `Bash` matcher, that blocks a destructive git op **only when the working tree is
-dirty in the sense that op destroys**. Its degradation floor — the guard that
-satisfies ADR 0009's "never the only guard" — is a **Lean-Core self-review rule**,
-not another enforcement layer.
+dirty in the sense that op destroys**. Its degradation floor is a **Lean-Core
+self-review rule**, not another enforcement layer — and because git exposes no
+lower interception point for these ops (see Context), that rule is **guidance, not a
+mechanical gate**. This guard therefore does **not** satisfy ADR 0009's "a Layer-3
+accelerator must never be the only guard"; it is a deliberate, documented
+**Layer-3-only exception** to that invariant, with the residual risk explicitly
+accepted (see Decision §2).
 
 1. **The accelerator.** The hook mirrors the branch-creation guard's payload
    parser wholesale (read the JSON on stdin, cut heredoc bodies, split on the
@@ -142,7 +146,23 @@ catches it", never a false block):
 - **Explicit repo selectors the parser does not resolve.** `GIT_DIR=` /
   `GIT_WORK_TREE=` environment assignments (stripped as leading `ENV=val` and not
   applied to the repo under test) and `git --work-tree=...` point the op at a repo
-  whose dirtiness the hook never checked. (`-C` and `--git-dir` ARE honored.)
+  whose dirtiness the hook never checked. A **single** `-C <dir>` / `--git-dir` IS
+  honored; **cumulative** `-C` is not — see the next bullet.
+- **Cumulative `-C` is not chained.** Git resolves repeated `-C` options relative to
+  each other, so `git -C a -C b <destructive>` operates in `a/b`. The parser instead
+  resolves every `-C` against the original cwd, so it checks `b`, not `a/b` — a
+  differing directory whose dirtiness it never inspected. A lone `-C` is exact; only
+  the stacked form escapes.
+- **A destructive op after a heredoc body.** The heredoc-body cut truncates the
+  command at the first `<<` operator, so a real destructive command placed AFTER a
+  heredoc body/terminator on a later line (`cat <<EOF … EOF; git reset --hard`) is
+  dropped by that cut and never scanned. Multi-line heredoc commands are inspected
+  only up to the first `<<`.
+- **A pathspec that is also a valid ref name.** In the bare `git checkout <tok>...`
+  form, each positional that `git rev-parse` resolves to a commit is treated as a ref
+  switch (git self-guards) rather than a discard. So a pathspec whose name is ALSO a
+  live ref (`git checkout <name-that-is-both>`) ref-resolves and is not treated as a
+  discard, even when it would overwrite that path's uncommitted changes.
 - **Untracked-file collisions.** The op-aware dirty test treats "only untracked =>
   reset/checkout destroys nothing" as true, but a `git reset --hard` /
   `git checkout -f` can overwrite an untracked file that collides with a same-named
@@ -151,11 +171,15 @@ catches it", never a false block):
 - **Exotic argv forms.** `git checkout --pathspec-from-file=<f>` (pathspecs read
   from a file, never on argv), unambiguous long-option abbreviations git accepts
   (e.g. `git reset --har` for `--hard`, which the classifier matches only in full),
-  and combined branch-create-and-switch spellings like `-fb <name>` are outside the
-  classifier's recognized forms.
+  and combined branch-create-and-switch spellings like `-fb <name>` (the clustered
+  form of the `-f -b` discard this guard blocks in separate-token form) are outside
+  the classifier's recognized forms.
 
-None of these is a defense against a determined bypass; the hook's job is to catch
-the *accidental* dirty-tree destruction that has actually bitten this repo
+**This list is illustrative, not exhaustive.** A string-scanning accelerator over a
+Turing-complete shell has an open-ended bypass surface by construction — which is
+precisely why it is fail-open and paired with the Lean-Core rule. None of these is a
+defense against a determined bypass; the hook's job is to catch the *accidental*
+dirty-tree destruction that has actually bitten this repo
 ([#114](https://github.com/wrburgess/ai-config/issues/114),
 [#134](https://github.com/wrburgess/ai-config/issues/134)), and to hand every other
 case to the rule.

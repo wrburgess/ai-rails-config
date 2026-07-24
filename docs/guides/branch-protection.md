@@ -93,7 +93,10 @@ a command.
 `pre-checkout` / `pre-reset` / `pre-clean` hook to intercept these ops. Its degradation floor is
 therefore the Lean-Core rule in [`rules/self-review.md`](../../rules/self-review.md) → *Anti-Patterns*
 (never run a destructive git op on a dirty tree without `git status` + stash/commit first). On a
-harness with no `PreToolUse` mechanism the guard **degrades to rule-only**, which is why ADR 0009's
-"a Layer-3 accelerator must never be the only guard" still holds here — satisfied by the rule, not by
-another enforcement layer. The hook is **fail-open** (it never exits 1): a parser miss degrades to the
-rule catching it, never to a false block.
+harness with no `PreToolUse` mechanism the guard **degrades to rule-only**. Because there is no lower
+enforcement layer to fall back on, this guard does **not** satisfy ADR 0009's "a Layer-3 accelerator
+must never be the only guard" — it is a deliberate, **accepted Layer-3-only exception** to that
+invariant: the rule is guidance an agent reads, not a mechanical gate, and the residual risk is
+accepted ([ADR 0031](../adr/0031-clean-tree-destructive-op-guard.md) → *Residual risks*). The hook is
+**fail-open** (it never exits 1): a parser miss degrades to the rule catching it, never to a false
+block.

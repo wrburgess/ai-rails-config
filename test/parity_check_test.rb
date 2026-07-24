@@ -85,8 +85,9 @@ class ParityCheckTest < Minitest::Test
 
   # Writes a .claude/settings.json whose PreToolUse hooks wire BOTH guardrail .sh hooks (the wiring
   # check_hooks_wired asserts). `commands:` overrides the wired set for the failure tests (e.g. omit one
-  # basename, or pass [] to wire nothing).
-  def write_settings_json(dir, commands: nil)
+  # basename, or pass [] to wire nothing). `matcher:` overrides the matcher (defaults to the Bash-covering
+  # form check_hooks_wired requires); a non-Bash value drives the matcher-coverage failure test.
+  def write_settings_json(dir, commands: nil, matcher: "Bash")
     commands ||= %w[
       $CLAUDE_PROJECT_DIR/.claude/hooks/enforce-branch-creation.sh
       $CLAUDE_PROJECT_DIR/.claude/hooks/enforce-clean-tree.sh
@@ -95,7 +96,7 @@ class ParityCheckTest < Minitest::Test
     settings = {
       "hooks" => {
         "PreToolUse" => [
-          { "matcher" => "Bash",
+          { "matcher" => matcher,
             "hooks" => commands.map { |c| { "type" => "command", "command" => c } } }
         ]
       }
@@ -327,6 +328,22 @@ class ParityCheckTest < Minitest::Test
       assert_equal 1, code
       assert_match(/enforce-branch-creation\.sh ships but/, out)
       assert_match(/enforce-clean-tree\.sh ships but/, out)
+    end
+  end
+
+  def test_hook_wired_under_non_bash_matcher_fails
+    # #136 rd2: both guardrail hooks gate git commands, which arrive as the Bash tool. A hook referenced
+    # only under a NON-Bash matcher (here "Read") names the right basename yet never fires on a
+    # `git reset --hard` — a bare "is it referenced anywhere" check would pass it while the guard is
+    # silently dead. The matcher-coverage assertion must redden it.
+    with_bundle do |dir|
+      add_guardrails(dir)
+      write_settings_json(dir, matcher: "Read")
+      code, out = run_check(dir)
+      assert_equal 1, code
+      assert_match(%r{Hook wiring: \.claude/hooks/enforce-branch-creation\.sh ships but}, out)
+      assert_match(%r{Hook wiring: \.claude/hooks/enforce-clean-tree\.sh ships but}, out)
+      assert_match(/matcher that includes Bash/, out)
     end
   end
 

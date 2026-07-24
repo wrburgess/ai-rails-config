@@ -56,6 +56,7 @@ TRACKED_DIRTY="$TMP/tracked";     new_repo "$TRACKED_DIRTY"
 UNTRACKED_DIRTY="$TMP/untracked"; new_repo "$UNTRACKED_DIRTY"
 MULTI_DIRTY="$TMP/multi";         new_repo "$MULTI_DIRTY"
 IGNORED_DIRTY="$TMP/ignored";     new_repo "$IGNORED_DIRTY"
+DASH_DIRTY="$TMP/dash";           new_repo "$DASH_DIRTY"  # untracked file literally named -X (B1)
 NEUTRAL="$TMP/neutral";           new_repo "$NEUTRAL"    # clean; a cwd to run -C from
 NONREPO="$TMP/plain_dir";         mkdir -p "$NONREPO"    # not a git repo
 
@@ -73,6 +74,10 @@ printf '*.log\n' > "$IGNORED_DIRTY/.gitignore"
 git -C "$IGNORED_DIRTY" add .gitignore
 git -C "$IGNORED_DIRTY" commit -q -m gitignore
 printf 'log data\n' > "$IGNORED_DIRTY/debug.log"
+# DASH_DIRTY: a single untracked file literally NAMED `-X`, and NO other untracked
+# files. So `git clean -f -- -X` must clean it as a PATHSPEC (not read `-X` as the
+# ignored-only flag), which the flag scan stopping at `--` is what makes correct.
+printf 'weird\n' > "$DASH_DIRTY/-X"
 
 PASS=0; FAIL=0
 
@@ -294,6 +299,24 @@ expect "git checkout <branch> <dirty-file> (ref + non-ref pathspec) -> block" 2 
   "$(bash_payload 'git checkout otherbranch tracked.txt' "$TRACKED_DIRTY")"
 expect "git checkout f1 f2 where both are clean tracked paths -> allow" 0 \
   "$(bash_payload 'git checkout tracked.txt other.txt' "$CLEAN_REPO")"
+
+echo "B1 (#136 rd2) — clean flag scan stops at '--'; a post-'--' token is a pathspec:"
+expect "git clean -f -- -X with an untracked file NAMED -X -> block (pathspec, not the -X flag)" 2 \
+  "$(bash_payload 'git clean -f -- -X' "$DASH_DIRTY")"
+
+echo "B3 (#136 rd2) — forced branch creation can discard tracked changes:"
+expect "git checkout -f -b <new> on tracked-dirty -> block (-f can discard while creating)" 2 \
+  "$(bash_payload 'git checkout -f -b newbranch' "$TRACKED_DIRTY")"
+expect "git checkout -b <new> on tracked-dirty -> allow (plain create keeps changes, unchanged)" 0 \
+  "$(bash_payload 'git checkout -b newbranch' "$TRACKED_DIRTY")"
+
+echo "B5 (#136 rd2) — a backslash-escaped separator OUTSIDE quotes is not a real split:"
+expect "echo \\; git reset --hard on dirty -> allow (escaped ; is data, no reset runs)" 0 \
+  "$(bash_payload 'echo \; git reset --hard' "$TRACKED_DIRTY")"
+expect "real a && git reset --hard on dirty -> block (unescaped && still splits)" 2 \
+  "$(bash_payload 'a && git reset --hard' "$TRACKED_DIRTY")"
+expect 'git commit -m \"undo; git reset --hard on dirty -> block (escaped quote, real ; splits)' 2 \
+  "$(bash_payload 'git commit -m \"undo; git reset --hard' "$TRACKED_DIRTY")"
 
 echo
 echo "Passed: $PASS  Failed: $FAIL"

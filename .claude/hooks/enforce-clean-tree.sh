@@ -160,6 +160,24 @@ checkout_makes_branch() {
   return 1
 }
 
+# `git checkout -f -b/-B/--orphan <name> [<start>]` creates a branch AND forces.
+# Plain `-b`/`-B` keeps worktree changes, but the added `-f`/--force can throw them
+# away (e.g. moving to a differing <start-point>), so this combined spelling is a
+# whole-tree discard candidate — unlike a bare branch-create, which is not. Only
+# separate tokens are recognized; a clustered `-fb <name>` stays an accepted
+# residual (see ADR 0031).
+checkout_force_makes_branch() {
+  local a force=0 mkbranch=0
+  for a in "$@"; do
+    case "$a" in
+      -f|--force)     force=1 ;;
+      -b|-B|--orphan) mkbranch=1 ;;
+    esac
+  done
+  [ "$force" -eq 1 ] && [ "$mkbranch" -eq 1 ] && return 0
+  return 1
+}
+
 # `git restore` touches the worktree unless it is a --staged-ONLY (index) restore.
 # Default (no --staged) is worktree; explicit --worktree/-W is worktree even
 # alongside --staged.
@@ -178,11 +196,14 @@ restore_is_discard() {
 
 # `git clean` deletes untracked files only with -f/--force AND without a
 # -n/--dry-run. Short flags may be clustered (-fd, -xf, -df), so inspect each
-# short-flag cluster character-by-character.
+# short-flag cluster character-by-character. A bare `--` ends flag parsing: every
+# token after it is a PATHSPEC, so `git clean -f -- -f` (a path literally named
+# `-f`) must not read that trailing `-f` as the force flag.
 clean_is_destructive() {
   local a cluster force=0 dry=0
   for a in "$@"; do
     case "$a" in
+      --)        break ;;             # end of flags; the rest are pathspecs
       --force)   force=1 ;;
       --dry-run) dry=1 ;;
       --*)       : ;;                 # any other long flag
@@ -203,11 +224,14 @@ clean_is_destructive() {
 # untracked only. `-x` and `-X` are distinct short flags (case-sensitive) and may
 # be clustered (`-fdx`, `-xf`); there is no long form. Echoes `x` (untracked +
 # ignored), `X` (ignored only), or nothing (untracked only). `x` wins when both
-# appear, since it is the strictly wider deletion.
+# appear, since it is the strictly wider deletion. A bare `--` ends flag parsing:
+# tokens after it are PATHSPECS, so `git clean -f -- -X` (a path literally named
+# `-X`) must NOT read that trailing `-X` as the ignored-only flag.
 clean_ignored_mode() {
   local a cluster hx=0 hX=0
   for a in "$@"; do
     case "$a" in
+      --)  break ;;                    # end of flags; the rest are pathspecs
       --*) : ;;                        # long flag — no -x/-X long form exists
       -*)
         cluster="${a#-}"
@@ -281,8 +305,10 @@ cut_heredoc() {
 # command one segment instead of spawning a phantom `git reset --hard`. Only the
 # SPLIT respects quotes — the per-segment token scan never unwraps them, so message
 # text stays data while a real separator between two commands still splits. A
-# backslash inside double quotes escapes the next char (so `\"` cannot close the
-# quote); single quotes are literal (no escapes), matching the shell.
+# backslash escapes the next char both INSIDE double quotes (so `\"` cannot close the
+# quote) and OUTSIDE any quote (so `echo \; git reset --hard` is one command — the
+# escaped `;` is data, not a separator, and an escaped `\"` does not open a quote);
+# single quotes are literal (no escapes), matching the shell.
 split_segments() {
   local s="$1" i=0 n=${#1} out="" ch next sq=0 dq=0
   while [ "$i" -lt "$n" ]; do
@@ -297,6 +323,11 @@ split_segments() {
         continue
       fi
       out+="$ch"; [ "$ch" = '"' ] && dq=0; i=$((i + 1)); continue
+    fi
+    if [ "$ch" = "\\" ]; then                # outside quotes: escape the next char literally
+      out+="$ch"; i=$((i + 1))               # (neither toggles a quote nor acts as a separator)
+      [ "$i" -lt "$n" ] && { out+="${s:i:1}"; i=$((i + 1)); }
+      continue
     fi
     case "$ch" in
       "'") sq=1; out+="$ch"; i=$((i + 1)); continue ;;
@@ -422,7 +453,12 @@ guard_bash() {
         reset_is_hard "$@" && dirty_kind=tracked
         ;;
       checkout)
-        if checkout_is_discard "$@"; then
+        if checkout_force_makes_branch "$@"; then
+          # `checkout -f -b/-B/--orphan`: forcing while creating a branch can discard
+          # tracked changes. Whole-tree discard candidate — no explicit pathspec, so
+          # leave discard_paths empty for a whole-repo dirty test.
+          dirty_kind=tracked
+        elif checkout_is_discard "$@"; then
           dirty_kind=tracked
           # Only the `-- <path>...` form names an explicit pathspec; `.` / `:/` /
           # `-f` are whole-tree discards (leave discard_paths empty).
