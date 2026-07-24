@@ -63,5 +63,8 @@ jobs:
       - name: Enforce-hook self-test (Layer 3 Claude fast-fail; needs jq)
         run: bash .claude/hooks/enforce-branch-creation.test.sh
 
+      - name: Clean-tree hook self-test (Layer 3 destructive-op guard; needs jq)
+        run: bash .claude/hooks/enforce-clean-tree.test.sh
+
       - name: Structural parity check
         run: ruby scripts/parity_check.rb

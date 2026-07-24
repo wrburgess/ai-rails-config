@@ -65,6 +65,27 @@ expect() {
   fi
 }
 
+# Resolve a timeout wrapper so a regression in the global-option walk (a value-
+# expecting option as the final token → shift-2 no-op → infinite loop) surfaces
+# as a LOUD failure — exit 124 ≠ the expected 0 — instead of hanging the suite.
+TIMEOUT=""
+if command -v timeout >/dev/null 2>&1; then TIMEOUT="timeout 5"
+elif command -v gtimeout >/dev/null 2>&1; then TIMEOUT="gtimeout 5"; fi
+
+# expect_bounded <name> <expected-exit> <json-payload> — like expect, but runs the
+# hook under $TIMEOUT so a hang becomes a visible FAIL (124), never a stuck suite.
+expect_bounded() {
+  local name="$1" want="$2" payload="$3" got
+  # shellcheck disable=SC2086
+  printf '%s' "$payload" | $TIMEOUT "$HOOK" >/dev/null 2>&1
+  got=$?
+  if [ "$got" = "$want" ]; then
+    PASS=$((PASS + 1)); printf '  ok   %-58s (exit %s)\n' "$name" "$got"
+  else
+    FAIL=$((FAIL + 1)); printf '  FAIL %-58s (want %s, got %s)\n' "$name" "$want" "$got"
+  fi
+}
+
 write_payload() {  # write_payload <tool> <file_path> <cwd>
   jq -nc --arg t "$1" --arg f "$2" --arg c "$3" \
     '{tool_name:$t, cwd:$c, tool_input:{file_path:$f}}'
@@ -168,6 +189,12 @@ expect "git -C <main> commit chained after a read op -> block" 2 \
   "$(bash_payload "git status && git -C $MAIN_REPO commit -m oops" "$FEAT_REPO")"
 expect "harmless subshell on main, no commit -> allow" 0 \
   "$(bash_payload "(cd $MAIN_REPO && git status)" "$FEAT_REPO")"
+
+echo "Bash guard (a trailing value-expecting global option must not hang):"
+expect_bounded "git -C (value option as final token) -> allow, no hang" 0 \
+  "$(bash_payload 'git -C' "$FEAT_REPO")"
+expect_bounded "git -c (value option as final token) -> allow, no hang" 0 \
+  "$(bash_payload 'git -c' "$FEAT_REPO")"
 
 echo "Degraded payload (no tool_name -> direct cwd check):"
 expect "unparseable payload, cwd=main -> block" 2 \

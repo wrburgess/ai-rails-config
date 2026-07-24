@@ -21,6 +21,7 @@
 
 require "optparse"
 require "yaml"
+require "json"
 require_relative "protected_branches"
 require_relative "human_gates"
 require_relative "reviewer"
@@ -129,6 +130,7 @@ class ParityCheck
     "docs/adr/0028-context-reset-boundary-resumable-stops-autonomous-listen.md",
     "docs/adr/0029-baseline-ships-ungated-to-merge.md",
     "docs/adr/0030-adr-numbering-preflight-enforcement.md",
+    "docs/adr/0031-clean-tree-destructive-op-guard.md",
     # Standards
     "docs/standards/development-lifecycle.md",
     # Out-of-band research (the per-tool discovery re-verification AGENTS.md cites) and Stack Overlays
@@ -330,8 +332,15 @@ class ParityCheck
   GUARDRAIL_FILES = [
     ".githooks/pre-commit", ".githooks/pre-push", ".githooks/pre-merge-commit", ".githooks/pre-rebase",
     "bin/guard-protected-branch", "bin/install-git-hooks", "bin/protected-branches",
-    ".claude/hooks/enforce-branch-creation.sh", ".claude/settings.json"
+    ".claude/hooks/enforce-branch-creation.sh", ".claude/hooks/enforce-clean-tree.sh",
+    ".claude/settings.json"
   ].freeze
+
+  # Claude Code's hook configuration. A guardrail hook that ships under .claude/hooks/ but is not WIRED
+  # into this file as a PreToolUse hook is dead — it never runs, and the gate stays green while the
+  # protection is silently absent (ADR 0009 / ADR 0031). check_hooks_wired asserts every shipped
+  # guardrail .sh hook is referenced by a PreToolUse command here.
+  SETTINGS_JSON = ".claude/settings.json"
 
   IMPORT_TOKEN = /(?:^|\s)@AGENTS\.md(?:\s|$)/.freeze
   # Markers are only recognized when alone on their own line — so prose that *describes* a marker
@@ -359,6 +368,7 @@ class ParityCheck
     check_rules
     check_skills
     check_guardrails
+    check_hooks_wired
     check_guides
     check_adr_numbering
     check_links
@@ -905,6 +915,55 @@ class ParityCheck
     if derived != committed
       err("Protected-branch sidecar drift: #{SIDECAR} has #{committed.inspect} but PROJECT.md derives " \
           "#{derived.inspect} - run bin/install-git-hooks to regenerate it")
+    end
+  end
+
+  # Hook wiring (ADR 0009 / ADR 0031, issues #136). A guardrail hook that ships under .claude/hooks/ but
+  # is not WIRED into .claude/settings.json as a PreToolUse hook never runs — a present-but-unwired hook
+  # is a false green: the gate passes while the protection is silently absent. For every GUARDRAIL_FILES
+  # entry under .claude/hooks/ ending in .sh that is actually SHIPPED, assert settings.json declares a
+  # PreToolUse hook whose command references that hook's basename AND whose `matcher` covers `Bash`.
+  # The matcher check is load-bearing: both guardrail hooks gate git commands, which arrive as the Bash
+  # tool, so a hook wired only under a non-Bash matcher (e.g. `"Read"`) references the right basename yet
+  # NEVER fires on `git reset --hard` — a bare "is it referenced anywhere" check would pass it while the
+  # guard is silently dead. `matcher.include?("Bash")` accepts the shipped forms (`"Bash"` and
+  # `"Write|Edit|MultiEdit|NotebookEdit|Bash"`). Gated on the hooks actually being present (not on the
+  # sidecar), so a bundle that ships no such hooks — or a Host App that vendored settings.json but not
+  # the guardrail hooks — is unaffected.
+  def check_hooks_wired
+    hook_files = GUARDRAIL_FILES.select { |f| f.start_with?(".claude/hooks/") && f.end_with?(".sh") && exist?(f) }
+    return if hook_files.empty?
+
+    unless exist?(SETTINGS_JSON)
+      err("Hook wiring: guardrail hooks ship under .claude/hooks/ but #{SETTINGS_JSON} is missing - the " \
+          "PreToolUse hooks are not wired, so none of them run")
+      return
+    end
+
+    settings = begin
+      JSON.parse(read(SETTINGS_JSON))
+    rescue JSON::ParserError => e
+      err("Hook wiring: #{SETTINGS_JSON} is not valid JSON (#{e.message}) - cannot verify the PreToolUse " \
+          "hooks are wired")
+      return
+    end
+
+    pretooluse = settings.dig("hooks", "PreToolUse")
+    blocks = pretooluse.is_a?(Array) ? pretooluse : []
+
+    hook_files.each do |rel|
+      base = File.basename(rel)
+      # Wired == referenced by a command IN A BLOCK whose matcher covers Bash. A block whose matcher
+      # does not include "Bash" cannot fire on a git command, so a reference there does not count.
+      wired = blocks.any? do |b|
+        b["matcher"].to_s.include?("Bash") &&
+          Array(b["hooks"]).any? { |h| h["command"].to_s.include?(base) }
+      end
+      next if wired
+
+      err("Hook wiring: #{rel} ships but #{SETTINGS_JSON} has no PreToolUse hook under a Bash-covering " \
+          "matcher whose command references `#{base}` - a present-but-unwired (or non-Bash-matched) hook " \
+          "never runs (wire it under hooks.PreToolUse with a matcher that includes Bash)")
     end
   end
 
